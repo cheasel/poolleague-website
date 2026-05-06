@@ -1,7 +1,15 @@
 import { db } from './index'; // You'll need to export your db connection
 import * as schema from './schema';
+import { sql } from "drizzle-orm";
 
 async function main() {
+  console.log("Emptying existing data...");
+  // This clears the tables and resets the ID counters
+  await db.execute(sql`TRUNCATE TABLE teams, venues, players RESTART IDENTITY CASCADE;`);
+
+  console.log("Seeding new data...");
+  // ... your existing seed logic for Rocket Snooker and Juddernauts
+
   console.log('--- Seeding Database ---');
 
   // 1. Create a Season

@@ -1,6 +1,14 @@
 import { db } from "@/db"; // Check if your path alias is @/ or ../../
 import { teams, venues } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
+
+async function deleteTeam(formData: FormData) {
+  "use server";
+  const id = Number(formData.get("id"));
+  await db.delete(teams).where(eq(teams.id, id));
+  revalidatePath("/admin/teams");
+}
 
 export default async function TeamsPage() {
   // Fetch teams and join with venues to see where they play
@@ -11,7 +19,7 @@ export default async function TeamsPage() {
   })
   .from(teams)
   .leftJoin(venues, eq(teams.homeVenueId, venues.id));
-
+  
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
@@ -37,6 +45,15 @@ export default async function TeamsPage() {
                 <td className="px-6 py-4 whitespace-nowrap text-gray-600">{team.venueName || "No Venue"}</td>
                 <td className="px-6 py-4 text-right">
                   <button className="text-blue-600 hover:underline">Edit</button>
+                </td>
+                <td className="px-6 py-4 text-right">
+                  <div className="flex justify-end gap-3">
+                    <button className="text-blue-600 hover:text-blue-900">Edit</button>
+                    <form action={deleteTeam}>
+                      <input type="hidden" name="id" value={team.id} />
+                      <button type="submit" className="text-red-600 hover:text-red-900">Delete</button>
+                    </form>
+                  </div>
                 </td>
               </tr>
             ))}
