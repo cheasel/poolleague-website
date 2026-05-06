@@ -2,6 +2,7 @@
   "name": "poolleague-website",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "dependencies": {
     "@supabase/supabase-js": "^2.105.3",
     "drizzle-orm": "^0.45.2",
@@ -11,10 +12,15 @@
     "react-dom": "^19.2.5"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.2.4",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "autoprefixer": "^10.5.0",
     "dotenv": "^17.4.2",
-    "drizzle-kit": "^0.31.10"
+    "drizzle-kit": "^0.31.10",
+    "postcss": "^8.5.14",
+    "tailwindcss": "^4.2.4",
+    "typescript": "6.0.3"
   },
   "scripts": {
     "dev": "next dev",
