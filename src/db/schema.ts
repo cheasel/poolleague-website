@@ -6,6 +6,13 @@ export const roleEnum = pgEnum('role', ['admin', 'captain', 'viewer']);
 export const matchStatusEnum = pgEnum('match_status', ['scheduled', 'live', 'completed', 'cancelled']);
 
 // 2. Core Tables
+export const venues = pgTable('venues', {
+  id: serial('id').primaryKey(),
+  name: text('name').notNull(),
+  address: text('address'),
+  isActive: boolean('is_active').default(true),
+});
+
 export const seasons = pgTable('seasons', {
   id: serial('id').primaryKey(),
   name: text('name').notNull(),
@@ -19,13 +26,6 @@ export const divisions = pgTable('divisions', {
   name: text('name').notNull(),
 });
 
-export const venues = pgTable('venues', {
-  id: serial('id').primaryKey(),
-  name: text('name').notNull(),
-  address: text('address'),
-  isActive: boolean('is_active').default(true),
-});
-
 export const teams = pgTable('teams', {
   id: serial('id').primaryKey(),
   name: text('name').notNull(),
@@ -33,10 +33,11 @@ export const teams = pgTable('teams', {
   isActive: boolean('is_active').default(true),
 });
 
-export const players = pgTable('players', {
-  id: serial('id').primaryKey(),
-  name: text('name').notNull(),
-  isActive: boolean('is_active').default(true),
+export const players = pgTable("players", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  handicap: integer("handicap").default(0),
+  teamId: integer("team_id").references(() => teams.id), // Link to a team
 });
 
 // 3. The Flexible Membership Table (Multi-team advice)

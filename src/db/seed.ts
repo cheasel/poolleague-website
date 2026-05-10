@@ -40,6 +40,13 @@ async function main() {
     homeVenueId: venue.id,
   }).returning();
 
+  // Add this after your team insertion logic
+  console.log("Seeding players...");
+  await db.insert(players).values([
+    { name: "Ronnie O'Sullivan", handicap: 0, teamId: 1 }, // Rocket Snooker
+    { name: "Judd Trump", handicap: 0, teamId: 2 },        // Juddernauts
+  ]);
+
   console.log('--- Seeding Complete! ---');
 }
 
