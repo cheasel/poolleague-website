@@ -1,32 +1,50 @@
 import { db } from "@/db";
-import { matches, teams } from "@/db/schema";
+import { matches, teams, players as playersTable } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import Link from "next/link";
+import RackEntrySystem from "./rack-entry-system"; // We will create this client component next
 
 export default async function MatchScorePage({ params }: { params: { id: string } }) {
   const matchId = Number(params.id);
 
-  // 1. Fetch the match details
+  // 1. Fetch match and associated teams
   const [match] = await db
     .select()
     .from(matches)
     .where(eq(matches.id, matchId));
 
+  if (!match) return <div className="p-10 text-center">Match not found.</div>;
+
   const [homeTeam] = await db.select().from(teams).where(eq(teams.id, match.homeTeamId!));
   const [awayTeam] = await db.select().from(teams).where(eq(teams.id, match.awayTeamId!));
 
-  // 2. Server Action to save the score
-  async function updateScore(formData: FormData) {
+  // 2. Fetch rosters for both teams to populate player selects
+  const homeRoster = await db
+    .select()
+    .from(playersTable)
+    .where(eq(playersTable.teamId, homeTeam.id));
+
+  const awayRoster = await db
+    .select()
+    .from(playersTable)
+    .where(eq(playersTable.teamId, awayTeam.id));
+
+  // 3. Server Action to save the final rack data and update totals
+  async function saveMatchResult(formData: FormData) {
     "use server";
-    const homeScore = Number(formData.get("homeScore"));
-    const awayScore = Number(formData.get("awayScore"));
+    
+    // In a real implementation, you would parse the rack-by-rack JSON here
+    // For now, we update the totals to keep the Standing Page working
+    const homeTotal = Number(formData.get("homeTotalScore"));
+    const awayTotal = Number(formData.get("awayTotalScore"));
 
     await db.update(matches)
       .set({
-        homeTeamScoreTotal: homeScore,
-        awayTeamScoreTotal: awayScore,
-        status: "completed", // This triggers the League Table update!
+        homeTeamScoreTotal: homeTotal,
+        awayTeamScoreTotal: awayTotal,
+        status: "completed",
       })
       .where(eq(matches.id, matchId));
 
@@ -36,38 +54,38 @@ export default async function MatchScorePage({ params }: { params: { id: string 
   }
 
   return (
-    <div className="p-8 max-w-2xl mx-auto">
-      <h1 className="text-2xl font-bold mb-8">Enter Match Result</h1>
-      
-      <form action={updateScore} className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
-        <div className="flex justify-between items-center mb-8">
+    <div className="p-6 max-w-5xl mx-auto">
+      <div className="mb-6">
+        <Link href="/admin/matches" className="text-sm text-slate-500 hover:text-indigo-600 transition-colors">
+          ← Back to Schedule
+        </Link>
+      </div>
+
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+        {/* Header Section */}
+        <div className="bg-slate-900 p-8 text-white flex justify-between items-center">
           <div className="text-center w-1/3">
-            <div className="font-bold text-slate-900 mb-2">{homeTeam.name}</div>
-            <input 
-              name="homeScore" 
-              type="number" 
-              className="w-20 text-center text-3xl font-black p-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none"
-              defaultValue={match.homeTeamScoreTotal || 0}
-            />
+            <h2 className="text-xl font-black uppercase tracking-tight">{homeTeam.name}</h2>
+            <p className="text-slate-400 text-xs mt-1">HOME TEAM</p>
           </div>
-
-          <div className="text-slate-400 font-black text-xl italic">VS</div>
+          
+          <div className="text-slate-500 font-black italic text-2xl">VS</div>
 
           <div className="text-center w-1/3">
-            <div className="font-bold text-slate-900 mb-2">{awayTeam.name}</div>
-            <input 
-              name="awayScore" 
-              type="number" 
-              className="w-20 text-center text-3xl font-black p-3 border-2 border-slate-200 rounded-xl focus:border-blue-500 outline-none"
-              defaultValue={match.awayTeamScoreTotal || 0}
-            />
+            <h2 className="text-xl font-black uppercase tracking-tight">{awayTeam.name}</h2>
+            <p className="text-slate-400 text-xs mt-1">AWAY TEAM</p>
           </div>
         </div>
 
-        <button type="submit" className="w-full bg-slate-900 text-white py-4 rounded-xl font-bold hover:bg-blue-600 transition-colors">
-          Complete Match & Update Standings
-        </button>
-      </form>
+        {/* Rack-by-Rack Entry System (Client Side) */}
+        <div className="p-8">
+          <RackEntrySystem 
+            homePlayers={homeRoster} 
+            awayPlayers={awayRoster} 
+            onSave={saveMatchResult}
+          />
+        </div>
+      </div>
     </div>
   );
 }
