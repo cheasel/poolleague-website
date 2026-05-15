@@ -2,9 +2,18 @@
 
 import { useState } from 'react';
 
+type Rack = {
+  type: 'single' | 'double';
+  homePlayer1Id: string;
+  homePlayer2Id: string;
+  awayPlayer1Id: string;
+  awayPlayer2Id: string;
+  winner: 'home' | 'away' | null;
+};
+
 export default function RackEntrySystem({ homePlayers, awayPlayers, onSave, initialGames = [] }: any) {
   // Initialize state from existing database games
-  const [racks, setRacks] = useState(() => {
+  const [racks, setRacks] = useState<Rack[]>(() => {
     if (initialGames.length > 0) {
       return initialGames.map((g: any) => ({
         type: g.player1PartnerId || g.player2PartnerId ? 'double' : 'single',
@@ -49,7 +58,7 @@ export default function RackEntrySystem({ homePlayers, awayPlayers, onSave, init
       </div>
 
       <div className="space-y-3">
-        {racks.map((rack: any, idx: number) => (
+        {racks.map((rack, idx) => (
           <div key={idx} className="p-4 bg-white border border-slate-200 rounded-2xl flex flex-col md:flex-row items-center gap-4 hover:border-indigo-200 transition-all">
             <span className="text-slate-300 font-bold text-sm">#{idx + 1}</span>
             

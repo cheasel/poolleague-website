@@ -107,6 +107,13 @@ export default async function MatchesPage() {
                 >
                   {m.status === 'completed' ? 'Edit Score' : 'Enter Score'}
                 </Link>
+
+                <Link 
+                  href={`/matches/${m.id}`} 
+                  className="px-4 py-2 border-2 border-slate-100 hover:border-indigo-200 text-slate-400 hover:text-indigo-600 rounded-xl text-xs font-black transition-all uppercase tracking-widest"
+                >
+                  View Details
+                </Link>
               </div>
             </div>
           ))}

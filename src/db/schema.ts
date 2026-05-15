@@ -1,4 +1,4 @@
-import { pgTable, serial, text, integer, timestamp, boolean, uuid, doublePrecision, pgEnum } from 'drizzle-orm/pg-core';
+import { pgTable, serial, text, integer, varchar, timestamp, boolean, uuid, doublePrecision, pgEnum } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 // 1. Enums for type safety
@@ -63,16 +63,23 @@ export const matches = pgTable('matches', {
   status: matchStatusEnum('status').default('scheduled'),
 });
 
-export const matchGames = pgTable('match_games', {
-  id: serial('id').primaryKey(),
-  matchId: integer('match_id').references(() => matches.id),
-  player1Id: integer('player1_id').references(() => players.id),
-  player2Id: integer('player2_id').references(() => players.id),
-  player1Score: integer('player1_score').default(0),
-  player2Score: integer('player2_score').default(0),
-  highBreakP1: integer('high_break_p1').default(0),
-  highBreakP2: integer('high_break_p2').default(0),
-  gameOrder: integer('game_order'),
+export const matchGames = pgTable("match_games", {
+  id: serial("id").primaryKey(),
+  matchId: integer("match_id").references(() => matches.id, { onDelete: "cascade" }),
+  gameOrder: integer("game_order").notNull(),
+  gameType: varchar("game_type", { length: 20 }).default("single"), // 'single' or 'double'
+  
+  // Home Side
+  player1Id: integer("player1_id").references(() => players.id),
+  player1PartnerId: integer("player1_partner_id").references(() => players.id),
+  
+  // Away Side
+  player2Id: integer("player2_id").references(() => players.id),
+  player2PartnerId: integer("player2_partner_id").references(() => players.id),
+  
+  player1Score: integer("player1_score").default(0),
+  player2Score: integer("player2_score").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 // 5. Auth Profiles
