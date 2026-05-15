@@ -1,5 +1,5 @@
-import { db } from "@/db";
-import { matches, teams, seasons } from "@/db/schema";
+import { db } from "@/src/db";
+import { matches, teams, seasons } from "@/src/db/schema";
 import { eq, asc } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { revalidatePath } from "next/cache";

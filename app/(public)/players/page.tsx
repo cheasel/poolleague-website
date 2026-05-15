@@ -1,5 +1,5 @@
-import { db } from "@/db";
-import { players, matchGames } from "@/db/schema";
+import { db } from "@/src/db";
+import { players, matchGames } from "@/src/db/schema";
 import { eq, asc } from "drizzle-orm";
 
 export default async function PlayerLeaderboardPage() {

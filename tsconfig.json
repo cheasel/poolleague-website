@@ -20,7 +20,7 @@
       ],
       "baseUrl": ".", // This tells TS to start looking from the root
       "paths": {
-        "@/*": ["./src/*"] // This maps @/ to your src folder
+        "@/*": ["./*"] // This maps @/ to your src folder
       }
     },
     "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],

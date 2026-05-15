@@ -1,5 +1,5 @@
-import { db } from "@/db";
-import { matches, teams, players as playersTable, matchGames } from "@/db/schema";
+import { db } from "@/src/db";
+import { matches, teams, players as playersTable, matchGames } from "@/src/db/schema";
 import { eq, asc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
