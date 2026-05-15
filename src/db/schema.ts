@@ -22,14 +22,16 @@ export const seasons = pgTable('seasons', {
 });
 
 export const divisions = pgTable('divisions', {
-  id: serial('id').primaryKey(),
-  name: text('name').notNull(),
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  seasonId: integer("season_id").references(() => seasons.id, { onDelete: "cascade" }),
 });
 
 export const teams = pgTable("teams", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
   homeVenueId: integer("home_venue_id"), // Adjust based on your actual venue table
+  divisionId: integer("division_id").references(() => divisions.id),
   
   // Add these columns for the leaderboard
   points: integer("points").default(0).notNull(),

@@ -15,6 +15,13 @@
       "when": 1778850250350,
       "tag": "0001_ambiguous_omega_sentinel",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1778853229141,
+      "tag": "0002_early_phantom_reporter",
+      "breakpoints": true
     }
   ]
 }

@@ -1,64 +1,34 @@
-import { db } from "@/src/db"; // Check if your path alias is @/ or ../../
-import { teams, venues } from "@/src/db/schema";
-import { eq } from "drizzle-orm";
+import { db } from "@/src/db";
+import { teams, divisions } from "@/src/db/schema";
 import { revalidatePath } from "next/cache";
 
-async function deleteTeam(formData: FormData) {
-  "use server";
-  const id = Number(formData.get("id"));
-  await db.delete(teams).where(eq(teams.id, id));
-  revalidatePath("/admin/teams");
-}
+export default async function AdminTeamsPage() {
+  const allTeams = await db.select().from(teams);
+  const allDivs = await db.select().from(divisions);
 
-export default async function TeamsPage() {
-  // Fetch teams and join with venues to see where they play
-  const allTeams = await db.select({
-    id: teams.id,
-    name: teams.name,
-    venueName: venues.name,
-  })
-  .from(teams)
-  .leftJoin(venues, eq(teams.homeVenueId, venues.id));
-  
+  async function addTeam(formData: FormData) {
+    "use server";
+    const name = formData.get("name") as string;
+    const divisionId = Number(formData.get("divisionId"));
+    await db.insert(teams).values({ name, divisionId });
+    revalidatePath("/admin/teams");
+  }
+
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold">Teams</h2>
-        <button className="bg-blue-600 text-white px-4 py-2 rounded">
-          + Add New Team
-        </button>
-      </div>
-
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Team Name</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Home Venue</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {allTeams.map((team) => (
-              <tr key={team.id}>
-                <td className="px-6 py-4 whitespace-nowrap font-medium">{team.name}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-gray-600">{team.venueName || "No Venue"}</td>
-                <td className="px-6 py-4 text-right">
-                  <button className="text-blue-600 hover:underline">Edit</button>
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <div className="flex justify-end gap-3">
-                    <button className="text-blue-600 hover:text-blue-900">Edit</button>
-                    <form action={deleteTeam}>
-                      <input type="hidden" name="id" value={team.id} />
-                      <button type="submit" className="text-red-600 hover:text-red-900">Delete</button>
-                    </form>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <div className="p-8 max-w-2xl mx-auto">
+      <h1 className="text-2xl font-black uppercase italic mb-8">Add Team</h1>
+      <form action={addTeam} className="space-y-4 mb-10 bg-slate-50 p-6 rounded-2xl">
+        <input name="name" placeholder="Team Name" required className="w-full p-3 border rounded-xl" />
+        <select name="divisionId" required className="w-full p-3 border rounded-xl">
+          <option value="">Assign to Division</option>
+          {allDivs.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+        </select>
+        <button className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold uppercase text-xs">Register Team</button>
+      </form>
+      <div className="grid gap-2">
+        {allTeams.map(t => (
+          <div key={t.id} className="p-4 bg-white border rounded-xl font-bold uppercase">{t.name}</div>
+        ))}
       </div>
     </div>
   );
