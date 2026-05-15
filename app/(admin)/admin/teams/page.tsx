@@ -2,7 +2,8 @@ import { db } from "@/src/db";
 import { teams, divisions, seasons } from "@/src/db/schema";
 import { eq, asc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { Trophy, Users, Hash, Plus, Trash2 } from "lucide-react";
+import { Trophy, Users, Hash, Plus, Trash2, Pencil } from "lucide-react";
+import Link from 'next/link';
 
 export default async function AdminTeamsPage() {
   // 1. Fetch data for the list and the dropdown
@@ -127,12 +128,22 @@ export default async function AdminTeamsPage() {
                   </div>
                 </div>
 
-                <form action={deleteTeam}>
-                  <input type="hidden" name="id" value={team.id} />
-                  <button className="p-2 text-slate-200 hover:text-red-500 transition-colors">
-                    <Trash2 className="w-5 h-5" />
-                  </button>
-                </form>
+                <div className="flex items-center gap-2">
+                  {/* NEW EDIT BUTTON */}
+                  <Link 
+                    href={`/admin/teams/${team.id}`}
+                    className="p-2 text-slate-300 hover:text-indigo-600 transition-colors"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                  </Link>
+
+                  <form action={deleteTeam}>
+                    <input type="hidden" name="id" value={team.id} />
+                    <button className="p-2 text-slate-200 hover:text-red-500 transition-colors">
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  </form>
+                </div>
               </div>
             ))}
 
