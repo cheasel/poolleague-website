@@ -26,11 +26,17 @@ export const divisions = pgTable('divisions', {
   name: text('name').notNull(),
 });
 
-export const teams = pgTable('teams', {
-  id: serial('id').primaryKey(),
-  name: text('name').notNull(),
-  homeVenueId: integer('home_venue_id').references(() => venues.id),
-  isActive: boolean('is_active').default(true),
+export const teams = pgTable("teams", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  homeVenueId: integer("home_venue_id"), // Adjust based on your actual venue table
+  
+  // Add these columns for the leaderboard
+  points: integer("points").default(0).notNull(),
+  setsWon: integer("sets_won").default(0).notNull(),
+  setsLost: integer("sets_lost").default(0).notNull(),
+  
+  createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const players = pgTable("players", {
