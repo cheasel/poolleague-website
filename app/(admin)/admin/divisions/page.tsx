@@ -1,17 +1,36 @@
 import { db } from "@/src/db";
-import { divisions, seasons } from "@/src/db/schema";
+import { divisions, seasons, teams } from "@/src/db/schema";
 import { eq, asc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import DeleteButton from "@/components/delete-button";
+import { Layers, Users, Plus, Trophy } from "lucide-react";
 
 export default async function AdminDivisionsPage() {
-  const allDivs = await db.select().from(divisions).orderBy(asc(divisions.name));
-  const allSeasons = await db.select().from(seasons);
+  // 1. Fetch Seasons for the dropdown
+  const allSeasons = await db.select().from(seasons).orderBy(asc(seasons.name));
 
+  // 2. Fetch Divisions and their Teams
+  // We fetch divisions first, then we will map them to include their teams
+  const divsWithTeams = await db
+    .select({
+      id: divisions.id,
+      name: divisions.name,
+      seasonName: seasons.name,
+    })
+    .from(divisions)
+    .leftJoin(seasons, eq(divisions.seasonId, seasons.id))
+    .orderBy(asc(divisions.name));
+
+  // Fetch all teams to associate them in memory (more efficient than multiple queries)
+  const allTeams = await db.select().from(teams);
+
+  // --- SERVER ACTIONS ---
   async function addDivision(formData: FormData) {
     "use server";
     const name = formData.get("name") as string;
     const seasonId = Number(formData.get("seasonId"));
+    if (!name || !seasonId) return;
+
     await db.insert(divisions).values({ name, seasonId });
     revalidatePath("/admin/divisions");
   }
@@ -24,27 +43,87 @@ export default async function AdminDivisionsPage() {
   }
 
   return (
-    <div className="space-y-8">
-      <h1 className="text-4xl font-black text-slate-900 uppercase italic">Divisions</h1>
+    <div className="space-y-10">
+      <header>
+        <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tighter italic">Division Management</h1>
+        <p className="text-slate-500 font-medium">Create league tiers and monitor team assignments.</p>
+      </header>
 
-      <div className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-200">
-        <form action={addDivision} className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <input name="name" placeholder="Division Name..." required className="p-4 bg-slate-50 border rounded-2xl font-bold" />
-          <select name="seasonId" required className="p-4 bg-slate-50 border rounded-2xl font-bold">
-            <option value="">Select Season</option>
-            {allSeasons.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>
-          <button className="bg-indigo-600 text-white p-4 rounded-2xl font-black uppercase text-xs">Create Division</button>
+      {/* Create Division Card */}
+      <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-200">
+        <form action={addDivision} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+          <div className="md:col-span-5 space-y-2">
+            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Division Name</label>
+            <input 
+              name="name" 
+              placeholder="e.g. Premier Division" 
+              required 
+              className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold" 
+            />
+          </div>
+          <div className="md:col-span-4 space-y-2">
+            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Assign Season</label>
+            <select 
+              name="seasonId" 
+              required 
+              className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold appearance-none"
+            >
+              <option value="">Select Season</option>
+              {allSeasons.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          </div>
+          <div className="md:col-span-3">
+            <button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white p-4 rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-all">
+              <Plus className="w-4 h-4" /> Create Division
+            </button>
+          </div>
         </form>
       </div>
 
-      <div className="bg-white rounded-[2rem] border border-slate-200 overflow-hidden">
-        {allDivs.map(d => (
-          <div key={d.id} className="p-6 flex justify-between items-center border-b last:border-0 hover:bg-slate-50">
-            <span className="font-black text-slate-900 uppercase">{d.name}</span>
-            <DeleteButton id={d.id} action={deleteDivision} label="Division" />
-          </div>
-        ))}
+      {/* Divisions & Teams List */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {divsWithTeams.map((div) => {
+          const assignedTeams = allTeams.filter(t => t.divisionId === div.id);
+          
+          return (
+            <div key={div.id} className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+              <div className="p-6 bg-slate-900 text-white flex justify-between items-center">
+                <div>
+                  <div className="flex items-center gap-2 text-indigo-400 mb-1">
+                    <Trophy className="w-3 h-3" />
+                    <span className="text-[9px] font-black uppercase tracking-[0.2em]">{div.seasonName}</span>
+                  </div>
+                  <h3 className="font-black uppercase tracking-tight text-lg leading-none">{div.name}</h3>
+                </div>
+                <DeleteButton id={div.id} action={deleteDivision} label="Division" />
+              </div>
+
+              <div className="p-6 flex-1">
+                <div className="flex items-center gap-2 mb-4">
+                  <Users className="w-4 h-4 text-slate-400" />
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    Teams ({assignedTeams.length})
+                  </span>
+                </div>
+                
+                <div className="space-y-2">
+                  {assignedTeams.map((team) => (
+                    <div key={team.id} className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between group">
+                      <span className="font-bold text-slate-700 uppercase text-xs">{team.name}</span>
+                      <div className="w-1.5 h-1.5 rounded-full bg-slate-200 group-hover:bg-indigo-500 transition-colors"></div>
+                    </div>
+                  ))}
+                  
+                  {assignedTeams.length === 0 && (
+                    <div className="py-8 text-center border-2 border-dashed border-slate-100 rounded-2xl">
+                      <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest italic">No teams assigned</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
