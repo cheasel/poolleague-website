@@ -1,5 +1,5 @@
-import { db } from "@/db";
-import { players, teams } from "@/db/schema";
+import { db } from "@/src/db";
+import { players, teams } from "@/src/db/schema";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import AddPlayerForm from "./add-player-form";

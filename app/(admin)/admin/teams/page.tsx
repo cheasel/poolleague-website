@@ -1,5 +1,5 @@
-import { db } from "@/db"; // Check if your path alias is @/ or ../../
-import { teams, venues } from "@/db/schema";
+import { db } from "@/src/db"; // Check if your path alias is @/ or ../../
+import { teams, venues } from "@/src/db/schema";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
