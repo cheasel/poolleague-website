@@ -1,87 +1,83 @@
-import { db } from "@/db";
-import { teams, matches } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { db } from "@/src/db";
+import { teams } from "@/src/db/schema";
+import { desc, sql } from "drizzle-orm";
 
 export default async function StandingsPage() {
-  // 1. Fetch all teams and completed matches
-  const allTeams = await db.select().from(teams);
-  const completedMatches = await db
+  // Sort by Points, then Frame Difference (setsWon - setsLost)
+  const allTeams = await db
     .select()
-    .from(matches)
-    .where(eq(matches.status, "completed"));
-
-  // 2. Calculate Stats
-  const stats = allTeams.map((team) => {
-    let played = 0;
-    let won = 0;
-    let lost = 0;
-    let framesFor = 0;
-    let framesAgainst = 0;
-
-    completedMatches.forEach((m) => {
-      if (m.homeTeamId === team.id) {
-        played++;
-        framesFor += m.homeTeamScoreTotal || 0;
-        framesAgainst += m.awayTeamScoreTotal || 0;
-        if ((m.homeTeamScoreTotal || 0) > (m.awayTeamScoreTotal || 0)) won++;
-        else lost++;
-      } else if (m.awayTeamId === team.id) {
-        played++;
-        framesFor += m.awayTeamScoreTotal || 0;
-        framesAgainst += m.homeTeamScoreTotal || 0;
-        if ((m.awayTeamScoreTotal || 0) > (m.homeTeamScoreTotal || 0)) won++;
-        else lost++;
-      }
-    });
-
-    return {
-      ...team,
-      played,
-      won,
-      lost,
-      framesFor,
-      framesAgainst,
-      diff: framesFor - framesAgainst,
-      points: won * 3, // 3 points for a win
-    };
-  });
-
-  // 3. Sort by Points, then Frame Difference
-  const sortedStats = stats.sort((a, b) => b.points - a.points || b.diff - a.diff);
+    .from(teams)
+    .orderBy(
+      desc(teams.points), 
+      desc(sql`${teams.setsWon} - ${teams.setsLost}`), 
+      desc(teams.setsWon)
+    );
 
   return (
-    <div className="p-8 max-w-4xl mx-auto">
-      <h1 className="text-3xl font-black mb-8 text-slate-900 uppercase tracking-tight">League Standings</h1>
-      
-      <div className="bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-slate-900 text-slate-200">
-              <th className="px-6 py-4 text-xs font-bold uppercase">Pos</th>
-              <th className="px-6 py-4 text-xs font-bold uppercase">Team</th>
-              <th className="px-6 py-4 text-xs font-bold uppercase text-center">P</th>
-              <th className="px-6 py-4 text-xs font-bold uppercase text-center">W</th>
-              <th className="px-6 py-4 text-xs font-bold uppercase text-center">L</th>
-              <th className="px-6 py-4 text-xs font-bold uppercase text-center">FD</th>
-              <th className="px-6 py-4 text-xs font-bold uppercase text-right text-yellow-400">Pts</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {sortedStats.map((team, idx) => (
-              <tr key={team.id} className="hover:bg-slate-50 transition-colors">
-                <td className="px-6 py-4 font-bold text-slate-400">{idx + 1}</td>
-                <td className="px-6 py-4 font-bold text-slate-900">{team.name}</td>
-                <td className="px-6 py-4 text-center text-slate-600 font-medium">{team.played}</td>
-                <td className="px-6 py-4 text-center text-green-600 font-bold">{team.won}</td>
-                <td className="px-6 py-4 text-center text-red-600 font-medium">{team.lost}</td>
-                <td className="px-6 py-4 text-center font-mono text-slate-500">
-                  {team.diff > 0 ? `+${team.diff}` : team.diff}
-                </td>
-                <td className="px-6 py-4 text-right font-black text-slate-900">{team.points}</td>
+    <div className="min-h-screen bg-slate-50 p-6 md:p-12">
+      <div className="max-w-5xl mx-auto">
+        <header className="mb-10">
+          <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tighter italic">League Standings</h1>
+          <p className="text-slate-500 font-medium">Official 2026 Season Rankings</p>
+        </header>
+        
+        <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-2xl overflow-hidden">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-900 text-white text-[10px] uppercase tracking-[0.2em]">
+                <th className="px-8 py-6">Pos</th>
+                <th className="px-8 py-6">Team Name</th>
+                <th className="px-8 py-6 text-center">FW</th>
+                <th className="px-8 py-6 text-center">FL</th>
+                <th className="px-8 py-6 text-center bg-slate-800">Diff</th>
+                <th className="px-8 py-6 text-right bg-indigo-600">Points</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {allTeams.map((team, idx) => {
+                const diff = team.setsWon - team.setsLost;
+                return (
+                  <tr key={team.id} className="hover:bg-indigo-50/30 transition-colors group">
+                    <td className="px-8 py-6 font-mono text-slate-300 font-black text-lg italic">
+                      {idx + 1}
+                    </td>
+                    <td className="px-8 py-6">
+                      <span className="font-black text-slate-900 uppercase tracking-tight group-hover:text-indigo-600 transition-colors">
+                        {team.name}
+                      </span>
+                    </td>
+                    <td className="px-8 py-6 text-center font-bold text-slate-600">
+                      {team.setsWon}
+                    </td>
+                    <td className="px-8 py-6 text-center font-bold text-slate-400">
+                      {team.setsLost}
+                    </td>
+                    <td className={`px-8 py-6 text-center font-black tabular-nums bg-slate-50/50 ${
+                      diff > 0 ? 'text-green-600' : diff < 0 ? 'text-red-400' : 'text-slate-300'
+                    }`}>
+                      {diff > 0 ? `+${diff}` : diff}
+                    </td>
+                    <td className="px-8 py-6 text-right font-black text-white bg-indigo-600/90 tabular-nums">
+                      {team.points}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          
+          {allTeams.length === 0 && (
+            <div className="p-20 text-center text-slate-300 font-black uppercase tracking-widest italic">
+              No teams registered in the league yet.
+            </div>
+          )}
+        </div>
+
+        <div className="mt-8 flex gap-6 text-[10px] font-black text-slate-400 uppercase tracking-widest px-4">
+          <div className="flex items-center gap-2"><span className="w-2 h-2 bg-slate-900 rounded-full"></span> FW: Frames Won</div>
+          <div className="flex items-center gap-2"><span className="w-2 h-2 bg-slate-400 rounded-full"></span> FL: Frames Lost</div>
+          <div className="flex items-center gap-2"><span className="w-2 h-2 bg-indigo-600 rounded-full"></span> Diff: Frame Difference</div>
+        </div>
       </div>
     </div>
   );

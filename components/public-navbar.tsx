@@ -18,7 +18,7 @@ export default function PublicNavbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
           {/* Logo Section */}
-          <Link href="/standings" className="flex items-center gap-2 group">
+          <Link href="/" className="flex items-center gap-2 group">
             <div className="bg-slate-900 p-1.5 rounded-lg group-hover:bg-indigo-600 transition-colors">
               <BarChart3 className="w-5 h-5 text-white" />
             </div>

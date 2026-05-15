@@ -1,6 +1,6 @@
 import { db } from "@/src/db";
 import { matches, teams, players as playersTable, matchGames } from "@/src/db/schema";
-import { eq, asc, or, and, sql } from "drizzle-orm";
+import { eq, asc, or, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -10,7 +10,6 @@ export default async function MatchScorePage({ params }: { params: { id: string 
   const { id } = await params;
   const matchId = Number(id);
 
-  // 1. Fetch match and rosters
   const [match] = await db.select().from(matches).where(eq(matches.id, matchId));
   if (!match) return <div className="p-10 text-center">Match not found.</div>;
 
@@ -23,56 +22,51 @@ export default async function MatchScorePage({ params }: { params: { id: string 
     .where(eq(matchGames.matchId, matchId))
     .orderBy(asc(matchGames.gameOrder));
 
-  // --- RECALCULATION HELPER ---
-  async function updateTeamStandings(tx: any, teamId: number) {
-    const teamMatches = await tx
-      .select()
-      .from(matches)
-      .where(
-        and(
-          eq(matches.status, "completed"),
-          or(eq(matches.homeTeamId, teamId), eq(matches.awayTeamId, teamId))
-        )
-      );
-
-    let totalPoints = 0;
-    let setsWon = 0;
-    let setsLost = 0;
-
-    teamMatches.forEach((m: any) => {
-      const isHome = m.homeTeamId === teamId;
-      const homeScore = m.homeTeamScoreTotal || 0;
-      const awayScore = m.awayTeamScoreTotal || 0;
-
-      const teamScore = isHome ? homeScore : awayScore;
-      const oppScore = isHome ? awayScore : homeScore;
-
-      setsWon += teamScore;
-      setsLost += oppScore;
-
-      // UPDATED LEAGUE POINT LOGIC: 2 for Win, 1 for Draw, 0 for Loss
-      if (teamScore > oppScore) {
-        totalPoints += 2; // Set win points to 2 here
-      } else if (teamScore === oppScore) {
-        totalPoints += 1;
-      }
-    });
-
-    await tx.update(teams)
-      .set({ points: totalPoints, setsWon, setsLost })
-      .where(eq(teams.id, teamId));
-  }
-
   // --- SERVER ACTION ---
   async function saveMatchResult(formData: FormData) {
     "use server";
     
+    // 1. Internal Helper (Defined inside the action to avoid serialization errors)
+    const updateTeamStandingsInternal = async (tx: any, teamId: number) => {
+      const teamMatches = await tx
+        .select()
+        .from(matches)
+        .where(
+          and(
+            eq(matches.status, "completed"),
+            or(eq(matches.homeTeamId, teamId), eq(matches.awayTeamId, teamId))
+          )
+        );
+
+      let totalPoints = 0;
+      let setsWon = 0;
+      let setsLost = 0;
+
+      teamMatches.forEach((m: any) => {
+        const isHome = m.homeTeamId === teamId;
+        const homeScore = m.homeTeamScoreTotal || 0;
+        const awayScore = m.awayTeamScoreTotal || 0;
+        const teamScore = isHome ? homeScore : awayScore;
+        const oppScore = isHome ? awayScore : homeScore;
+
+        setsWon += teamScore;
+        setsLost += oppScore;
+
+        if (teamScore > oppScore) totalPoints += 2;
+        else if (teamScore === oppScore) totalPoints += 1;
+      });
+
+      await tx.update(teams)
+        .set({ points: totalPoints, setsWon, setsLost })
+        .where(eq(teams.id, teamId));
+    };
+
     const racks = JSON.parse(formData.get("racksJson") as string);
     const homeTotal = racks.filter((r: any) => r.winner === 'home').length;
     const awayTotal = racks.filter((r: any) => r.winner === 'away').length;
 
     await db.transaction(async (tx) => {
-      // Update Match Score
+      // Update Match Header
       await tx.update(matches)
         .set({ homeTeamScoreTotal: homeTotal, awayTeamScoreTotal: awayTotal, status: "completed" })
         .where(eq(matches.id, matchId));
@@ -93,9 +87,9 @@ export default async function MatchScorePage({ params }: { params: { id: string 
         })));
       }
 
-      // Recalculate League Points for both teams
-      if (match.homeTeamId) await updateTeamStandings(tx, match.homeTeamId);
-      if (match.awayTeamId) await updateTeamStandings(tx, match.awayTeamId);
+      // Recalculate Standings
+      if (match.homeTeamId) await updateTeamStandingsInternal(tx, match.homeTeamId);
+      if (match.awayTeamId) await updateTeamStandingsInternal(tx, match.awayTeamId);
     });
 
     revalidatePath("/");
