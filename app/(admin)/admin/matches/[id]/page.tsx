@@ -1,6 +1,6 @@
 import { db } from "@/src/db";
 import { matches, teams, players as playersTable, matchGames } from "@/src/db/schema";
-import { eq, asc, or, sql } from "drizzle-orm";
+import { eq, asc, or, and, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -10,6 +10,7 @@ export default async function MatchScorePage({ params }: { params: { id: string 
   const { id } = await params;
   const matchId = Number(id);
 
+  // 1. Fetch match and rosters
   const [match] = await db.select().from(matches).where(eq(matches.id, matchId));
   if (!match) return <div className="p-10 text-center">Match not found.</div>;
 
@@ -24,7 +25,6 @@ export default async function MatchScorePage({ params }: { params: { id: string 
 
   // --- RECALCULATION HELPER ---
   async function updateTeamStandings(tx: any, teamId: number) {
-    // 1. Get all matches for this team that are completed
     const teamMatches = await tx
       .select()
       .from(matches)
@@ -50,12 +50,14 @@ export default async function MatchScorePage({ params }: { params: { id: string 
       setsWon += teamScore;
       setsLost += oppScore;
 
-      // League Point Logic: 3 for Win, 1 for Draw, 0 for Loss
-      if (teamScore > oppScore) totalPoints += 3;
-      else if (teamScore === oppScore) totalPoints += 1;
+      // UPDATED LEAGUE POINT LOGIC: 2 for Win, 1 for Draw, 0 for Loss
+      if (teamScore > oppScore) {
+        totalPoints += 2; // Set win points to 2 here
+      } else if (teamScore === oppScore) {
+        totalPoints += 1;
+      }
     });
 
-    // 2. Update the teams table with the new totals
     await tx.update(teams)
       .set({ points: totalPoints, setsWon, setsLost })
       .where(eq(teams.id, teamId));
@@ -70,12 +72,12 @@ export default async function MatchScorePage({ params }: { params: { id: string 
     const awayTotal = racks.filter((r: any) => r.winner === 'away').length;
 
     await db.transaction(async (tx) => {
-      // 1. Update Match Header
+      // Update Match Score
       await tx.update(matches)
         .set({ homeTeamScoreTotal: homeTotal, awayTeamScoreTotal: awayTotal, status: "completed" })
         .where(eq(matches.id, matchId));
 
-      // 2. Update Match Frames
+      // Update Match Frames
       await tx.delete(matchGames).where(eq(matchGames.matchId, matchId));
       if (racks.length > 0) {
         await tx.insert(matchGames).values(racks.map((r: any, index: number) => ({
@@ -91,7 +93,7 @@ export default async function MatchScorePage({ params }: { params: { id: string 
         })));
       }
 
-      // 3. RECALCULATE LEAGUE POINTS
+      // Recalculate League Points for both teams
       if (match.homeTeamId) await updateTeamStandings(tx, match.homeTeamId);
       if (match.awayTeamId) await updateTeamStandings(tx, match.awayTeamId);
     });
@@ -104,9 +106,9 @@ export default async function MatchScorePage({ params }: { params: { id: string 
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
-      <div className="mb-6 flex justify-between items-center">
-        <Link href="/admin/matches" className="text-slate-500 hover:text-indigo-600 font-bold text-xs uppercase">
-          ← Back
+      <div className="mb-6">
+        <Link href="/admin/matches" className="text-slate-400 hover:text-indigo-600 font-black text-[10px] uppercase tracking-widest">
+          ← Back to Match Admin
         </Link>
       </div>
       <RackEntrySystem 
@@ -118,6 +120,3 @@ export default async function MatchScorePage({ params }: { params: { id: string 
     </div>
   );
 }
-
-// Ensure "and" is imported from drizzle-orm
-import { and } from "drizzle-orm";
