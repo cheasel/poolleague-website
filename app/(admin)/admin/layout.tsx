@@ -1,67 +1,67 @@
 import Link from "next/link";
 import { 
-  Trophy, 
-  Layers, 
+  LayoutDashboard, 
   Users, 
-  UserSquare2, 
-  LayoutDashboard,
-  ShieldCheck
+  ShieldAlert, 
+  Layers, 
+  CalendarDays 
 } from "lucide-react";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  // Navigation matrix including the new Player Management portal route
+  // Navigation mapping object array representing your admin sections
   const navItems = [
-    { label: "Dashboard", href: "/admin", icon: LayoutDashboard },
-    { label: "Seasons", href: "/admin/seasons", icon: Trophy },
-    { label: "Divisions", href: "/admin/divisions", icon: Layers },
-    { label: "Teams", href: "/admin/teams", icon: Users },
-    { label: "Players", href: "/admin/players", icon: UserSquare2 }, // <-- NEW PORTAL
+    { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/admin/matches", label: "Matches & Scores", icon: CalendarDays }, // NEWLY CHANNED LINK
+    { href: "/admin/players", label: "Player Registry", icon: Users },
+    { href: "/admin/teams", label: "Club Squads", icon: ShieldAlert },
+    { href: "/admin/divisions", label: "Divisions", icon: Layers },
   ];
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
-      {/* Sidebar Desktop Panel */}
-      <aside className="w-64 bg-slate-900 text-white flex flex-col justify-between p-6 border-r border-slate-800 shrink-0 hidden md:flex">
-        <div className="space-y-8">
-          {/* Admin Header Core */}
-          <div className="flex items-center gap-3 px-2">
-            <div className="bg-indigo-600 p-2.5 rounded-xl text-white shadow-lg shadow-indigo-600/30">
-              <ShieldCheck className="w-5 h-5" />
-            </div>
-            <div>
-              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 block">League Office</span>
-              <span className="text-sm font-black uppercase tracking-tight italic">Admin Panel</span>
-            </div>
-          </div>
-
-          {/* Navigation Links Loop */}
-          <nav className="space-y-1">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="flex items-center gap-3 px-4 py-3 text-xs font-black uppercase tracking-wider text-slate-400 hover:text-white hover:bg-slate-800/60 rounded-xl transition-all group"
-                >
-                  <Icon className="w-4 h-4 text-slate-500 group-hover:text-indigo-400 transition-colors" />
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
+    <div className="min-h-screen bg-slate-100 flex flex-col md:flex-row font-sans text-slate-900 antialiased">
+      
+      {/* Persistent Administrative Sidebar */}
+      <aside className="w-full md:w-64 bg-slate-900 text-white flex flex-col shrink-0 shadow-xl z-20">
+        <div className="p-6 border-b border-slate-800 flex items-center gap-3">
+          <div className="w-3 h-3 rounded-full bg-indigo-500 animate-pulse" />
+          <span className="text-xs font-black uppercase tracking-[0.3em] text-slate-200">
+            League HQ Admin
+          </span>
         </div>
 
-        {/* Footer Branding Segment */}
-        <div className="px-2 text-[10px] font-bold text-slate-600 uppercase tracking-widest">
-          v1.4.0 • 2026 Engine
+        {/* Navigation Core Tickers List */}
+        <nav className="flex-1 p-4 space-y-1.5">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="flex items-center gap-3.5 px-4 py-3.5 text-xs font-black uppercase tracking-widest text-slate-400 hover:text-white hover:bg-slate-800/60 rounded-xl transition-all group"
+              >
+                <Icon className="w-4 h-4 text-slate-500 group-hover:text-indigo-400 transition-colors stroke-[2.5]" />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Workspace Footprint Meta Guard */}
+        <div className="p-4 border-t border-slate-800 text-center">
+          <Link 
+            href="/standings" 
+            className="block text-[9px] font-black uppercase tracking-widest text-indigo-400 hover:text-indigo-300 transition-colors bg-indigo-950/40 border border-indigo-900/30 p-2.5 rounded-xl"
+          >
+            Exit to Public Site →
+          </Link>
         </div>
       </aside>
 
-      {/* Main Panel Body Viewport */}
-      <main className="flex-1 p-6 md:p-12 overflow-y-auto max-w-7xl mx-auto w-full">
+      {/* Dynamic Content Frame Box */}
+      <main className="flex-1 p-6 md:p-12 overflow-y-auto max-h-screen container mx-auto">
         {children}
       </main>
+
     </div>
   );
 }
