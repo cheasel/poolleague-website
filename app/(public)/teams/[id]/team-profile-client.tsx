@@ -10,6 +10,21 @@ interface RosterPlayer {
   imageUrl: string | null;
 }
 
+interface PlayerStats {
+  id: number;
+  name: string;
+  imageUrl: string | null;
+  singlesPlayed: number;
+  singlesWins: number;
+  singlesLosses: number;
+  doublesPlayed: number;
+  doublesWins: number;
+  doublesLosses: number;
+  totalPlayed: number;
+  totalWins: number;
+  winPercentage: string;
+}
+
 interface MatchLog {
   id: number;
   matchDate: Date | string | null;
@@ -28,6 +43,7 @@ interface TeamProfileClientProps {
   divisionName: string;
   seasonName: string;
   roster: RosterPlayer[];
+  rosterStats: PlayerStats[]; // <-- DEFINE EXTENDED INTERFACE CONTRACT
   matches: MatchLog[];
 }
 
@@ -37,13 +53,12 @@ export default function TeamProfileClient({
   divisionName,
   seasonName,
   roster,
+  rosterStats,
   matches,
 }: TeamProfileClientProps) {
   
-  // 1. Interactive Client State Control for View Modes
   const [activeTab, setActiveTab] = useState<"roster" | "stats">("roster");
 
-  // 2. Partition match datasets and map form trends reactively
   const { completedMatches, scheduledMatches, formTrend } = useMemo(() => {
     const completed = matches.filter(m => m.status === "completed");
     const scheduled = matches.filter(m => m.status === "scheduled" || m.status === "live");
@@ -113,8 +128,6 @@ export default function TeamProfileClient({
         
         {/* Left Side: Dynamic Workspace Panel (7 Columns Wide) */}
         <div className="lg:col-span-7 space-y-6">
-          
-          {/* Header & Toggle Strategy Button Group */}
           <div className="flex items-center justify-between px-2">
             <div className="flex items-center gap-3">
               <Users className="w-5 h-5 text-indigo-500" />
@@ -123,7 +136,6 @@ export default function TeamProfileClient({
               </h2>
             </div>
             
-            {/* NEW INTERACTIVE TEAM STATS CONTROLLER */}
             <button
               onClick={() => setActiveTab(activeTab === "roster" ? "stats" : "roster")}
               className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${
@@ -137,9 +149,8 @@ export default function TeamProfileClient({
             </button>
           </div>
 
-          {/* Tab View Conditional Renderer */}
           {activeTab === "roster" ? (
-            /* STANDARD ROSTER SHEET */
+            /* STANDARD ROSTER VIEW SHEETS */
             <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
               <div className="divide-y divide-slate-100">
                 {roster.map((player) => (
@@ -163,25 +174,53 @@ export default function TeamProfileClient({
                     <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-indigo-500 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
                   </Link>
                 ))}
-
-                {roster.length === 0 && (
-                  <div className="p-16 text-center text-sm font-bold text-slate-400 italic uppercase tracking-widest">
-                    No players currently registered to this club roster.
-                  </div>
-                )}
               </div>
             </div>
           ) : (
-            /* TEAM STATS SHEET SUB-VIEW PORTAL */
+            /* NEW FULLY OPERATIONAL TEAM STATISTICS SHEET */
             <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
-              <div className="p-8 text-center text-xs font-bold text-slate-400 uppercase tracking-wider italic">
-                <div className="flex flex-col items-center gap-2 text-slate-300">
-                  <Trophy className="w-8 h-8" />
-                  <span>Team Stat matrix queries are cross-referenced dynamically.</span>
-                </div>
-                <p className="mt-4 text-[11px] font-medium text-slate-400 normal-case">
-                  Click on any player profile card in the roster sheet layout to see full frame analytics, singles breakdown logs, and partner win percentages.
-                </p>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-left text-xs">
+                  <thead>
+                    <tr className="bg-slate-900 text-slate-400 font-black uppercase tracking-widest border-b border-slate-800">
+                      <th className="p-4 pl-6">Player</th>
+                      <th className="p-4 text-center">Singles (W/L)</th>
+                      <th className="p-4 text-center">Doubles (W/L)</th>
+                      <th className="p-4 text-center bg-indigo-950 text-indigo-400 pr-6">Win %</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-bold uppercase tracking-tight text-slate-700">
+                    {rosterStats.map((stat) => (
+                      <tr key={stat.id} className="hover:bg-slate-50/80 transition-colors group">
+                        <td className="p-4 pl-6 font-black text-slate-900 whitespace-nowrap">
+                          <Link href={`/players/${stat.id}`} className="hover:text-indigo-600 transition-colors flex items-center gap-3">
+                            <div className="w-7 h-7 rounded-lg overflow-hidden bg-slate-50 border shrink-0 flex items-center justify-center">
+                              {stat.imageUrl ? (
+                                <img src={stat.imageUrl} alt={stat.name} className="w-full h-full object-cover" />
+                              ) : (
+                                <User className="w-3.5 h-3.5 text-slate-400" />
+                              )}
+                            </div>
+                            <span>{stat.name}</span>
+                          </Link>
+                        </td>
+                        <td className="p-4 text-center font-medium tabular-nums">
+                          <span className="text-green-600 font-black">{stat.singlesWins}W</span>
+                          <span className="text-slate-300 mx-1">-</span>
+                          <span className="text-slate-400">{stat.singlesLosses}L</span>
+                        </td>
+                        <td className="p-4 text-center font-medium tabular-nums">
+                          <span className="text-green-600 font-black">{stat.doublesWins}W</span>
+                          <span className="text-slate-300 mx-1">-</span>
+                          <span className="text-slate-400">{stat.doublesLosses}L</span>
+                        </td>
+                        <td className="p-4 text-center font-black italic bg-indigo-50/30 text-indigo-600 tabular-nums pr-6">
+                          {stat.winPercentage}%
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           )}
@@ -194,7 +233,6 @@ export default function TeamProfileClient({
             <h2 className="text-xl font-black uppercase tracking-tight text-slate-900">Fixtures Calendar</h2>
           </div>
 
-          {/* Upcoming Matches Panel */}
           <div className="space-y-3">
             <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Upcoming Matches</h3>
             <div className="bg-white rounded-[2rem] border border-slate-200 p-4 space-y-3 shadow-sm">
@@ -227,7 +265,6 @@ export default function TeamProfileClient({
             </div>
           </div>
 
-          {/* Past Match Outcomes Sheet */}
           <div className="space-y-3 pt-2">
             <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Recent Results</h3>
             <div className="bg-white rounded-[2rem] border border-slate-200 divide-y divide-slate-100 shadow-sm overflow-hidden">
@@ -264,8 +301,8 @@ export default function TeamProfileClient({
               )}
             </div>
           </div>
-
         </div>
+
       </div>
     </div>
   );
