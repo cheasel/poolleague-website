@@ -1,8 +1,8 @@
 'use client';
 
-import { useMemo } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
-import { Users, CalendarDays, ArrowUpRight, User } from "lucide-react";
+import { Users, CalendarDays, ArrowUpRight, User, BarChart4, Trophy } from "lucide-react";
 
 interface RosterPlayer {
   id: number;
@@ -11,17 +11,16 @@ interface RosterPlayer {
 }
 
 interface MatchLog {
-    id: number;
-    matchDate: Date | string | null;
-    status: "scheduled" | "live" | "completed" | "cancelled" | string;
-    homeTeamId: number;
-    awayTeamId: number;
-    homeTeamName: string | null;
-    awayTeamName: string | null;
-    // FIXED: Changed homeScore/awayScore to match your columns
-    homeTeamScoreTotal: number | null; 
-    awayTeamScoreTotal: number | null;
-  }
+  id: number;
+  matchDate: Date | string | null;
+  status: "scheduled" | "live" | "completed" | "cancelled" | string;
+  homeTeamId: number;
+  awayTeamId: number;
+  homeTeamName: string | null;
+  awayTeamName: string | null;
+  homeTeamScoreTotal: number | null;
+  awayTeamScoreTotal: number | null;
+}
 
 interface TeamProfileClientProps {
   teamId: number;
@@ -40,8 +39,11 @@ export default function TeamProfileClient({
   roster,
   matches,
 }: TeamProfileClientProps) {
+  
+  // 1. Interactive Client State Control for View Modes
+  const [activeTab, setActiveTab] = useState<"roster" | "stats">("roster");
 
-  // Partition match datasets and map form trends reactively
+  // 2. Partition match datasets and map form trends reactively
   const { completedMatches, scheduledMatches, formTrend } = useMemo(() => {
     const completed = matches.filter(m => m.status === "completed");
     const scheduled = matches.filter(m => m.status === "scheduled" || m.status === "live");
@@ -54,7 +56,7 @@ export default function TeamProfileClient({
         const oppScore = isHome ? (match.awayTeamScoreTotal || 0) : (match.homeTeamScoreTotal || 0);
         return teamScore > oppScore ? "W" : teamScore < oppScore ? "L" : "D";
       })
-      .slice(-5); // Extract 5 most recent frames form points
+      .slice(-5);
 
     return { completedMatches: completed, scheduledMatches: scheduled.reverse(), formTrend: trend };
   }, [matches, teamId]);
@@ -109,45 +111,80 @@ export default function TeamProfileClient({
       {/* Roster Layout & Schedule Calendar View Split Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
-        {/* Left Side: Roster Sheet Panel (7 Columns Wide) */}
+        {/* Left Side: Dynamic Workspace Panel (7 Columns Wide) */}
         <div className="lg:col-span-7 space-y-6">
-          <div className="flex items-center gap-3 px-2">
-            <Users className="w-5 h-5 text-indigo-500" />
-            <h2 className="text-xl font-black uppercase tracking-tight text-slate-900">Official Roster</h2>
-          </div>
-
-          <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
-            <div className="divide-y divide-slate-100">
-              {roster.map((player) => (
-                <Link 
-                  key={player.id}
-                  href={`/players/${player.id}`}
-                  className="p-5 px-6 flex items-center justify-between hover:bg-slate-50/80 transition-colors group"
-                >
-                  <div className="flex items-center gap-4">
-                    {/* AVATAR DECORATOR CONTAINER */}
-                    <div className="w-10 h-10 rounded-xl overflow-hidden bg-slate-50 border border-slate-200 flex items-center justify-center shrink-0 group-hover:border-indigo-300 transition-colors">
-                      {player.imageUrl ? (
-                        <img src={player.imageUrl} alt={player.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <User className="w-4 h-4 text-slate-400 group-hover:text-indigo-500 transition-colors" />
-                      )}
-                    </div>
-                    <span className="font-black text-slate-900 uppercase tracking-tight group-hover:text-indigo-600 transition-colors">
-                      {player.name}
-                    </span>
-                  </div>
-                  <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-indigo-500 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
-                </Link>
-              ))}
-
-              {roster.length === 0 && (
-                <div className="p-16 text-center text-sm font-bold text-slate-400 italic uppercase tracking-widest">
-                  No players currently registered to this club roster.
-                </div>
-              )}
+          
+          {/* Header & Toggle Strategy Button Group */}
+          <div className="flex items-center justify-between px-2">
+            <div className="flex items-center gap-3">
+              <Users className="w-5 h-5 text-indigo-500" />
+              <h2 className="text-xl font-black uppercase tracking-tight text-slate-900">
+                {activeTab === "roster" ? "Official Roster" : "Squad Performance Analytics"}
+              </h2>
             </div>
+            
+            {/* NEW INTERACTIVE TEAM STATS CONTROLLER */}
+            <button
+              onClick={() => setActiveTab(activeTab === "roster" ? "stats" : "roster")}
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${
+                activeTab === "stats"
+                  ? "bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-200"
+                  : "bg-white text-slate-600 border-slate-200 hover:border-indigo-400 hover:text-indigo-600"
+              }`}
+            >
+              <BarChart4 className="w-3.5 h-3.5" />
+              {activeTab === "roster" ? "View Team Stats" : "View Roster List"}
+            </button>
           </div>
+
+          {/* Tab View Conditional Renderer */}
+          {activeTab === "roster" ? (
+            /* STANDARD ROSTER SHEET */
+            <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
+              <div className="divide-y divide-slate-100">
+                {roster.map((player) => (
+                  <Link 
+                    key={player.id}
+                    href={`/players/${player.id}`}
+                    className="p-5 px-6 flex items-center justify-between hover:bg-slate-50/80 transition-colors group"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-xl overflow-hidden bg-slate-50 border border-slate-200 flex items-center justify-center shrink-0 group-hover:border-indigo-300 transition-colors">
+                        {player.imageUrl ? (
+                          <img src={player.imageUrl} alt={player.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <User className="w-4 h-4 text-slate-400 group-hover:text-indigo-500 transition-colors" />
+                        )}
+                      </div>
+                      <span className="font-black text-slate-900 uppercase tracking-tight group-hover:text-indigo-600 transition-colors">
+                        {player.name}
+                      </span>
+                    </div>
+                    <ArrowUpRight className="w-4 h-4 text-slate-300 group-hover:text-indigo-500 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all" />
+                  </Link>
+                ))}
+
+                {roster.length === 0 && (
+                  <div className="p-16 text-center text-sm font-bold text-slate-400 italic uppercase tracking-widest">
+                    No players currently registered to this club roster.
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            /* TEAM STATS SHEET SUB-VIEW PORTAL */
+            <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
+              <div className="p-8 text-center text-xs font-bold text-slate-400 uppercase tracking-wider italic">
+                <div className="flex flex-col items-center gap-2 text-slate-300">
+                  <Trophy className="w-8 h-8" />
+                  <span>Team Stat matrix queries are cross-referenced dynamically.</span>
+                </div>
+                <p className="mt-4 text-[11px] font-medium text-slate-400 normal-case">
+                  Click on any player profile card in the roster sheet layout to see full frame analytics, singles breakdown logs, and partner win percentages.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right Side: Fixtures Calendar View Stack (5 Columns Wide) */}
