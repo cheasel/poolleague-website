@@ -1,44 +1,42 @@
 import { db } from "@/src/db";
 import { seasons, divisions, teams, players, matches } from "@/src/db/schema";
-import { sql, eq, desc } from "drizzle-orm";
+import { sql, eq, count } from "drizzle-orm";
 import Link from "next/link";
 import { 
   Trophy, 
   Layers, 
   Users, 
   UserSquare2, 
-  CalendarDays, 
   Activity, 
-  Plus, 
   ArrowRight,
   ShieldAlert
 } from "lucide-react";
 
 export default async function AdminDashboardPage() {
-  // 1. Fetch High-Level Metrics concurrently
-  const [seasonCount] = await db.select({ count: sql<number>`count(*)` }).from(seasons);
-  const [divisionCount] = await db.select({ count: sql<number>`count(*)` }).from(divisions);
-  const [teamCount] = await db.select({ count: sql<number>`count(*)` }).from(teams);
-  const [playerCount] = await db.select({ count: sql<number>`count(*)` }).from(players);
+  // 1. Fetch High-Level Metrics concurrently using Drizzle's count utility
+  const [seasonCount] = await db.select({ count: count() }).from(seasons);
+  const [divisionCount] = await db.select({ count: count() }).from(divisions);
+  const [teamCount] = await db.select({ count: count() }).from(teams);
+  const [playerCount] = await db.select({ count: count() }).from(players);
   
-  // 2. Fetch specific state configurations for system validation
+  // 2. Fetch system configuration properties for status validation
   const [activeSeason] = await db.select().from(seasons).where(eq(seasons.isActive, true)).limit(1);
   
-  const pendingMatches = await db
-    .select({ count: sql<number>`count(*)` })
+  const [pendingMatches] = await db
+    .select({ count: count() })
     .from(matches)
     .where(eq(matches.status, "pending"));
 
-  const unassignedPlayers = await db
-    .select({ count: sql<number>`count(*)` })
+  const [unassignedPlayers] = await db
+    .select({ count: count() })
     .from(players)
     .where(sql`${players.teamId} IS NULL`);
 
-  // 3. Define navigation architecture matrix for clean iteration
+  // 3. Define navigation architecture layout grid items
   const controlCards = [
     {
       title: "Seasons",
-      count: seasonCount.count,
+      count: seasonCount?.count || 0,
       href: "/admin/seasons",
       icon: Trophy,
       color: "text-amber-500 bg-amber-50 border-amber-100",
@@ -46,7 +44,7 @@ export default async function AdminDashboardPage() {
     },
     {
       title: "Divisions",
-      count: divisionCount.count,
+      count: divisionCount?.count || 0,
       href: "/admin/divisions",
       icon: Layers,
       color: "text-blue-500 bg-blue-50 border-blue-100",
@@ -54,7 +52,7 @@ export default async function AdminDashboardPage() {
     },
     {
       title: "Teams",
-      count: teamCount.count,
+      count: teamCount?.count || 0,
       href: "/admin/teams",
       icon: Users,
       color: "text-emerald-500 bg-emerald-50 border-emerald-100",
@@ -62,8 +60,8 @@ export default async function AdminDashboardPage() {
     },
     {
       title: "Players",
-      count: playerCount.count,
-      href: "/admin/players", // Adjust if your admin player path differs
+      count: playerCount?.count || 0,
+      href: "/admin/players",
       icon: UserSquare2,
       color: "text-indigo-500 bg-indigo-50 border-indigo-100",
       description: "Register players, execute team assignments, and clear flags."
@@ -72,7 +70,7 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="space-y-10 pb-12">
-      {/* Dynamic Command Center Header Banner */}
+      {/* Command Center Jumbotron Header Banner */}
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-slate-900 text-white p-8 md:p-12 rounded-[2.5rem] shadow-xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-80 h-full bg-indigo-600/10 blur-[120px] rounded-full"></div>
         <div className="relative z-10 space-y-2">
@@ -80,7 +78,7 @@ export default async function AdminDashboardPage() {
           <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tighter italic leading-none">
             League Management Hub
           </h1>
-          <p className="text-slate-400 text-sm font-medium"> Secure administrative toolset for structural relational changes.</p>
+          <p className="text-slate-400 text-sm font-medium">Secure administrative toolset for structural relational changes.</p>
         </div>
 
         {/* Operational Status Ticker Segment */}
@@ -97,8 +95,8 @@ export default async function AdminDashboardPage() {
         </div>
       </header>
 
-      {/* Relational System Validation Alerts Ledger */}
-      {(pendingMatches[0]?.count > 0 || unassignedPlayers[0]?.count > 0) && (
+      {/* Relational System Action Items Alert Ledger */}
+      {((pendingMatches?.count || 0) > 0 || (unassignedPlayers?.count || 0) > 0) && (
         <div className="bg-rose-50 border border-rose-100 rounded-3xl p-6 flex flex-col md:flex-row md:items-center gap-6 justify-between shadow-sm">
           <div className="flex items-center gap-4">
             <div className="bg-rose-100 p-3 rounded-xl border border-rose-200">
@@ -113,21 +111,21 @@ export default async function AdminDashboardPage() {
           </div>
           
           <div className="flex flex-wrap gap-3">
-            {pendingMatches[0]?.count > 0 && (
+            {(pendingMatches?.count || 0) > 0 && (
               <span className="bg-white px-4 py-2 rounded-xl border border-rose-200 text-[10px] font-black uppercase text-rose-700 shadow-sm tabular-nums">
-                Pending Fixtures: {pendingMatches[0].count}
+                Pending Fixtures: {pendingMatches.count}
               </span>
             )}
-            {unassignedPlayers[0]?.count > 0 && (
+            {(unassignedPlayers?.count || 0) > 0 && (
               <span className="bg-white px-4 py-2 rounded-xl border border-rose-200 text-[10px] font-black uppercase text-rose-700 shadow-sm tabular-nums">
-                Unassigned Players: {unassignedPlayers[0].count}
+                Unassigned Players: {unassignedPlayers.count}
               </span>
             )}
           </div>
         </div>
       )}
 
-      {/* Core Operational Control Cards Matrix Layout Grid */}
+      {/* Core Control Cards Matrix Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {controlCards.map((card) => {
           const IconComponent = card.icon;
