@@ -80,12 +80,13 @@ export default async function PlayerProfilePage({ params }: { params: { id: stri
             <ArrowLeft className="w-4 h-4" /> Back to Analytics Leaderboard
           </Link>
         </header>
-
+  
+        {/* Fixed: Changed activeSeasons to allSeasons */}
         <PlayerProfileClient
           playerId={playerId}
           playerName={player.name}
           teamName={player.teamName || "Unassigned Agent"}
-          games={rawGames}
+          games={rawGames as any} 
           seasons={allSeasons}
           playerMap={playerMapRecord}
         />
