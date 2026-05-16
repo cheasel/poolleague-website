@@ -3,9 +3,13 @@ import { matches, matchGames, players, teams } from "@/src/db/schema";
 import { eq, asc, desc, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
-import { ArrowLeft, Save, Plus, ShieldCheck, Trash2 } from "lucide-react";
+import { ArrowLeft, Save, Plus, ShieldCheck, Trash2, User, Users as UsersIcon } from "lucide-react";
 
-// Top-level utility function for score sync calculations
+// =========================================================================
+// 1. TOP-LEVEL UTILITY: SYNC MATCH TOTALS
+// =========================================================================
+// Isolated outside the main component function scope to prevent Next.js 
+// from throwing Client-to-Server network boundary serialization panics.
 async function syncMatchTotals(targetMatchId: number) {
   const freshGamesList = await db.select().from(matchGames).where(eq(matchGames.matchId, targetMatchId));
   
@@ -13,9 +17,11 @@ async function syncMatchTotals(targetMatchId: number) {
   let awayTotalWins = 0;
 
   freshGamesList.forEach((g) => {
-    if ((g.player1Score || 0) === 0 && (g.player2Score || 0) === 0) return; 
-    if ((g.player1Score || 0) > (g.player2Score || 0)) homeTotalWins++;
-    else if ((g.player2Score || 0) > (g.player1Score || 0)) awayTotalWins++;
+    // Skip untouched zero placeholders to prevent unplayed games from triggering fake saves
+    if ((g.player1Score ?? 0) === 0 && (g.player2Score ?? 0) === 0) return; 
+    
+    if ((g.player1Score ?? 0) > (g.player2Score ?? 0)) homeTotalWins++;
+    else if ((g.player2Score ?? 0) > (g.player1Score ?? 0)) awayTotalWins++;
   });
 
   await db
@@ -23,16 +29,20 @@ async function syncMatchTotals(targetMatchId: number) {
     .set({
       homeTeamScoreTotal: homeTotalWins,
       awayTeamScoreTotal: awayTotalWins,
+      // If the sheet has game rows, mark it completed to feed standings matrices instantly
       status: freshGamesList.length > 0 ? "completed" : "scheduled", 
     })
     .where(eq(matches.id, targetMatchId));
 }
 
+// =========================================================================
+// 2. MAIN CORE SERVER COMPONENT ROUTE
+// =========================================================================
 export default async function MatchScorecardPage({ params }: { params: { id: string } }) {
   const { id } = await params;
   const matchId = Number(id);
 
-  // 1. Fetch parent match configuration with team contexts
+  // Fetch parent match configuration with home team context joins
   const [match] = await db
     .select({
       id: matches.id,
@@ -52,12 +62,14 @@ export default async function MatchScorecardPage({ params }: { params: { id: str
     return <div className="p-20 text-center font-black uppercase text-slate-400">Match fixture not found.</div>;
   }
 
+  // Guard away team parameters manually to satisfy strict primary serial number overloads
   const [awayTeam] = match.awayTeamId 
     ? await db.select({ name: teams.name }).from(teams).where(eq(teams.id, match.awayTeamId))
     : [null];
 
   const awayTeamName = awayTeam?.name || "Away Club";
 
+  // Guard both squad lookups to filter out nulls before Drizzle filters run
   const homePlayers = match.homeTeamId
     ? await db.select().from(players).where(eq(players.teamId, match.homeTeamId)).orderBy(asc(players.name))
     : [];
@@ -66,26 +78,26 @@ export default async function MatchScorecardPage({ params }: { params: { id: str
     ? await db.select().from(players).where(eq(players.teamId, match.awayTeamId)).orderBy(asc(players.name))
     : [];
 
+  // Fetch current score rows appended to this match ID ledger
   const existingFrames = await db
     .select()
     .from(matchGames)
     .where(eq(matchGames.matchId, matchId))
     .orderBy(asc(matchGames.gameOrder));
 
-
-  // --- SERVER ACTIONS FOR MUTATION ---
+  // =========================================================================
+  // 3. INLINE SERVER ACTIONS FOR IN-MEMORY MUTATIONS
+  // =========================================================================
   async function addFrameFrameRow() {
     "use server";
     const currentFrameCount = existingFrames.length;
-    
-    // Auto-alternating logic: every 3rd game is a doubles frame
+    // Alternating matrix blueprint: Every 3rd row initializes automatically as doubles
     const nextGameType = (currentFrameCount + 1) % 3 === 0 ? "double" : "single";
 
     await db.insert(matchGames).values({
       matchId,
       gameOrder: currentFrameCount + 1,
       gameType: nextGameType,
-      // FIXED: Explicitly initialize foreign key slots as null to pass strict schema checks
       player1Id: null,
       player1PartnerId: null,
       player2Id: null,
@@ -127,12 +139,32 @@ export default async function MatchScorecardPage({ params }: { params: { id: str
     revalidatePath("/players");
   }
 
+  async function changeGameTypeAction(formData: FormData) {
+    "use server";
+    const gameId = Number(formData.get("gameId"));
+    const currentType = formData.get("currentGameType") as string;
+    const targetType = currentType === "single" ? "double" : "single";
+
+    await db
+      .update(matchGames)
+      .set({
+        gameType: targetType,
+        // Scrub away partners completely if rolling back down to singles frame
+        player1PartnerId: targetType === "single" ? null : undefined,
+        player2PartnerId: targetType === "single" ? null : undefined,
+      })
+      .where(eq(matchGames.id, gameId));
+
+    revalidatePath(`/admin/matches/${matchId}/scorecard`);
+  }
+
   async function deleteFrameRow(formData: FormData) {
     "use server";
     const gameId = Number(formData.get("gameId"));
     
     await db.delete(matchGames).where(eq(matchGames.id, gameId));
 
+    // Normalize game orders so remaining arrays sort sequentially (F1, F2, F3...)
     const remainingGames = await db
       .select()
       .from(matchGames)
@@ -177,7 +209,7 @@ export default async function MatchScorecardPage({ params }: { params: { id: str
           
           <div className="md:col-span-1 bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4 min-w-[120px] mx-auto">
             <span className="text-3xl font-black tracking-tight tabular-nums text-indigo-400">
-              {match.homeTeamScoreTotal || 0} - {match.awayTeamScoreTotal || 0}
+              {match.homeTeamScoreTotal ?? 0} - {match.awayTeamScoreTotal ?? 0}
             </span>
             <span className="text-[8px] font-black uppercase tracking-widest text-slate-500 block mt-1">Frames Summary</span>
           </div>
@@ -209,21 +241,37 @@ export default async function MatchScorecardPage({ params }: { params: { id: str
             const isDouble = frame.gameType === "double";
 
             return (
-              /* FIXED: Wrap the entire row inside a single form to submit inputs and metrics cleanly without onClick hacks */
               <form 
                 key={frame.id}
                 action={saveFrameScores}
                 className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm hover:border-slate-300 transition-colors grid grid-cols-1 lg:grid-cols-12 gap-4 items-center group relative"
               >
                 <input type="hidden" name="gameId" value={frame.id} />
+                <input type="hidden" name="currentGameType" value={frame.gameType || "single"} />
                 
-                {/* Frame Descriptor Metadata Badge */}
+                {/* Frame Index Descriptor */}
                 <div className="lg:col-span-1 text-center lg:text-left">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Index</span>
                   <span className="text-lg font-black text-slate-900 tabular-nums">F{frame.gameOrder}</span>
-                  <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded ml-1 lg:ml-0 lg:block lg:mt-0.5 w-max ${isDouble ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'}`}>
-                    {frame.gameType}
-                  </span>
+                </div>
+
+                {/* Pure HTML Form Action Variant Toggle Switch */}
+                <div className="lg:col-span-2 space-y-1">
+                  <label className="text-[9px] font-black uppercase tracking-wider text-slate-400 block ml-1">Variant Type</label>
+                  <button
+                    formAction={changeGameTypeAction}
+                    className={`w-full text-left px-3 py-2.5 rounded-xl border font-black text-[10px] uppercase tracking-widest flex items-center justify-between group transition-all ${
+                      isDouble 
+                        ? "bg-purple-50 text-purple-600 border-purple-200 hover:bg-purple-100" 
+                        : "bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100"
+                    }`}
+                  >
+                    <span className="flex items-center gap-1.5">
+                      {isDouble ? <UsersIcon className="w-3.5 h-3.5" /> : <User className="w-3.5 h-3.5" />}
+                      {frame.gameType}
+                    </span>
+                    <span className="text-[8px] font-bold text-slate-400 normal-case group-hover:text-slate-600">Switch</span>
+                  </button>
                 </div>
 
                 {/* Home Competitors Selections */}
@@ -249,20 +297,20 @@ export default async function MatchScorecardPage({ params }: { params: { id: str
                   )}
                 </div>
 
-                {/* Frame Score Capture Form Inputs */}
-                <div className="lg:col-span-2 flex items-center justify-center gap-2 bg-slate-50 border border-slate-100 p-2 rounded-2xl max-w-[160px] mx-auto">
+                {/* Frame Score Capture Inputs with safe nullish coalescing to prevent ts(2322) */}
+                <div className="lg:col-span-1 flex items-center justify-center gap-2 bg-slate-50 border border-slate-100 p-2 rounded-2xl max-w-[140px] mx-auto">
                   <input 
                     type="number" 
                     name="player1Score" 
-                    defaultValue={frame.player1Score || 0}
-                    className="w-12 text-center font-black text-lg text-slate-900 bg-white border border-slate-200 p-1.5 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 tabular-nums"
+                    defaultValue={frame.player1Score ?? 0}
+                    className="w-10 text-center font-black text-md text-slate-900 bg-white border border-slate-200 p-1 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 tabular-nums"
                   />
                   <span className="text-xs font-black text-slate-300 uppercase select-none">VS</span>
                   <input 
                     type="number" 
                     name="player2Score" 
-                    defaultValue={frame.player2Score || 0}
-                    className="w-12 text-center font-black text-lg text-slate-900 bg-white border border-slate-200 p-1.5 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 tabular-nums"
+                    defaultValue={frame.player2Score ?? 0}
+                    className="w-10 text-center font-black text-md text-slate-900 bg-white border border-slate-200 p-1 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 tabular-nums"
                   />
                 </div>
 
@@ -289,17 +337,15 @@ export default async function MatchScorecardPage({ params }: { params: { id: str
                   )}
                 </div>
 
-                {/* Action Buttons Box */}
-                <div className="lg:col-span-3 flex items-center justify-end gap-2 border-t lg:border-t-0 pt-4 lg:pt-0 border-slate-100 w-full lg:w-auto">
-                  {/* FIXED: The Save button is a standard type="submit" now, making it fully operational on the server side */}
+                {/* Action Controls Row Group */}
+                <div className="lg:col-span-2 flex items-center justify-end gap-2 border-t lg:border-t-0 pt-4 lg:pt-0 border-slate-100 w-full lg:w-auto">
                   <button 
                     type="submit"
-                    className="p-2.5 text-[10px] font-black uppercase tracking-widest bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-xl transition-all grow lg:grow-0 text-center flex items-center justify-center gap-1"
+                    className="p-2.5 text-[10px] font-black uppercase tracking-widest bg-indigo-600 text-white hover:bg-indigo-700 rounded-xl transition-all grow lg:grow-0 text-center flex items-center justify-center gap-1 shadow-sm"
                   >
                     <Save className="w-3.5 h-3.5" /> Save
                   </button>
 
-                  {/* Deletions are separate forms but safely positioned absolute/flex relative inline layout */}
                   <button 
                     formAction={deleteFrameRow}
                     className="p-2.5 bg-rose-50 text-rose-500 hover:bg-rose-600 hover:text-white rounded-xl transition-all flex items-center justify-center grow lg:grow-0"
