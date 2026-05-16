@@ -1,10 +1,18 @@
 import { db } from "@/src/db";
-import { players, matchGames } from "@/src/db/schema";
+import { players, matchGames, teams } from "@/src/db/schema";
 import { eq } from "drizzle-orm";
 
 export default async function PlayerLeaderboardPage() {
-  // 1. Fetch data
-  const allPlayers = await db.select().from(players);
+  // 1. Fetch data - Joining teams to grab the team names natively
+  const allPlayers = await db
+    .select({
+      id: players.id,
+      name: players.name,
+      teamName: teams.name,
+    })
+    .from(players)
+    .leftJoin(teams, eq(players.teamId, teams.id));
+
   const allGames = await db.select().from(matchGames);
 
   // 2. Calculate Complex Stats
@@ -45,6 +53,7 @@ export default async function PlayerLeaderboardPage() {
     return {
       id: player.id,
       name: player.name,
+      teamName: player.teamName || "Free Agent", // Fallback if no team is assigned yet
       matchPlay: uniqueMatches.size,
       singlePlay: stats.single.play,
       singleWin: stats.single.win,
@@ -77,13 +86,14 @@ export default async function PlayerLeaderboardPage() {
               <thead>
                 {/* Header Grouping Row */}
                 <tr className="bg-slate-900 text-slate-500 uppercase tracking-[0.2em] font-black border-b border-slate-800">
-                  <th className="px-4 py-4" colSpan={2}>Attendance</th>
+                  <th className="px-4 py-4" colSpan={3}>Identity & Attendance</th>
                   <th className="px-4 py-4 text-center border-x border-slate-800 bg-slate-800/50" colSpan={4}>Singles</th>
                   <th className="px-4 py-4 text-center border-r border-slate-800 bg-slate-800/30" colSpan={4}>Doubles</th>
                   <th className="px-4 py-4 text-center bg-indigo-950 text-indigo-400" colSpan={4}>Overall Totals</th>
                 </tr>
                 <tr className="bg-slate-900 text-white uppercase tracking-widest font-black border-b border-slate-800">
-                  <th className="px-4 py-6">Player</th>
+                  <th className="px-4 py-6 sticky left-0 bg-slate-900 z-10">Player</th>
+                  <th className="px-4 py-6 text-slate-400">Team</th>
                   <th className="px-4 py-6 text-center bg-amber-500 text-slate-900 ring-inset ring-1 ring-amber-400">Match Play (MP)</th>
                   {/* Singles */}
                   <th className="px-4 py-6 text-center bg-slate-800/50">Play</th>
@@ -105,8 +115,14 @@ export default async function PlayerLeaderboardPage() {
               <tbody className="divide-y divide-slate-100">
                 {sortedPlayers.map((p) => (
                   <tr key={p.id} className="hover:bg-slate-50 transition-colors group">
-                    <td className="px-4 py-5 font-black text-slate-900 uppercase whitespace-nowrap sticky left-0 bg-white group-hover:bg-slate-50 border-r border-slate-100">
+                    {/* Sticky Player Name */}
+                    <td className="px-4 py-5 font-black text-slate-900 uppercase whitespace-nowrap sticky left-0 bg-white group-hover:bg-slate-50 border-r border-slate-100 z-10">
                       {p.name}
+                    </td>
+                    
+                    {/* NEW Team Column */}
+                    <td className="px-4 py-5 text-slate-500 font-bold uppercase tracking-tight whitespace-nowrap">
+                      {p.teamName}
                     </td>
                     
                     {/* Highlighted Match Play Column */}
@@ -137,17 +153,6 @@ export default async function PlayerLeaderboardPage() {
                 ))}
               </tbody>
             </table>
-          </div>
-        </div>
-        
-        <div className="mt-6 flex gap-4 text-[9px] font-black text-slate-400 uppercase tracking-widest px-4">
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 bg-amber-500 rounded"></span> 
-            MP: Unique Match Days Attended
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 bg-indigo-600 rounded"></span> 
-            Total W%: Win ratio across all frames
           </div>
         </div>
       </div>
