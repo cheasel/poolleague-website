@@ -4,6 +4,7 @@ import { eq, asc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import DeleteButton from "@/components/delete-button";
 import { Layers, Users, Plus, Trophy } from "lucide-react";
+import Link from "next/link";
 
 export default async function AdminDivisionsPage() {
   // 1. Fetch Seasons for the dropdown
@@ -102,7 +103,12 @@ export default async function AdminDivisionsPage() {
                   </div>
                   <h3 className="font-black uppercase tracking-tight text-lg leading-none">{div.name}</h3>
                 </div>
-                <DeleteButton id={div.id} action={deleteDivision} label="Division" />
+                <div className="flex items-center gap-2">
+                  <Link href={`/admin/divisions/${div.id}`} className="p-2 text-slate-400 hover:text-indigo-400 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                  </Link>
+                  <DeleteButton id={div.id} action={deleteDivision} label="Division" />
+                </div>
               </div>
 
               <div className="p-6 flex-1">

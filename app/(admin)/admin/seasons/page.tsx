@@ -4,6 +4,7 @@ import { eq, asc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import DeleteButton from "@/components/delete-button";
 import { Trophy, Layers, Plus, CalendarDays } from "lucide-react";
+import Link from "next/link";
 
 export default async function AdminSeasonsPage() {
   // 1. Fetch data
@@ -83,6 +84,9 @@ export default async function AdminSeasonsPage() {
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Divisions</span>
                     <span className="text-lg font-black text-indigo-600 leading-none">{associatedDivs.length}</span>
                   </div>
+                  <Link href={`/admin/seasons/${season.id}`} className="p-2 text-slate-300 hover:text-indigo-600 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                  </Link>
                   <DeleteButton id={season.id} action={deleteSeason} label="Season" />
                 </div>
               </div>
