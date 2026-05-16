@@ -77,12 +77,19 @@ export default async function MatchScorecardPage({ params }: { params: { id: str
   async function addFrameFrameRow() {
     "use server";
     const currentFrameCount = existingFrames.length;
+    
+    // Auto-alternating logic: every 3rd game is a doubles frame
     const nextGameType = (currentFrameCount + 1) % 3 === 0 ? "double" : "single";
 
     await db.insert(matchGames).values({
       matchId,
       gameOrder: currentFrameCount + 1,
       gameType: nextGameType,
+      // FIXED: Explicitly initialize foreign key slots as null to pass strict schema checks
+      player1Id: null,
+      player1PartnerId: null,
+      player2Id: null,
+      player2PartnerId: null,
       player1Score: 0,
       player2Score: 0,
     });
