@@ -1,6 +1,7 @@
 import { db } from "@/src/db";
 import { players, matchGames, teams } from "@/src/db/schema";
 import { eq } from "drizzle-orm";
+import Link from "next/link";
 
 export default async function PlayerLeaderboardPage() {
   // 1. Fetch data - Joining teams to grab the team names natively
@@ -117,7 +118,9 @@ export default async function PlayerLeaderboardPage() {
                   <tr key={p.id} className="hover:bg-slate-50 transition-colors group">
                     {/* Sticky Player Name */}
                     <td className="px-4 py-5 font-black text-slate-900 uppercase whitespace-nowrap sticky left-0 bg-white group-hover:bg-slate-50 border-r border-slate-100 z-10">
-                      {p.name}
+                      <Link href={`/players/${p.id}`} className="hover:text-indigo-600 transition-colors block">
+                        {p.name}
+                      </Link>
                     </td>
                     
                     {/* NEW Team Column */}
