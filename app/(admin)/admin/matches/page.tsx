@@ -4,20 +4,26 @@ import { eq, asc, desc, and } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
-import { Calendar, ClipboardCheck, Plus, Sliders } from "lucide-react";
+import { Calendar, ClipboardCheck, Plus, Sliders, ArrowUpDown, CalendarDays, CheckCircle2 } from "lucide-react";
 import DeleteButton from "@/components/delete-button";
 
-export default async function AdminMatchesPage({ searchParams }: { searchParams: { division?: string } }) {
+interface PageProps {
+  searchParams: Promise<{
+    division?: string;
+    sort?: string;
+  }>;
+}
+
+export default async function AdminMatchesPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const selectedDivId = params.division ? Number(params.division) : null;
+  const currentSort = params.sort || "date_desc"; // Default view: Newest fixtures first
 
-  // 1. Fetch Divisions for structural navigation tabs filtering
+  // 1. Fetch Divisions for navigation filters
   const allDivisions = await db.select().from(divisions).orderBy(asc(divisions.tier));
-  
-  // Default to the first division tier if no explicit query parameter is clicked yet
   const activeDivId = selectedDivId || allDivisions[0]?.id;
 
-  // 2. Fetch flat lists of teams filtered by the active division tab
+  // 2. Fetch flat list of teams within active division tab context
   const filteredTeamsList = activeDivId
     ? await db.select().from(teams).where(eq(teams.divisionId, activeDivId)).orderBy(asc(teams.name))
     : [];
@@ -25,7 +31,22 @@ export default async function AdminMatchesPage({ searchParams }: { searchParams:
   const homeTeamsAlias = alias(teams, "homeTeamsAlias");
   const awayTeamsAlias = alias(teams, "awayTeamsAlias");
 
-  // 3. Aggregate match listings filtered strictly by the active division context
+  // 3. Determine dynamic SQL sorting strategy array block
+  const getOrderByExpression = () => {
+    switch (currentSort) {
+      case "date_asc":
+        return [asc(matches.matchDate), asc(matches.id)];
+      case "status":
+        return [asc(matches.status), desc(matches.matchDate)];
+      case "id_desc":
+        return [desc(matches.id)];
+      case "date_desc":
+      default:
+        return [desc(matches.matchDate), desc(matches.id)];
+    }
+  };
+
+  // 4. Query matched rows mapped to current filter/sorting matrices
   const filteredMatches = activeDivId
     ? await db
         .select({
@@ -44,9 +65,8 @@ export default async function AdminMatchesPage({ searchParams }: { searchParams:
         .leftJoin(homeTeamsAlias, eq(matches.homeTeamId, homeTeamsAlias.id))
         .leftJoin(awayTeamsAlias, eq(matches.awayTeamId, awayTeamsAlias.id))
         .leftJoin(divisions, eq(homeTeamsAlias.divisionId, divisions.id))
-        // Filter out matches where the home team belongs to our currently active division tab
         .where(eq(homeTeamsAlias.divisionId, activeDivId))
-        .orderBy(desc(matches.matchDate), desc(matches.id))
+        .orderBy(...getOrderByExpression()) // <-- SPREAD DYNAMIC ORDER EXPRESSION
     : [];
 
   // --- SERVER ACTIONS FOR BASIC MUTATIONS ---
@@ -61,8 +81,9 @@ export default async function AdminMatchesPage({ searchParams }: { searchParams:
     await db.insert(matches).values({
       homeTeamId,
       awayTeamId,
+      divisionId: activeDivId,
       matchDate: matchDateStr ? new Date(matchDateStr) : new Date(),
-      status: "scheduled",
+      status: "scheduled" as const,
       homeTeamScoreTotal: 0,
       awayTeamScoreTotal: 0,
     });
@@ -95,12 +116,12 @@ export default async function AdminMatchesPage({ searchParams }: { searchParams:
         </Link>
       </header>
 
-      {/* NEW: DIVISION SELECTOR NAVIGATION TABS RIBBON */}
+      {/* DIVISION RIBBON SELECTION ROW */}
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
         {allDivisions.map((div) => (
           <Link
             key={div.id}
-            href={`/admin/matches?division=${div.id}`}
+            href={`/admin/matches?division=${div.id}&sort=${currentSort}`}
             className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border ${
               activeDivId === div.id
                 ? "bg-slate-900 text-white border-slate-900 shadow-lg shadow-slate-200"
@@ -112,13 +133,43 @@ export default async function AdminMatchesPage({ searchParams }: { searchParams:
         ))}
       </div>
 
+      {/* NEW: SORT COMMAND CONTROL BAR */}
+      <div className="flex items-center gap-3 px-2 bg-slate-50 border border-slate-200 p-4 rounded-2xl">
+        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5 shrink-0">
+          <ArrowUpDown className="w-3.5 h-3.5" /> Sort Framework:
+        </span>
+        <div className="flex flex-wrap gap-2">
+          {[
+            { key: "date_desc", label: "Date: Latest First", icon: CalendarDays },
+            { key: "date_asc", label: "Date: Oldest First", icon: Calendar },
+            { key: "status", label: "Status (Scheduled/Done)", icon: CheckCircle2 },
+          ].map((opt) => {
+            const Icon = opt.icon;
+            const isSelected = currentSort === opt.key;
+            return (
+              <Link
+                key={opt.key}
+                href={`/admin/matches?division=${activeDivId}&sort=${opt.key}`}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all border ${
+                  isSelected
+                    ? "bg-indigo-600 text-white border-indigo-600"
+                    : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300"
+                }`}
+              >
+                <Icon className="w-3 h-3" />
+                {opt.label}
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Manual Quick Fixture Registration Card */}
       <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-200">
         <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4 ml-1">
           Schedule Manual Fixture for {allDivisions.find(d => d.id === activeDivId)?.name || "Selected Division"}
         </h3>
         <form action={createManualFixture} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-          
           <div className="md:col-span-4 space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Home Club</label>
             <select 
@@ -175,8 +226,6 @@ export default async function AdminMatchesPage({ searchParams }: { searchParams:
             return (
               <div key={match.id} className="p-6 md:px-8 flex flex-col sm:flex-row justify-between sm:items-center gap-6 hover:bg-slate-50/50 transition-colors group">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-6">
-                  
-                  {/* Calendar/Status Date Icon Wrapper */}
                   <div className="flex items-center gap-4 shrink-0">
                     <div className="p-3.5 bg-slate-100 rounded-2xl border border-slate-200/60 text-slate-400 group-hover:bg-indigo-50 group-hover:border-indigo-100 group-hover:text-indigo-600 transition-colors">
                       <Calendar className="w-5 h-5" />
@@ -191,7 +240,6 @@ export default async function AdminMatchesPage({ searchParams }: { searchParams:
                     </div>
                   </div>
 
-                  {/* Competitors Versus Scoring Cluster */}
                   <div className="flex items-center gap-3 font-black text-slate-900 uppercase text-sm tracking-tight">
                     <span className="min-w-[120px] text-right truncate">{match.homeTeamName || "Home Team"}</span>
                     
@@ -207,7 +255,6 @@ export default async function AdminMatchesPage({ searchParams }: { searchParams:
                   </div>
                 </div>
 
-                {/* Dashboard Action Triggers Column */}
                 <div className="flex items-center justify-end gap-3 border-t sm:border-t-0 pt-4 sm:pt-0 border-slate-100">
                   <Link
                     href={`/admin/matches/${match.id}/scorecard`}
