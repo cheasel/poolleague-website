@@ -48,6 +48,7 @@ export default async function PlayerProfilePage({ params }: { params: { id: stri
       awayTeamName: awayTeams.name,
       seasonId: divisions.seasonId,
       seasonName: seasons.name,
+      divisionName: divisions.name,
     })
     .from(matchGames)
     .leftJoin(matches, eq(matchGames.matchId, matches.id))

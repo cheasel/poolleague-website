@@ -18,6 +18,7 @@ interface GameLog {
     awayTeamName: string | null;
     seasonId: number | null;
     seasonName: string | null;
+    divisionName: string | null;
   }
 
 interface PlayerProfileClientProps {
@@ -206,9 +207,8 @@ export default function PlayerProfileClient({
         <div className="p-6 md:px-8 border-b border-slate-100 bg-slate-50/50">
             <h2 className="font-black text-slate-900 uppercase tracking-tight text-lg flex items-center gap-2">
                 <Calendar className="w-5 h-5 text-slate-400" /> 
-                {/* NEW DYNAMIC HEADING */}
-                {filteredGames.length > 0 && filteredGames[0].homeTeamName ? (
-                    <span>{filteredGames[0].seasonName} • Division Timeline</span>
+                {filteredGames.length > 0 && filteredGames[0].divisionName ? (
+                    <span>{filteredGames[0].divisionName} Records</span>
                 ) : (
                     <span>Division Performance Ledger</span>
                 )}
