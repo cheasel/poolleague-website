@@ -20,19 +20,25 @@ export default async function EditPlayerPage({ params }: { params: { id: string 
 
   const divMap = new Map(allDivisions.map(d => [d.id, d.name]));
 
+  // --- SERVER ACTION ---
   async function updatePlayer(formData: FormData) {
     "use server";
     const name = formData.get("name") as string;
+    const imageUrl = formData.get("imageUrl") as string;
     const teamIdVal = formData.get("teamId");
     const teamId = teamIdVal ? Number(teamIdVal) : null;
 
     await db.update(players)
-      .set({ name, teamId: teamId || null })
+      .set({ 
+        name, 
+        teamId: teamId || null, 
+        imageUrl: imageUrl || null 
+      })
       .where(eq(players.id, playerId));
 
     revalidatePath("/admin/players");
-    revalidatePath(`/players/${playerId}`);
-    revalidatePath("/players");
+    revalidatePath(`/players/${playerId}`); // Revalidate single public profile sheets
+    revalidatePath("/players"); // Revalidate leaderboard metrics rankings matrix
     redirect("/admin/players");
   }
 
@@ -67,11 +73,21 @@ export default async function EditPlayerPage({ params }: { params: { id: string 
           </div>
 
           <div className="space-y-2">
+            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Avatar Profile Image URL</label>
+            <input 
+              name="imageUrl" 
+              defaultValue={player.imageUrl || ""} 
+              placeholder="https://example.com/photo.png"
+              className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-900"
+            />
+          </div>
+
+          <div className="space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Team Assignment</label>
             <select 
               name="teamId" 
               defaultValue={player.teamId || ""} 
-              className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-900 appearance-none"
+              className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-900 appearance-none text-slate-700"
             >
               <option value="">No Team (Free Agent)</option>
               {allTeams.map(t => (

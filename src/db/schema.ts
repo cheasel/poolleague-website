@@ -45,9 +45,10 @@ export const teams = pgTable("teams", {
 
 export const players = pgTable("players", {
   id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  handicap: integer("handicap").default(0),
-  teamId: integer("team_id").references(() => teams.id), // Link to a team
+  name: varchar("name", { length: 255 }).notNull(),
+  teamId: integer("team_id").references(() => teams.id, { onDelete: "set null" }),
+  // NEW: Store the profile avatar image asset URL path
+  imageUrl: text("image_url"), 
 });
 
 // 3. The Flexible Membership Table (Multi-team advice)

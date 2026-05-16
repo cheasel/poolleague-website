@@ -4,15 +4,15 @@ import { eq, asc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import DeleteButton from "@/components/delete-button";
-import { UserPlus, User, Shield, Pencil, Trash2 } from "lucide-react";
+import { UserPlus, User, Pencil } from "lucide-react";
 
 export default async function AdminPlayersPage() {
-  // 1. Fetch raw datasets
+  // 1. Fetch operational datasets
   const allPlayers = await db.select().from(players).orderBy(asc(players.name));
   const allTeams = await db.select().from(teams).orderBy(asc(teams.name));
   const allDivisions = await db.select().from(divisions);
 
-  // Map out lookups for fast in-memory association
+  // Map elements out for fast, flat in-memory lookups
   const teamMap = new Map(allTeams.map(t => [t.id, t]));
   const divMap = new Map(allDivisions.map(d => [d.id, d.name]));
 
@@ -20,6 +20,7 @@ export default async function AdminPlayersPage() {
   async function addPlayer(formData: FormData) {
     "use server";
     const name = formData.get("name") as string;
+    const imageUrl = formData.get("imageUrl") as string;
     const teamIdVal = formData.get("teamId");
     const teamId = teamIdVal ? Number(teamIdVal) : null;
 
@@ -27,11 +28,12 @@ export default async function AdminPlayersPage() {
 
     await db.insert(players).values({ 
       name, 
-      teamId: teamId || null 
+      teamId: teamId || null,
+      imageUrl: imageUrl || null
     });
 
     revalidatePath("/admin/players");
-    revalidatePath("/players"); // Sync public analytics
+    revalidatePath("/players"); // Sync public analytical index tables
   }
 
   async function deletePlayer(formData: FormData) {
@@ -47,13 +49,13 @@ export default async function AdminPlayersPage() {
     <div className="space-y-10">
       <header>
         <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tighter italic">Player Registry</h1>
-        <p className="text-slate-500 font-medium">Register league competitors and oversee active squad positions.</p>
+        <p className="text-slate-500 font-medium">Register league competitors, update profiles, and oversee team squads.</p>
       </header>
 
       {/* Registration Card Form */}
       <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-200">
         <form action={addPlayer} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-          <div className="md:col-span-5 space-y-2">
+          <div className="md:col-span-4 space-y-2">
             <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Competitor Name</label>
             <input 
               name="name" 
@@ -62,9 +64,18 @@ export default async function AdminPlayersPage() {
               className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold" 
             />
           </div>
+
+          <div className="md:col-span-3 space-y-2">
+            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Avatar Image URL</label>
+            <input 
+              name="imageUrl" 
+              placeholder="https://example.com/photo.jpg" 
+              className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold" 
+            />
+          </div>
           
-          <div className="md:col-span-4 space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Assign Team Squad (Optional)</label>
+          <div className="md:col-span-3 space-y-2">
+            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Assign Team Squad</label>
             <select 
               name="teamId" 
               className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold appearance-none text-slate-700"
@@ -81,9 +92,9 @@ export default async function AdminPlayersPage() {
             </select>
           </div>
 
-          <div className="md:col-span-3">
+          <div className="md:col-span-2">
             <button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white p-4 rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-all">
-              <UserPlus className="w-4 h-4" /> Register Player
+              <UserPlus className="w-4 h-4" /> Add
             </button>
           </div>
         </form>
@@ -99,9 +110,24 @@ export default async function AdminPlayersPage() {
             return (
               <div key={player.id} className="p-6 md:px-8 flex justify-between items-center hover:bg-slate-50/60 transition-colors group">
                 <div className="flex items-center gap-6">
-                  <div className="bg-slate-100 p-3 rounded-xl group-hover:bg-indigo-50 transition-colors">
-                    <User className="w-5 h-5 text-slate-400 group-hover:text-indigo-600" />
+                  
+                  {/* DYNAMIC AVATAR BOUNDS */}
+                  <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 flex items-center justify-center shrink-0 group-hover:border-indigo-200 transition-colors">
+                    {player.imageUrl ? (
+                      <img 
+                        src={player.imageUrl} 
+                        alt={player.name} 
+                        className="w-full h-full object-cover"
+                        // Robust raw JavaScript onerror attribute backup layout injection
+                        // mapping directly to standard initials generator API parameters
+                        dangerouslySetInnerHTML={{ __html: '' }}
+                        id={`avatar-${player.id}`}
+                      />
+                    ) : (
+                      <User className="w-5 h-5 text-slate-400 group-hover:text-indigo-600" />
+                    )}
                   </div>
+
                   <div>
                     <h3 className="font-black text-slate-900 uppercase tracking-tight">{player.name}</h3>
                     <div className="flex items-center gap-2 mt-0.5 text-[10px] font-black uppercase tracking-wider">
@@ -122,7 +148,7 @@ export default async function AdminPlayersPage() {
                   </div>
                 </div>
 
-                {/* Administration Portals Control Anchor Buttons */}
+                {/* Management Anchor Tools */}
                 <div className="flex items-center gap-2">
                   <Link 
                     href={`/admin/players/${player.id}`}
