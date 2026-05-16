@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 
 export default async function AdminDashboardPage() {
-  // 1. Fetch High-Level Metrics concurrently using Drizzle's count utility
+  // 1. Fetch High-Level Metrics concurrently
   const [seasonCount] = await db.select({ count: count() }).from(seasons);
   const [divisionCount] = await db.select({ count: count() }).from(divisions);
   const [teamCount] = await db.select({ count: count() }).from(teams);
@@ -22,14 +22,14 @@ export default async function AdminDashboardPage() {
   // 2. Fetch system configuration properties for status validation
   const [activeSeason] = await db.select().from(seasons).where(eq(seasons.isActive, true)).limit(1);
   
-  const [pendingMatches] = await db
+  // FIXED: Changed "pending" to "scheduled" to match your explicit schema enum type
+  const [scheduledMatches] = await db
     .select({ count: count() })
     .from(matches)
-    .where(eq(matches.status, "pending"));
+    .where(eq(matches.status, "scheduled"));
 
   const [unassignedPlayers] = await db
-    .select({ count: count() })
-    .from(players)
+    .select({ count: count() }).from(players)
     .where(sql`${players.teamId} IS NULL`);
 
   // 3. Define navigation architecture layout grid items
@@ -96,7 +96,7 @@ export default async function AdminDashboardPage() {
       </header>
 
       {/* Relational System Action Items Alert Ledger */}
-      {((pendingMatches?.count || 0) > 0 || (unassignedPlayers?.count || 0) > 0) && (
+      {((scheduledMatches?.count || 0) > 0 || (unassignedPlayers?.count || 0) > 0) && (
         <div className="bg-rose-50 border border-rose-100 rounded-3xl p-6 flex flex-col md:flex-row md:items-center gap-6 justify-between shadow-sm">
           <div className="flex items-center gap-4">
             <div className="bg-rose-100 p-3 rounded-xl border border-rose-200">
@@ -111,9 +111,9 @@ export default async function AdminDashboardPage() {
           </div>
           
           <div className="flex flex-wrap gap-3">
-            {(pendingMatches?.count || 0) > 0 && (
+            {(scheduledMatches?.count || 0) > 0 && (
               <span className="bg-white px-4 py-2 rounded-xl border border-rose-200 text-[10px] font-black uppercase text-rose-700 shadow-sm tabular-nums">
-                Pending Fixtures: {pendingMatches.count}
+                Scheduled Fixtures: {scheduledMatches.count}
               </span>
             )}
             {(unassignedPlayers?.count || 0) > 0 && (
