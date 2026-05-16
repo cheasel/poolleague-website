@@ -1,41 +1,55 @@
 import { db } from "@/src/db";
 import { matches, teams, divisions, seasons } from "@/src/db/schema";
-import { eq, asc, desc } from "drizzle-orm";
+import { eq, asc, desc, and } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
-import { Calendar, ClipboardCheck, Plus, Sliders, CalendarDays } from "lucide-react";
+import { Calendar, ClipboardCheck, Plus, Sliders } from "lucide-react";
 import DeleteButton from "@/components/delete-button";
 
-export default async function AdminMatchesPage() {
-  // 1. Fetch complete data structures for team identity mapping
-  const allSeasons = await db.select().from(seasons).orderBy(desc(seasons.name));
+export default async function AdminMatchesPage({ searchParams }: { searchParams: { division?: string } }) {
+  const params = await searchParams;
+  const selectedDivId = params.division ? Number(params.division) : null;
+
+  // 1. Fetch Divisions for structural navigation tabs filtering
   const allDivisions = await db.select().from(divisions).orderBy(asc(divisions.tier));
   
+  // Default to the first division tier if no explicit query parameter is clicked yet
+  const activeDivId = selectedDivId || allDivisions[0]?.id;
+
+  // 2. Fetch flat lists of teams filtered by the active division tab
+  const filteredTeamsList = activeDivId
+    ? await db.select().from(teams).where(eq(teams.divisionId, activeDivId)).orderBy(asc(teams.name))
+    : [];
+
   const homeTeamsAlias = alias(teams, "homeTeamsAlias");
   const awayTeamsAlias = alias(teams, "awayTeamsAlias");
 
-  // 2. Aggregate all matches with full relational row fields
-  const allMatches = await db
-    .select({
-      id: matches.id,
-      matchDate: matches.matchDate,
-      status: matches.status,
-      homeTeamId: matches.homeTeamId,
-      awayTeamId: matches.awayTeamId,
-      homeTeamName: homeTeamsAlias.name,
-      awayTeamName: awayTeamsAlias.name,
-      homeTeamScoreTotal: matches.homeTeamScoreTotal,
-      awayTeamScoreTotal: matches.awayTeamScoreTotal,
-      divisionName: divisions.name,
-    })
-    .from(matches)
-    .leftJoin(homeTeamsAlias, eq(matches.homeTeamId, homeTeamsAlias.id))
-    .leftJoin(awayTeamsAlias, eq(matches.awayTeamId, awayTeamsAlias.id))
-    .leftJoin(divisions, eq(homeTeamsAlias.divisionId, divisions.id))
-    .orderBy(desc(matches.matchDate), desc(matches.id));
+  // 3. Aggregate match listings filtered strictly by the active division context
+  const filteredMatches = activeDivId
+    ? await db
+        .select({
+          id: matches.id,
+          matchDate: matches.matchDate,
+          status: matches.status,
+          homeTeamId: matches.homeTeamId,
+          awayTeamId: matches.awayTeamId,
+          homeTeamName: homeTeamsAlias.name,
+          awayTeamName: awayTeamsAlias.name,
+          homeTeamScoreTotal: matches.homeTeamScoreTotal,
+          awayTeamScoreTotal: matches.awayTeamScoreTotal,
+          divisionName: divisions.name,
+        })
+        .from(matches)
+        .leftJoin(homeTeamsAlias, eq(matches.homeTeamId, homeTeamsAlias.id))
+        .leftJoin(awayTeamsAlias, eq(matches.awayTeamId, awayTeamsAlias.id))
+        .leftJoin(divisions, eq(homeTeamsAlias.divisionId, divisions.id))
+        // Filter out matches where the home team belongs to our currently active division tab
+        .where(eq(homeTeamsAlias.divisionId, activeDivId))
+        .orderBy(desc(matches.matchDate), desc(matches.id))
+    : [];
 
-  // --- SERVER ACTIONS FOR BASIC OPERATIONS ---
+  // --- SERVER ACTIONS FOR BASIC MUTATIONS ---
   async function createManualFixture(formData: FormData) {
     "use server";
     const homeTeamId = Number(formData.get("homeTeamId"));
@@ -65,19 +79,14 @@ export default async function AdminMatchesPage() {
     revalidatePath("/standings");
   }
 
-  // Fetch flat lists of teams for manual creator selection fields
-  const selectionTeamsList = await db.select().from(teams).orderBy(asc(teams.name));
-  const divMap = new Map(allDivisions.map(d => [d.id, d.name]));
-
   return (
     <div className="space-y-10 max-w-6xl mx-auto">
-      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <header className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div>
           <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tighter italic">Match Fixtures</h1>
           <p className="text-slate-500 font-medium text-xs">Manage match lists, open digital score sheets, and monitor standings results.</p>
         </div>
         
-        {/* Quick Link to the Automation Generator if you decide to build it next */}
         <Link 
           href="/admin/matches/generator" 
           className="inline-flex items-center gap-2 bg-indigo-50 border border-indigo-200 hover:bg-indigo-600 hover:text-white text-indigo-600 px-5 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-sm"
@@ -86,9 +95,28 @@ export default async function AdminMatchesPage() {
         </Link>
       </header>
 
+      {/* NEW: DIVISION SELECTOR NAVIGATION TABS RIBBON */}
+      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+        {allDivisions.map((div) => (
+          <Link
+            key={div.id}
+            href={`/admin/matches?division=${div.id}`}
+            className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border ${
+              activeDivId === div.id
+                ? "bg-slate-900 text-white border-slate-900 shadow-lg shadow-slate-200"
+                : "bg-white text-slate-400 border-slate-200 hover:border-indigo-400 hover:text-indigo-600"
+            }`}
+          >
+            {div.name}
+          </Link>
+        ))}
+      </div>
+
       {/* Manual Quick Fixture Registration Card */}
       <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-200">
-        <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4 ml-1">Schedule Manual Fixture</h3>
+        <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4 ml-1">
+          Schedule Manual Fixture for {allDivisions.find(d => d.id === activeDivId)?.name || "Selected Division"}
+        </h3>
         <form action={createManualFixture} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
           
           <div className="md:col-span-4 space-y-2">
@@ -99,10 +127,8 @@ export default async function AdminMatchesPage() {
               className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold appearance-none text-slate-800 text-xs uppercase"
             >
               <option value="">Select Home Team...</option>
-              {selectionTeamsList.map(t => (
-                <option key={t.id} value={t.id}>
-                  {t.name} ({t.divisionId ? divMap.get(t.divisionId) : "No Division"})
-                </option>
+              {filteredTeamsList.map(t => (
+                <option key={t.id} value={t.id}>{t.name}</option>
               ))}
             </select>
           </div>
@@ -115,10 +141,8 @@ export default async function AdminMatchesPage() {
               className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold appearance-none text-slate-800 text-xs uppercase"
             >
               <option value="">Select Away Team...</option>
-              {selectionTeamsList.map(t => (
-                <option key={t.id} value={t.id}>
-                  {t.name} ({t.divisionId ? divMap.get(t.divisionId) : "No Division"})
-                </option>
+              {filteredTeamsList.map(t => (
+                <option key={t.id} value={t.id}>{t.name}</option>
               ))}
             </select>
           </div>
@@ -144,7 +168,7 @@ export default async function AdminMatchesPage() {
       {/* Fixtures Admin Ledger Grid */}
       <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
         <div className="divide-y divide-slate-100">
-          {allMatches.map((match) => {
+          {filteredMatches.map((match) => {
             const isCompleted = match.status === "completed";
             const isLive = match.status === "live";
 
@@ -185,8 +209,6 @@ export default async function AdminMatchesPage() {
 
                 {/* Dashboard Action Triggers Column */}
                 <div className="flex items-center justify-end gap-3 border-t sm:border-t-0 pt-4 sm:pt-0 border-slate-100">
-                  
-                  {/* LINK TARGET ANCHOR DIRECTLY TO COMPLETED FRAME SCORECARD ENGINE */}
                   <Link
                     href={`/admin/matches/${match.id}/scorecard`}
                     className="inline-flex items-center gap-1.5 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all shadow-lg active:scale-95"
@@ -201,9 +223,9 @@ export default async function AdminMatchesPage() {
             );
           })}
 
-          {allMatches.length === 0 && (
+          {filteredMatches.length === 0 && (
             <div className="p-20 text-center text-slate-300 font-bold uppercase tracking-widest italic text-xs">
-              No league match fixtures discovered in the current schedule matrix.
+              No league match fixtures discovered in this division bracket tier.
             </div>
           )}
         </div>
