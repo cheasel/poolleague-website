@@ -94,10 +94,18 @@ export default async function AdminMatchesPage({ searchParams }: PageProps) {
   async function deleteFixture(formData: FormData) {
     "use server";
     const id = Number(formData.get("id"));
+
+    // 1. FIRST: Delete all frame rows tied to this match ID so they don't corrupt player stats
+    await db.delete(matchGames).where(eq(matchGames.matchId, id));
+
+    // 2. SECOND: Delete the parent match fixture record row itself
     await db.delete(matches).where(eq(matches.id, id));
     
+    // 3. THIRD: Force Next.js to completely bust its cache and re-render every related layout live
     revalidatePath("/admin/matches");
-    revalidatePath("/standings");
+    revalidatePath("/standings"); 
+    revalidatePath("/teams");
+    revalidatePath("/players");
   }
 
   return (
