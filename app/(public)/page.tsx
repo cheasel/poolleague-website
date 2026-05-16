@@ -10,7 +10,11 @@ export default async function HomePage() {
   const awayTeams = alias(teams, "awayTeams");
 
   // 1. Fetch Top 3 Teams from the first division found (usually the top tier)
-  const [topDiv] = await db.select().from(divisions).limit(1);
+  const [topDiv] = await db
+  .select()
+  .from(divisions)
+  .where(eq(divisions.tier, 1)) // Forces look up of your true top division
+  .limit(1);
   
   const topTeams = topDiv 
     ? await db.select().from(teams)

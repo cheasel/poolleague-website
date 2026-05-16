@@ -21,10 +21,12 @@ export const seasons = pgTable('seasons', {
   endDate: timestamp('end_date'),
 });
 
-export const divisions = pgTable('divisions', {
+export const divisions = pgTable("divisions", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
   seasonId: integer("season_id").references(() => seasons.id, { onDelete: "cascade" }),
+  // NEW: Explicit level mapping (1 = Top, 2 = Second, etc.)
+  tier: integer("tier").default(1).notNull(), 
 });
 
 export const teams = pgTable("teams", {

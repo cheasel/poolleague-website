@@ -1,6 +1,6 @@
 import { db } from "@/src/db";
 import { teams, divisions, matches } from "@/src/db/schema";
-import { desc, sql, eq } from "drizzle-orm";
+import { desc, sql, eq, asc } from "drizzle-orm";
 import Link from "next/link";
 
 export default async function StandingsPage({ searchParams }: { searchParams: { division?: string } }) {
@@ -8,7 +8,7 @@ export default async function StandingsPage({ searchParams }: { searchParams: { 
   const selectedDivId = params.division ? Number(params.division) : null;
 
   // 1. Fetch all divisions for the filter tabs
-  const allDivisions = await db.select().from(divisions).orderBy(desc(divisions.name));
+  const allDivisions = await db.select().from(divisions).orderBy(asc(divisions.tier));
   
   // Default to the first division if none selected
   const activeDivId = selectedDivId || allDivisions[0]?.id;

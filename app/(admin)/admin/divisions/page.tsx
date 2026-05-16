@@ -29,10 +29,13 @@ export default async function AdminDivisionsPage() {
     "use server";
     const name = formData.get("name") as string;
     const seasonId = Number(formData.get("seasonId"));
-    if (!name || !seasonId) return;
-
-    await db.insert(divisions).values({ name, seasonId });
+    const tier = Number(formData.get("tier")); // Grab the tier ranking
+  
+    if (!name || !seasonId || !tier) return;
+  
+    await db.insert(divisions).values({ name, seasonId, tier });
     revalidatePath("/admin/divisions");
+    revalidatePath("/standings");
   }
 
   async function deleteDivision(formData: FormData) {
@@ -51,33 +54,37 @@ export default async function AdminDivisionsPage() {
 
       {/* Create Division Card */}
       <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-200">
-        <form action={addDivision} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-          <div className="md:col-span-5 space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Division Name</label>
-            <input 
-              name="name" 
-              placeholder="e.g. Premier Division" 
-              required 
-              className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold" 
-            />
-          </div>
-          <div className="md:col-span-4 space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Assign Season</label>
-            <select 
-              name="seasonId" 
-              required 
-              className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold appearance-none"
-            >
-              <option value="">Select Season</option>
-              {allSeasons.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
-          </div>
-          <div className="md:col-span-3">
-            <button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white p-4 rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-all">
-              <Plus className="w-4 h-4" /> Create Division
-            </button>
-          </div>
-        </form>
+      <form action={addDivision} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+        <div className="md:col-span-4 space-y-2">
+          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Division Name</label>
+          <input name="name" placeholder="e.g. Premier Tier" required className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold" />
+        </div>
+        
+        <div className="md:col-span-3 space-y-2">
+          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Assign Season</label>
+          <select name="seasonId" required className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold appearance-none">
+            <option value="">Select Season</option>
+            {allSeasons.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+        </div>
+
+        {/* NEW SELECT BOX FOR TIER LEVEL */}
+        <div className="md:col-span-2 space-y-2">
+          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Tier Rank</label>
+          <select name="tier" required className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold appearance-none">
+            <option value="1">1st (Top)</option>
+            <option value="2">2nd Tier</option>
+            <option value="3">3rd Tier</option>
+            <option value="4">4th Tier</option>
+          </select>
+        </div>
+
+        <div className="md:col-span-3">
+          <button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white p-4 rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-all">
+            Create Division
+          </button>
+        </div>
+      </form>
       </div>
 
       {/* Divisions & Teams List */}
