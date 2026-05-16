@@ -58,7 +58,7 @@ export default async function StandingsPage({ searchParams }: { searchParams: { 
     });
 
     // Compute standard league point weights (3 for Win, 1 for Draw)
-    const points = (won * 3) + (drawn * 1);
+    const points = (won * 2) + (drawn * 1);
     const frameDifference = framesFor - framesAgainst;
 
     return {
