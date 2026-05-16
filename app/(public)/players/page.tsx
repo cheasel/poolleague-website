@@ -12,12 +12,13 @@ export default async function PlayerLeaderboardPage({ searchParams }: { searchPa
   const allDivisions = await db.select().from(divisions).orderBy(asc(divisions.tier));
   const activeDivId = selectedDivId || allDivisions[0]?.id;
 
-  // 2. Fetch Players belonging to active division
+  // 2. Fetch Players belonging to active division (including imageUrl)
   const allPlayers = activeDivId
     ? await db
         .select({
           id: players.id,
           name: players.name,
+          imageUrl: players.imageUrl, // <-- EXPLICITLY FETCH IMAGE URL
           teamName: teams.name,
         })
         .from(players)
@@ -65,6 +66,7 @@ export default async function PlayerLeaderboardPage({ searchParams }: { searchPa
     return {
       id: player.id,
       name: player.name,
+      imageUrl: player.imageUrl, // <-- PASS THROUGH TO CLIENT
       teamName: player.teamName || "Free Agent",
       matchPlay: uniqueMatches.size,
       singlePlay: stats.single.play,
@@ -82,7 +84,6 @@ export default async function PlayerLeaderboardPage({ searchParams }: { searchPa
     };
   });
 
-  // Sort overall by highest win rate percentage initially
   const sortedPlayers = playerStats.sort((a, b) => Number(b.totalPct) - Number(a.totalPct));
 
   return (
@@ -92,7 +93,6 @@ export default async function PlayerLeaderboardPage({ searchParams }: { searchPa
           <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tighter italic">Player Analytics</h1>
           <p className="text-slate-500 font-medium">Categorized performance breakdown by match and framework frames.</p>
 
-          {/* Division switcher navigation tabs remain server-driven */}
           <div className="flex gap-2 mt-8 overflow-x-auto pb-2">
             {allDivisions.map((div) => (
               <Link
@@ -110,7 +110,6 @@ export default async function PlayerLeaderboardPage({ searchParams }: { searchPa
           </div>
         </header>
 
-        {/* Hand statistics data arrays down straight to interactive client script view */}
         {activeDivId && (
           <PlayerStatsClient 
             initialPlayers={sortedPlayers} 
