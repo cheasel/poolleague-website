@@ -225,7 +225,6 @@ export default async function MatchScorecardPage({ params }: { params: { id: str
           </form>
         </div>
 
-        {/* RE-ARCHITECTED HORIZONTAL GRID LEDGER */}
         <div className="space-y-4">
           {existingFrames.map((frame) => {
             const isDouble = frame.gameType === "double";
@@ -239,7 +238,7 @@ export default async function MatchScorecardPage({ params }: { params: { id: str
                 <input type="hidden" name="gameId" value={frame.id} />
                 <input type="hidden" name="currentGameType" value={frame.gameType || "single"} />
                 
-                {/* 1. LEFT UTILS: Index & Variant Controller (md:col-span-2) */}
+                {/* 1. LEFT UTILS: Index & Variant Controller */}
                 <div className="md:col-span-2 flex items-center justify-between md:justify-start gap-4 border-b md:border-b-0 pb-3 md:pb-0 border-slate-100">
                   <div>
                     <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Frame</span>
@@ -263,30 +262,31 @@ export default async function MatchScorecardPage({ params }: { params: { id: str
                   </div>
                 </div>
 
-                {/* 2. HOME COMPETITORS SLOTS (md:col-span-3) */}
+                {/* 2. HOME COMPETITORS SLOTS */}
+                {/* FIXED: Wrap frame value inside String() so select element matches option keys */}
                 <div className="md:col-span-3 space-y-1.5">
                   <select 
                     name="player1Id" 
-                    defaultValue={frame.player1Id || ""}
+                    defaultValue={frame.player1Id ? String(frame.player1Id) : ""}
                     className="w-full p-3 bg-slate-50 border border-slate-200/60 rounded-xl font-bold text-xs uppercase text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="">Select Home Player...</option>
-                    {homePlayers.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    {homePlayers.map(p => <option key={p.id} value={String(p.id)}>{p.name}</option>)}
                   </select>
 
                   {isDouble && (
                     <select 
                       name="player1PartnerId" 
-                      defaultValue={frame.player1PartnerId || ""}
+                      defaultValue={frame.player1PartnerId ? String(frame.player1PartnerId) : ""}
                       className="w-full p-3 bg-slate-50 border border-slate-200/60 rounded-xl font-bold text-xs uppercase text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500 animate-in fade-in slide-in-from-top-1 duration-150"
                     >
                       <option value="">Select Partner...</option>
-                      {homePlayers.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                      {homePlayers.map(p => <option key={p.id} value={String(p.id)}>{p.name}</option>)}
                     </select>
                   )}
                 </div>
 
-                {/* 3. CENTRAL LIVE SCORE INPUTS BLOCK (md:col-span-2) */}
+                {/* 3. CENTRAL LIVE SCORE INPUTS BLOCK */}
                 <div className="md:col-span-2 flex items-center justify-center gap-3 bg-slate-950 p-2.5 rounded-2xl max-w-[150px] mx-auto shadow-inner border border-slate-900">
                   <input 
                     type="number" 
@@ -303,30 +303,31 @@ export default async function MatchScorecardPage({ params }: { params: { id: str
                   />
                 </div>
 
-                {/* 4. AWAY COMPETITORS SLOTS (md:col-span-3) */}
+                {/* 4. AWAY COMPETITORS SLOTS */}
+                {/* FIXED: Wrap frame value inside String() so select element matches option keys */}
                 <div className="md:col-span-3 space-y-1.5">
                   <select 
                     name="player2Id" 
-                    defaultValue={frame.player2Id || ""}
+                    defaultValue={frame.player2Id ? String(frame.player2Id) : ""}
                     className="w-full p-3 bg-slate-50 border border-slate-200/60 rounded-xl font-bold text-xs uppercase text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="">Select Away Player...</option>
-                    {awayPlayers.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                    {awayPlayers.map(p => <option key={p.id} value={String(p.id)}>{p.name}</option>)}
                   </select>
 
                   {isDouble && (
                     <select 
                       name="player2PartnerId" 
-                      defaultValue={frame.player2PartnerId || ""}
+                      defaultValue={frame.player2PartnerId ? String(frame.player2PartnerId) : ""}
                       className="w-full p-3 bg-slate-50 border border-slate-200/60 rounded-xl font-bold text-xs uppercase text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500 mt-2 animate-in fade-in slide-in-from-top-1 duration-150"
                     >
                       <option value="">Select Partner...</option>
-                      {awayPlayers.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                      {awayPlayers.map(p => <option key={p.id} value={String(p.id)}>{p.name}</option>)}
                     </select>
                   )}
                 </div>
 
-                {/* 5. RIGHT CONTROLS: Destructive / Save Operations (md:col-span-2) */}
+                {/* 5. RIGHT CONTROLS: Destructive / Save Operations */}
                 <div className="md:col-span-2 flex items-center justify-end gap-2 border-t md:border-t-0 pt-3 md:pt-0 border-slate-100 w-full md:w-auto">
                   <button 
                     type="submit"
