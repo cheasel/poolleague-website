@@ -22,20 +22,18 @@ export default async function PublicMatchDetailPage({ params }: { params: { id: 
       awayTeamId: matches.awayTeamId,
       homeTeamScoreTotal: matches.homeTeamScoreTotal,
       awayTeamScoreTotal: matches.awayTeamScoreTotal,
-      divisionId: teams.divisionId,
+      divisionId: homeTeams.divisionId, // Fixed: point to the aliased team table
       divisionName: divisions.name,
       seasonName: seasons.name,
     })
     .from(matches)
+    // First, join the home team so its division_id is available in scope
     .leftJoin(homeTeams, eq(matches.homeTeamId, homeTeams.id))
-    // We bind through the structural table to pull the division layout
+    // Now we can safely bridge from the home team to the divisions table
     .leftJoin(divisions, eq(homeTeams.divisionId, divisions.id))
+    // Finally, bring in the season configuration
     .leftJoin(seasons, eq(divisions.seasonId, seasons.id))
     .where(eq(matches.id, matchId));
-
-  if (!matchData) {
-    return <div className="p-20 text-center font-black uppercase text-slate-400">Match fixture not found.</div>;
-  }
 
   // 2. Fetch all teams in this specific division to compute live leaderboard ranks
   const divisionTeams = matchData.divisionId
