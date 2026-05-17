@@ -2,11 +2,29 @@ import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from './schema';
 
-if (!process.env.DATABASE_URL) {
-  throw new Error('DATABASE_URL is missing');
+const connectionString = process.env.DATABASE_URL;
+
+if (!connectionString) {
+  console.error('❌ DATABASE_URL is missing from environment variables');
 }
 
-// Disable prefetch as it is not supported by Supabase's IPv4/PGBouncer setup in some cases
-const client = postgres(process.env.DATABASE_URL, { prepare: false });
+/**
+ * Cache the database connection in development. This avoids creating a new connection on every HMR
+ * update. In production, this ensures that we don't exhaust the database connection limit.
+ */
+const globalForDb = global as unknown as {
+  conn: postgres.Sql | undefined;
+};
 
-export const db = drizzle(client, { schema });
+const conn = globalForDb.conn ?? postgres(connectionString || '', { 
+  prepare: false,
+  // Supabase pooler (Supavisor) works best with these settings
+  ssl: 'require',
+  max: 1, // High concurrency in serverless is handled by Vercel scaling, not local pooling
+  idle_timeout: 20,
+  connect_timeout: 10,
+});
+
+if (process.env.NODE_ENV !== "production") globalForDb.conn = conn;
+
+export const db = drizzle(conn, { schema });
