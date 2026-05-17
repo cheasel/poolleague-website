@@ -1,163 +1,188 @@
 import { db } from "@/src/db";
-import { matches, teams, divisions, seasons } from "@/src/db/schema";
-import { eq, desc, asc, sql } from "drizzle-orm";
+import { matches, teams, divisions } from "@/src/db/schema";
+import { eq, asc, desc } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import Link from "next/link";
-import { Calendar, Trophy, Layers, ChevronRight } from "lucide-react";
+import { Calendar, ArrowUpDown, CalendarDays, CheckCircle2, Trophy, Clock } from "lucide-react";
 
-export default async function PublicMatchesPage() {
-  const homeTeams = alias(teams, "homeTeams");
-  const awayTeams = alias(teams, "awayTeams");
+interface PageProps {
+  searchParams: Promise<{
+    division?: string;
+    sort?: string;
+  }>;
+}
 
-  // 1. Fetch all matches with division and season names
-  const allMatches = await db
-    .select({
-      id: matches.id,
-      matchDate: matches.matchDate,
-      status: matches.status,
-      homeTeamScoreTotal: matches.homeTeamScoreTotal,
-      awayTeamScoreTotal: matches.awayTeamScoreTotal,
-      homeTeamId: matches.homeTeamId,
-      awayTeamId: matches.awayTeamId,
-      homeTeamName: homeTeams.name,
-      awayTeamName: awayTeams.name,
-      divisionId: homeTeams.divisionId,
-      divisionName: divisions.name,
-      seasonName: seasons.name,
-    })
-    .from(matches)
-    .leftJoin(homeTeams, eq(matches.homeTeamId, homeTeams.id))
-    .leftJoin(awayTeams, eq(matches.awayTeamId, awayTeams.id))
-    .leftJoin(divisions, eq(homeTeams.divisionId, divisions.id))
-    .leftJoin(seasons, eq(divisions.seasonId, seasons.id))
-    .orderBy(desc(matches.matchDate), asc(divisions.tier));
+export default async function PublicMatchesPage({ searchParams }: PageProps) {
+  const params = await searchParams;
+  const selectedDivId = params.division ? Number(params.division) : null;
+  const currentSort = params.sort || "date_desc"; // Default view: Newest or upcoming matches first
 
-  // 2. Fetch all teams to compute their live division ranks
-  const allTeamsRanked = await db
-    .select({
-      id: teams.id,
-      divisionId: teams.divisionId,
-    })
-    .from(teams)
-    .orderBy(desc(teams.points), desc(sql`${teams.setsWon} - ${teams.setsLost}`), desc(teams.setsWon));
+  // 1. Fetch Divisions for the public selection ribbon tabs
+  const allDivisions = await db.select().from(divisions).orderBy(asc(divisions.tier));
+  const activeDivId = selectedDivId || allDivisions[0]?.id;
 
-  // Helper function to find a team's current rank inside its specific division
-  const getTeamRank = (teamId: number | null, divisionId: number | null) => {
-    if (!teamId || !divisionId) return "?";
-    const filteredTeams = allTeamsRanked.filter(t => t.divisionId === divisionId);
-    const rankIndex = filteredTeams.findIndex(t => t.id === teamId);
-    return rankIndex !== -1 ? rankIndex + 1 : "?";
+  const homeTeamsAlias = alias(teams, "homeTeamsAlias");
+  const awayTeamsAlias = alias(teams, "awayTeamsAlias");
+
+  // 2. Determine SQL sorting strategy array block
+  const getOrderByExpression = () => {
+    switch (currentSort) {
+      case "date_asc":
+        return [asc(matches.matchDate), asc(matches.id)];
+      case "status":
+        return [asc(matches.status), desc(matches.matchDate)];
+      case "date_desc":
+      default:
+        return [desc(matches.matchDate), desc(matches.id)];
+    }
   };
 
-  // 3. Group matches by Division Name in memory
-  const groupedMatches: Record<string, typeof allMatches> = {};
-  allMatches.forEach((match) => {
-    const key = match.divisionName || "Unassigned Division";
-    if (!groupedMatches[key]) {
-      groupedMatches[key] = [];
-    }
-    groupedMatches[key].push(match);
-  });
+  // 3. Query match rows mapped to current public filter/sorting frameworks
+  const publicMatches = activeDivId
+    ? await db
+        .select({
+          id: matches.id,
+          matchDate: matches.matchDate,
+          status: matches.status,
+          homeTeamName: homeTeamsAlias.name,
+          awayTeamName: awayTeamsAlias.name,
+          homeTeamScoreTotal: matches.homeTeamScoreTotal,
+          awayTeamScoreTotal: matches.awayTeamScoreTotal,
+          divisionName: divisions.name,
+        })
+        .from(matches)
+        .leftJoin(homeTeamsAlias, eq(matches.homeTeamId, homeTeamsAlias.id))
+        .leftJoin(awayTeamsAlias, eq(matches.awayTeamId, awayTeamsAlias.id))
+        .leftJoin(divisions, eq(homeTeamsAlias.divisionId, divisions.id))
+        .where(eq(homeTeamsAlias.divisionId, activeDivId))
+        .orderBy(...getOrderByExpression())
+    : [];
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6 md:p-12">
-      <div className="max-w-5xl mx-auto space-y-12">
-        
-        <header className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-200 pb-6">
-          <div>
-            <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tighter italic">Match Fixtures</h1>
-            <p className="text-slate-500 font-medium">Schedules, live scores, and historic framework results.</p>
-          </div>
-          <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 bg-white border px-4 py-2 rounded-xl shadow-sm">
-            Total Matches: {allMatches.length}
-          </div>
-        </header>
+    <div className="space-y-10 max-w-6xl mx-auto px-4 py-8">
+      {/* PAGE HEADER */}
+      <header>
+        <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tighter italic">Fixtures & Results</h1>
+        <p className="text-slate-500 font-medium text-xs">Stay up to date with historical match scores, weekly calendars, and schedules.</p>
+      </header>
 
-        {/* Render grouped match blocks */}
-        {Object.entries(groupedMatches).map(([divisionName, divisionMatches]) => (
-          <div key={divisionName} className="space-y-4">
-            
-            {/* Division Category Sticky Bar Anchor Header */}
-            <div className="flex items-center gap-2 px-2">
-              <Layers className="w-4 h-4 text-indigo-500" />
-              <h2 className="text-sm font-black uppercase tracking-[0.2em] text-slate-400">
-                {divisionName} <span className="text-slate-300 font-normal">({divisionMatches[0]?.seasonName})</span>
-              </h2>
-            </div>
-
-            {/* Match Cards List */}
-            <div className="grid grid-cols-1 gap-4">
-              {divisionMatches.map((match) => {
-                const homeRank = getTeamRank(match.homeTeamId, match.divisionId);
-                const awayRank = getTeamRank(match.awayTeamId, match.divisionId);
-
-                return (
-                  <Link 
-                    href={`/matches/${match.id}`} 
-                    key={match.id}
-                    className="bg-white rounded-[2rem] border border-slate-200 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all p-6 flex flex-col md:flex-row justify-between items-center gap-6 group"
-                  >
-                    {/* Left Hand: Date Marker */}
-                    <div className="flex items-center gap-3 w-full md:w-auto">
-                      <div className="bg-slate-100 p-3 rounded-xl group-hover:bg-indigo-50 transition-colors">
-                        <Calendar className="w-4 h-4 text-slate-400 group-hover:text-indigo-600" />
-                      </div>
-                      <div>
-                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Match Date</span>
-                        <span className="text-xs font-black text-slate-700 tabular-nums">
-                          {match.matchDate ? new Date(match.matchDate).toLocaleDateString('en-GB') : "TBD"}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Center: Competitor Matchup Board Row */}
-                    <div className="grid grid-cols-11 items-center gap-2 w-full md:w-[500px] text-xs">
-                      {/* Home Team */}
-                      <div className="col-span-4 text-right space-y-0.5">
-                        <span className="text-[9px] font-mono text-slate-400 font-bold mr-1">#{homeRank}</span>
-                        <span className="font-black text-slate-900 uppercase tracking-tight">{match.homeTeamName}</span>
-                      </div>
-
-                      {/* Display Score Badge vs Block */}
-                      <div className="col-span-3 flex justify-center">
-                        {match.status === "completed" ? (
-                          <div className="bg-slate-900 text-white font-black tabular-nums px-4 py-1.5 rounded-xl tracking-tight text-center min-w-[70px]">
-                            {match.homeTeamScoreTotal} - {match.awayTeamScoreTotal}
-                          </div>
-                        ) : (
-                          <div className="bg-slate-50 text-slate-400 font-black text-[9px] uppercase tracking-widest border px-3 py-1.5 rounded-xl">
-                            Pending
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Away Team */}
-                      <div className="col-span-4 text-left space-y-0.5">
-                        <span className="font-black text-slate-900 uppercase tracking-tight">{match.awayTeamName}</span>
-                        <span className="text-[9px] font-mono text-slate-400 font-bold ml-1">#{awayRank}</span>
-                      </div>
-                    </div>
-
-                    {/* Right Hand: Action Portal Arrow Anchor */}
-                    <div className="hidden md:flex items-center text-slate-300 group-hover:text-indigo-600 transition-colors">
-                      <span className="text-[9px] font-black uppercase tracking-widest mr-2 opacity-0 group-hover:opacity-100 transition-opacity">View Racks</span>
-                      <ChevronRight className="w-5 h-5" />
-                    </div>
-
-                  </Link>
-                );
-              })}
-            </div>
-
-          </div>
+      {/* DIVISION NAVIGATION RIBBON */}
+      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+        {allDivisions.map((div) => (
+          <Link
+            key={div.id}
+            href={`/matches?division=${div.id}&sort=${currentSort}`}
+            className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border ${
+              activeDivId === div.id
+                ? "bg-slate-900 text-white border-slate-900 shadow-lg shadow-slate-200"
+                : "bg-white text-slate-400 border-slate-200 hover:border-indigo-400 hover:text-indigo-600"
+            }`}
+          >
+            {div.name}
+          </Link>
         ))}
+      </div>
 
-        {allMatches.length === 0 && (
-          <div className="p-20 text-center bg-white rounded-[3rem] border border-dashed border-slate-200">
-            <p className="text-slate-300 font-black uppercase tracking-widest italic">No match schedules or fixtures have been added yet.</p>
-          </div>
-        )}
+      {/* SORT ORDER CONTROLS */}
+      <div className="flex items-center gap-3 px-2 bg-slate-50 border border-slate-200 p-4 rounded-2xl">
+        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5 shrink-0">
+          <ArrowUpDown className="w-3.5 h-3.5" /> Filter Calendar:
+        </span>
+        <div className="flex flex-wrap gap-2">
+          {[
+            { key: "date_desc", label: "Latest Scores First", icon: CalendarDays },
+            { key: "date_asc", label: "Schedule: Chronological", icon: Calendar },
+            { key: "status", label: "By Match Status", icon: CheckCircle2 },
+          ].map((opt) => {
+            const Icon = opt.icon;
+            const isSelected = currentSort === opt.key;
+            return (
+              <Link
+                key={opt.key}
+                href={`/matches?division=${activeDivId}&sort=${opt.key}`}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all border ${
+                  isSelected
+                    ? "bg-indigo-600 text-white border-indigo-600"
+                    : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300"
+                }`}
+              >
+                <Icon className="w-3 h-3" />
+                {opt.label}
+              </Link>
+            );
+          })}
+        </div>
+      </div>
 
+      {/* PUBLIC SCHEDULE TIMELINE LEDGER */}
+      <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
+        <div className="divide-y divide-slate-100">
+          {publicMatches.map((match) => {
+            const isCompleted = match.status === "completed";
+            const isLive = match.status === "live";
+
+            return (
+              <div 
+                key={match.id} 
+                className="p-6 md:px-8 flex flex-col md:flex-row justify-between md:items-center gap-6 hover:bg-slate-50/40 transition-colors group"
+              >
+                {/* Left Side: Date / Metadata Details */}
+                <div className="flex items-center gap-4 shrink-0">
+                  <div className={`p-3.5 rounded-2xl border transition-colors ${
+                    isCompleted 
+                      ? "bg-slate-100 border-slate-200 text-slate-400 group-hover:bg-indigo-50 group-hover:border-indigo-100 group-hover:text-indigo-600" 
+                      : "bg-emerald-50 border-emerald-100 text-emerald-600 animate-pulse"
+                  }`}>
+                    {isCompleted ? <CheckCircle2 className="w-5 h-5" /> : <Clock className="w-5 h-5" />}
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black text-slate-400 block tracking-wider uppercase">
+                      {match.matchDate ? new Date(match.matchDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : "TBD"}
+                    </span>
+                    <span className="text-[9px] font-bold text-indigo-500 tracking-tight uppercase block">
+                      {match.divisionName}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Central Focus: Widescreen Scoreboard Differential Frame */}
+                <div className="flex flex-1 items-center justify-center md:justify-center gap-4 font-black text-slate-900 uppercase text-sm tracking-tight">
+                  <span className="flex-1 text-right truncate max-w-[200px] md:max-w-[250px]">
+                    {match.homeTeamName || "Home Club"}
+                  </span>
+                  
+                  <span className={`px-4 py-1.5 text-xs rounded-xl border tabular-nums tracking-widest font-black shadow-inner min-w-[75px] text-center ${
+                    isCompleted ? 'bg-slate-900 text-indigo-400 border-slate-900' :
+                    isLive ? 'bg-amber-500 text-white border-amber-500' :
+                             'bg-slate-50 text-slate-400 border-slate-200'
+                  }`}>
+                    {isCompleted ? `${match.homeTeamScoreTotal} - ${match.awayTeamScoreTotal}` : "VS"}
+                  </span>
+                  
+                  <span className="flex-1 text-left truncate max-w-[200px] md:max-w-[250px]">
+                    {match.awayTeamName || "Away Club"}
+                  </span>
+                </div>
+
+                {/* Right Side: Quick Highlights / Status Callout */}
+                <div className="md:w-[120px] text-right shrink-0 hidden md:block">
+                  <span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-md border ${
+                    isCompleted ? "bg-slate-50 border-slate-200 text-slate-500" : "bg-blue-50 border-blue-100 text-blue-600"
+                  }`}>
+                    {isCompleted ? "Final Score" : "Scheduled"}
+                  </span>
+                </div>
+
+              </div>
+            );
+          })}
+
+          {publicMatches.length === 0 && (
+            <div className="p-20 text-center text-slate-300 font-bold uppercase tracking-widest italic text-xs">
+              No tournament fixtures found for this division tier loop.
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
