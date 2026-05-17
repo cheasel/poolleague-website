@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import { ShieldAlert, Plus, Users, Shield, Calendar, ArrowRight, Trophy, Zap, Sparkles } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminDashboardPage() {
   // 1. Fetch High-Level Aggregation Metrics for Summary Badges
   const [divisionCount] = await db.select({ value: count() }).from(divisions);
