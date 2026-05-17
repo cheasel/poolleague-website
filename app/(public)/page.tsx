@@ -5,6 +5,8 @@ import { alias } from "drizzle-orm/pg-core";
 import Link from "next/link";
 import { Trophy, CalendarDays, ShieldCheck, Zap, ArrowRight, Star } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 export default async function LeagueHomepage() {
   // 1. Fetch data structures for the Live Previews
   const allDivisions = await db.select().from(divisions).orderBy(asc(divisions.tier));
