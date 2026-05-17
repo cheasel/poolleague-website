@@ -3,7 +3,7 @@ import { divisions, teams, players, matches } from "@/src/db/schema";
 import { eq, asc, count } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
-import { ShieldAlert, Plus, Users, Shield, Calendar, ArrowRight, Trophy, Zap } from "lucide-react";
+import { ShieldAlert, Plus, Users, Shield, Calendar, ArrowRight, Trophy, Zap, Sparkles } from "lucide-react";
 
 export default async function AdminDashboardPage() {
   // 1. Fetch High-Level Aggregation Metrics for Summary Badges
@@ -17,61 +17,108 @@ export default async function AdminDashboardPage() {
   const allTeams = await db.select().from(teams).orderBy(asc(teams.name));
 
   // =========================================================================
-  // SERVER ACTIONS FOR IMMEDIATE DATA CREATION
+  // SERVER ACTION: AUTO-GENERATE BALANCED ROUND-ROBIN FIXTURES
   // =========================================================================
-  
-  // A. Action: Create a New Team Squad
+  async function generateRoundRobinAction(formData: FormData) {
+    "use server";
+    const divisionIdStr = formData.get("divisionId") as string;
+    if (!divisionIdStr) return;
+    const divisionId = Number(divisionIdStr);
+
+    // 1. Fetch all teams currently assigned to this division tier
+    const divisionTeams = await db.select().from(teams).where(eq(teams.divisionId, divisionId));
+    if (divisionTeams.length < 2) return; // Need at least two teams to form a competitive schedule
+
+    const list = [...divisionTeams];
+    
+    // Berger/Round-Robin Scheduling Algorithm Matrix Construction Loop
+    // If the count is odd, add a dummy element to act as a "Bye-Week" indicator slot
+    if (list.length % 2 !== 0) {
+      // ✅ FIXED: Explicitly matching all required schema properties to pass the type check
+      list.push({
+        id: -1,
+        name: "BYE",
+        divisionId,
+        points: 0,
+        homeVenueId: null,
+        setsWon: 0,
+        setsLost: 0,
+        createdAt: new Date(),
+      }); 
+    }
+
+    const numTeams = list.length;
+    const rounds = numTeams - 1;
+    const matchesPerRound = numTeams / 2;
+    
+    let baseDate = new Date(); // Start scheduling fixtures from today onwards
+
+    // Generate balanced home/away iterations iteratively
+    for (let round = 0; round < rounds; round++) {
+      for (let matchIdx = 0; matchIdx < matchesPerRound; matchIdx++) {
+        const homeIdx = (round + matchIdx) % (numTeams - 1);
+        let awayIdx = (numTeams - 1 - matchIdx + round) % (numTeams - 1);
+
+        if (matchIdx === 0) {
+          awayIdx = numTeams - 1;
+        }
+
+        const homeTeam = list[homeIdx];
+        const awayTeam = list[awayIdx];
+
+        // Skip any matches involving our phantom Bye week placeholder
+        if (homeTeam.id === -1 || awayTeam.id === -1) continue;
+
+        // Space each fixture round exactly 7 days apart (Weekly match play cycle)
+        const matchDay = new Date(baseDate);
+        matchDay.setDate(baseDate.getDate() + round * 7);
+
+        // Commit fixture directly to your database pipeline ledger
+        await db.insert(matches).values({
+          homeTeamId: homeTeam.id,
+          awayTeamId: awayTeam.id,
+          matchDate: matchDay,
+          status: "scheduled",
+          homeTeamScoreTotal: 0,
+          awayTeamScoreTotal: 0,
+        });
+      }
+    }
+
+    revalidatePath("/admin/dashboard");
+    revalidatePath("/admin/matches");
+  }
+
+  // =========================================================================
+  // CORE OPERATIONAL ACTION CREATIONS
+  // =========================================================================
   async function createTeamAction(formData: FormData) {
     "use server";
     const name = formData.get("teamName") as string;
     const divisionId = formData.get("divisionId") ? Number(formData.get("divisionId")) : null;
-
     if (!name || name.trim() === "" || !divisionId) return;
 
-    await db.insert(teams).values({
-      name: name.trim(),
-      divisionId,
-      points: 0, // Starts fresh at the bottom of the ladder
-    });
-
+    await db.insert(teams).values({ name: name.trim(), divisionId, points: 0 });
     revalidatePath("/admin/dashboard");
-    revalidatePath("/teams");
-    revalidatePath("/standings");
   }
 
-  // B. Action: Register a New Player Profile
   async function createPlayerAction(formData: FormData) {
     "use server";
     const name = formData.get("playerName") as string;
     const teamId = formData.get("teamId") ? Number(formData.get("teamId")) : null;
-
     if (!name || name.trim() === "") return;
 
-    await db.insert(players).values({
-      name: name.trim(),
-      teamId, // Can be null if registering an unassigned free agent
-    });
-
+    await db.insert(players).values({ name: name.trim(), teamId });
     revalidatePath("/admin/dashboard");
-    revalidatePath("/players");
   }
 
-  // =========================================================================
-  // SERVER ACTION: GENERATE FIXTURE WITH ANTI-SELF-MATCHING GUARDS
-  // =========================================================================
   async function createMatchAction(formData: FormData) {
     "use server";
     const homeTeamId = formData.get("homeTeamId") ? Number(formData.get("homeTeamId")) : null;
     const awayTeamId = formData.get("awayTeamId") ? Number(formData.get("awayTeamId")) : null;
     const matchDateStr = formData.get("matchDate") as string;
 
-    if (!homeTeamId || !awayTeamId || !matchDateStr) return;
-
-    // 🛡️ GUARD: Prevent a club squad from playing against itself
-    if (homeTeamId === awayTeamId) {
-      console.warn("⚠️ Aborted fixture: A team cannot be scheduled to compete against itself.");
-      return;
-    }
+    if (!homeTeamId || !awayTeamId || homeTeamId === awayTeamId || !matchDateStr) return;
 
     await db.insert(matches).values({
       homeTeamId,
@@ -89,8 +136,8 @@ export default async function AdminDashboardPage() {
   return (
     <div className="space-y-10 max-w-7xl mx-auto px-4 py-10 antialiased text-slate-800">
       
-      {/* 1. MANAGEMENT JUMBOTRON HEADER */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-slate-100 pb-6">
+      {/* HEADER SECTION */}
+      <header className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 border-b border-slate-100 pb-6">
         <div>
           <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600 block mb-1">LEAGUE OPERATIONS CENTRAL</span>
           <h1 className="text-4xl font-black text-slate-950 uppercase tracking-tighter italic">
@@ -99,15 +146,26 @@ export default async function AdminDashboardPage() {
           <p className="text-slate-500 font-medium text-xs mt-1">Direct database insertion pipelines for teams, players, and match fixtures.</p>
         </div>
 
-        <Link 
-          href="/admin/matches" 
-          className="inline-flex items-center gap-2 bg-slate-950 hover:bg-slate-900 text-white font-black text-[10px] uppercase tracking-widest py-3 px-5 rounded-2xl transition-all shadow-xl"
-        >
-          Open Scorecard Manager <ArrowRight className="w-3.5 h-3.5" />
-        </Link>
+        {/* INJECTED: AUTO GENERATE SCHEDULING ACTION TRIGGER BAR */}
+        <form action={generateRoundRobinAction} className="bg-slate-100 p-2 rounded-2xl border border-slate-200 flex items-center gap-2 w-full lg:w-auto">
+          <select 
+            name="divisionId" 
+            required 
+            className="p-2.5 bg-white border border-slate-200 rounded-xl font-bold text-[10px] uppercase text-slate-800 outline-none min-w-[180px]"
+          >
+            <option value="">Choose Target Division...</option>
+            {allDivisions.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+          </select>
+          <button 
+            type="submit" 
+            className="inline-flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black text-[10px] uppercase tracking-widest py-2.5 px-4 rounded-xl transition-all shadow-md shadow-indigo-100 whitespace-nowrap"
+          >
+            <Sparkles className="w-3.5 h-3.5 fill-white/10" /> Auto-Generate Fixtures
+          </button>
+        </form>
       </header>
 
-      {/* 2. SUMMARY METRICS COMPONENT TABS */}
+      {/* SUMMARY BADGES SECTION */}
       <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: "Divisions Live", value: divisionCount.value, icon: Trophy, color: "text-amber-500 bg-amber-50" },
@@ -130,10 +188,10 @@ export default async function AdminDashboardPage() {
         })}
       </section>
 
-      {/* 3. CORE MANAGEMENT CREATION GRID */}
+      {/* THREE-COLUMN CREATION FORMS MATRIX PANEL */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* PANEL A: TEAM CREATION FACTORY */}
+        {/* PANEL A: TEAM SQUAD FACTORY */}
         <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center gap-2 pb-4 border-b border-slate-100 mb-6">
@@ -210,7 +268,7 @@ export default async function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* PANEL C: FIXTURE SCHEDULING DISPATCH */}
+        {/* PANEL C: MANUAL FIXTURE SCHEDULING DISPATCH */}
         <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center gap-2 pb-4 border-b border-slate-100 mb-6">
