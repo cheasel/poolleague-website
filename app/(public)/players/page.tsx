@@ -1,8 +1,8 @@
 import { db } from "@/src/db";
-import { players, teams, divisions, matchGames } from "@/src/db/schema";
+import { players, teams, divisions, matchGames, matches } from "@/src/db/schema";
 import { eq, asc, desc, or, and } from "drizzle-orm";
 import Link from "next/link";
-import { Trophy, Users, Search, ArrowUpDown, Award, Flame, Percent } from "lucide-react";
+import { Trophy, Users, Search, ArrowUpDown, Award, Flame, Percent, Activity } from "lucide-react";
 
 // Strict Promise-based searchParams schema for Next.js 15 compiler compliance
 interface PageProps {
@@ -10,6 +10,7 @@ interface PageProps {
     division?: string;
     sort?: string;
     search?: string;
+    minApps?: string; // New toggle flag: 'all' or 'regular' (>= 50% appearances)
   }>;
 }
 
@@ -19,6 +20,7 @@ export default async function PublicPlayersPage({ searchParams }: PageProps) {
   const selectedDivId = params.division ? Number(params.division) : null;
   const currentSort = params.sort || "win_rate_desc";
   const searchQuery = params.search?.trim().toLowerCase() || "";
+  const minAppsFilter = params.minApps || "all"; // Default to showing all squad members
 
   // 2. Fetch all divisions for the filtering layout header ribbon
   const allDivisions = await db.select().from(divisions).orderBy(asc(divisions.tier));
@@ -30,6 +32,7 @@ export default async function PublicPlayersPage({ searchParams }: PageProps) {
         .select({
           id: players.id,
           name: players.name,
+          teamId: players.teamId,
           teamName: teams.name,
           divisionId: teams.divisionId,
         })
@@ -38,8 +41,9 @@ export default async function PublicPlayersPage({ searchParams }: PageProps) {
         .where(eq(teams.divisionId, activeDivId))
     : [];
 
-  // 4. Fetch all played match games to compile frame metrics on the server side
+  // 4. Fetch frames data and match records to compile deep team/player metrics
   const completedFrames = await db.select().from(matchGames);
+  const completedMatches = await db.select().from(matches).where(eq(matches.status, "completed"));
 
   // 5. Compute real-time statistics matrices per player
   const computedLeaderboard = rawPlayersList
@@ -47,11 +51,12 @@ export default async function PublicPlayersPage({ searchParams }: PageProps) {
       let framesPlayed = 0;
       let framesWon = 0;
 
+      // Calculate individual frame statistics
       completedFrames.forEach((frame) => {
         const isHomePlayer = frame.player1Id === player.id || frame.player1PartnerId === player.id;
         const isAwayPlayer = frame.player2Id === player.id || frame.player2PartnerId === player.id;
 
-        // Skip unplayed frame slots
+        // Skip unplayed slots
         if ((frame.player1Score ?? 0) === 0 && (frame.player2Score ?? 0) === 0) return;
 
         if (isHomePlayer) {
@@ -63,30 +68,52 @@ export default async function PublicPlayersPage({ searchParams }: PageProps) {
         }
       });
 
+      // Calculate total available frames played by this player's specific team
+      let totalTeamFramesScheduled = 0;
+      if (player.teamId) {
+        completedMatches.forEach((match) => {
+          if (match.homeTeamId === player.teamId || match.awayTeamId === player.teamId) {
+            // Count total frames allocated to this completed match fixture
+            const matchFrameCount = completedFrames.filter(f => f.matchId === match.id).length;
+            totalTeamFramesScheduled += matchFrameCount;
+          }
+        });
+      }
+
+      // Compute percentage metrics safely
       const winRate = framesPlayed > 0 ? (framesWon / framesPlayed) * 100 : 0;
+      const appearanceRate = totalTeamFramesScheduled > 0 ? (framesPlayed / totalTeamFramesScheduled) * 100 : 0;
 
       return {
         ...player,
         framesPlayed,
         framesWon,
         winRate,
+        appearanceRate,
       };
     })
-    // Apply client-side text search indexing filters
-    .filter((player) => player.name.toLowerCase().includes(searchQuery));
+    // Filter A: Apply client-side text search indexing
+    .filter((player) => player.name.toLowerCase().includes(searchQuery))
+    // Filter B: Apply appearance percentage constraint (Regulars vs All roster spots)
+    .filter((player) => {
+      if (minAppsFilter === "regular") {
+        return player.appearanceRate >= 50; // Filter down to players who feature in at least half the team matches
+      }
+      return true;
+    });
 
   // 6. Execute sorting strategy alignments
   const sortedLeaderboard = [...computedLeaderboard].sort((a, b) => {
     switch (currentSort) {
       case "frames_won_desc":
         return b.framesWon - a.framesWon;
-      case "frames_played_desc":
-        return b.framesPlayed - a.framesPlayed;
+      case "apps_desc":
+        return b.appearanceRate - a.appearanceRate || b.framesPlayed - a.framesPlayed;
       case "name_asc":
         return a.name.localeCompare(b.name);
       case "win_rate_desc":
-    default:
-      return b.winRate - a.winRate || b.framesWon - a.framesWon;
+      default:
+        return b.winRate - a.winRate || b.framesWon - a.framesWon;
     }
   });
 
@@ -95,17 +122,17 @@ export default async function PublicPlayersPage({ searchParams }: PageProps) {
       {/* HEADER SECTION */}
       <header>
         <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tighter italic">Player Rankings</h1>
-        <p className="text-slate-500 font-medium text-xs">Official individual performance statistics, leaderboard rankings, and frame win rates.</p>
+        <p className="text-slate-500 font-medium text-xs">Official individual performance statistics, tracking attendance records and frame dominance.</p>
       </header>
 
       {/* FILTERS TOOLBAR WRAPPER */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center bg-slate-50 border border-slate-200 p-4 rounded-3xl">
         {/* Division Selection Ribbon Tabs */}
-        <div className="lg:col-span-6 flex gap-1.5 overflow-x-auto scrollbar-none py-1">
+        <div className="lg:col-span-5 flex gap-1.5 overflow-x-auto scrollbar-none py-1">
           {allDivisions.map((div) => (
             <Link
               key={div.id}
-              href={`/players?division=${div.id}&sort=${currentSort}&search=${searchQuery}`}
+              href={`/players?division=${div.id}&sort=${currentSort}&search=${searchQuery}&minApps=${minAppsFilter}`}
               className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap border ${
                 activeDivId === div.id
                   ? "bg-slate-900 text-white border-slate-900 shadow-sm"
@@ -117,10 +144,31 @@ export default async function PublicPlayersPage({ searchParams }: PageProps) {
           ))}
         </div>
 
-        {/* Live Search bar UI form redirection (native HTML pass via forms query params) */}
+        {/* NEW: Appearance Percentage Filter Toggle (All vs >= 50% Regulars) */}
+        <div className="lg:col-span-2 flex bg-white p-1 rounded-xl border border-slate-200 gap-1">
+          <Link
+            href={`/players?division=${activeDivId}&sort=${currentSort}&search=${searchQuery}&minApps=all`}
+            className={`flex-1 text-center py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all ${
+              minAppsFilter === "all" ? "bg-slate-100 text-slate-800" : "text-slate-400 hover:text-slate-600"
+            }`}
+          >
+            All Roster
+          </Link>
+          <Link
+            href={`/players?division=${activeDivId}&sort=${currentSort}&search=${searchQuery}&minApps=regular`}
+            className={`flex-1 text-center py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all ${
+              minAppsFilter === "regular" ? "bg-indigo-50 text-indigo-600 font-bold" : "text-slate-400 hover:text-slate-600"
+            }`}
+          >
+            ★ Regulars (≥50%)
+          </Link>
+        </div>
+
+        {/* Live Search bar UI form redirection */}
         <form method="GET" action="/players" className="lg:col-span-3 relative">
           <input type="hidden" name="division" value={activeDivId || ""} />
           <input type="hidden" name="sort" value={currentSort} />
+          <input type="hidden" name="minApps" value={minAppsFilter} />
           <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
@@ -132,18 +180,18 @@ export default async function PublicPlayersPage({ searchParams }: PageProps) {
         </form>
 
         {/* Sorting Controller Triggers */}
-        <div className="lg:col-span-3 flex justify-end gap-1">
+        <div className="lg:col-span-2 flex justify-end gap-1">
           {[
             { key: "win_rate_desc", label: "%", icon: Percent, tip: "Win Percentage" },
+            { key: "apps_desc", label: "Apps", icon: Activity, tip: "Appearance Frequency" },
             { key: "frames_won_desc", label: "Wins", icon: Trophy, tip: "Frames Won" },
-            { key: "name_asc", label: "A-Z", icon: ArrowUpDown, tip: "Name Alphabetical" },
           ].map((opt) => {
             const Icon = opt.icon;
             const isSelected = currentSort === opt.key;
             return (
               <Link
                 key={opt.key}
-                href={`/players?division=${activeDivId}&sort=${opt.key}&search=${searchQuery}`}
+                href={`/players?division=${activeDivId}&sort=${opt.key}&search=${searchQuery}&minApps=${minAppsFilter}`}
                 title={opt.tip}
                 className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border ${
                   isSelected
@@ -167,8 +215,9 @@ export default async function PublicPlayersPage({ searchParams }: PageProps) {
               <tr className="bg-slate-50/70 border-b border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-400">
                 <th className="py-4 px-6 w-16 text-center">Rank</th>
                 <th className="py-4 px-6">Player / Club</th>
-                <th className="py-4 px-4 text-center w-28">Played</th>
-                <th className="py-4 px-4 text-center w-28">Won</th>
+                <th className="py-4 px-4 text-center w-24">Played</th>
+                <th className="py-4 px-4 text-center w-24">Won</th>
+                <th className="py-4 px-6 text-center w-32">Attendance</th>
                 <th className="py-4 px-6 text-center w-36 bg-slate-50/40">Win Ratio</th>
               </tr>
             </thead>
@@ -207,6 +256,17 @@ export default async function PublicPlayersPage({ searchParams }: PageProps) {
                     <td className="py-5 px-4 text-center font-bold text-slate-500 tabular-nums">{player.framesPlayed}</td>
                     <td className="py-5 px-4 text-center font-black text-slate-800 tabular-nums">{player.framesWon}</td>
                     
+                    {/* Attendance / Appearance Rate Percentage */}
+                    <td className="py-5 px-6 text-center font-bold text-slate-600 tracking-tight tabular-nums">
+                      <span className={`px-2 py-1 rounded-md text-[11px] font-black ${
+                        player.appearanceRate >= 75 ? "bg-blue-50 text-blue-600" :
+                        player.appearanceRate >= 40 ? "bg-slate-100 text-slate-600" :
+                                                       "bg-slate-50 text-slate-400"
+                      }`}>
+                        {player.appearanceRate.toFixed(0)}% Apps
+                      </span>
+                    </td>
+
                     {/* Aggregated Win Percentage Meter Column */}
                     <td className="py-5 px-6 text-center bg-slate-50/20 group-hover:bg-indigo-50/20 transition-colors">
                       <div className="flex items-center justify-center gap-2">
@@ -231,7 +291,7 @@ export default async function PublicPlayersPage({ searchParams }: PageProps) {
 
               {sortedLeaderboard.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="py-24 text-center text-slate-300 font-black uppercase tracking-widest italic">
+                  <td colSpan={6} className="py-24 text-center text-slate-300 font-black uppercase tracking-widest italic">
                     No active roster players matched your selection criteria frameworks.
                   </td>
                 </tr>
