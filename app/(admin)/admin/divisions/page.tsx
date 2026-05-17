@@ -1,142 +1,143 @@
 import { db } from "@/src/db";
-import { divisions, seasons, teams } from "@/src/db/schema";
-import { eq, asc } from "drizzle-orm";
+import { divisions, teams } from "@/src/db/schema";
+import { eq, asc, count } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import DeleteButton from "@/components/delete-button";
-import { Layers, Users, Plus, Trophy } from "lucide-react";
-import Link from "next/link";
+import { Trophy, Plus, FolderTree, Shield, ChevronRight } from "lucide-react";
 
 export default async function AdminDivisionsPage() {
-  // 1. Fetch Seasons for the dropdown
-  const allSeasons = await db.select().from(seasons).orderBy(asc(seasons.name));
+  // 1. Fetch all divisions ranked by tier level
+  const allDivisions = await db.select().from(divisions).orderBy(asc(divisions.tier));
 
-  // 2. Fetch Divisions and their Teams
-  // We fetch divisions first, then we will map them to include their teams
-  const divsWithTeams = await db
-    .select({
-      id: divisions.id,
-      name: divisions.name,
-      seasonName: seasons.name,
+  // 2. Fetch team allocations grouped by division to compile team counts on the server
+  const divisionStats = await Promise.all(
+    allDivisions.map(async (div) => {
+      const [teamCounter] = await db
+        .select({ value: count() })
+        .from(teams)
+        .where(eq(teams.divisionId, div.id));
+
+      return {
+        ...div,
+        teamCount: teamCounter?.value || 0,
+      };
     })
-    .from(divisions)
-    .leftJoin(seasons, eq(divisions.seasonId, seasons.id))
-    .orderBy(asc(divisions.name));
+  );
 
-  // Fetch all teams to associate them in memory (more efficient than multiple queries)
-  const allTeams = await db.select().from(teams);
-
-  // --- SERVER ACTIONS ---
-  async function addDivision(formData: FormData) {
+  // =========================================================================
+  // SERVER ACTION FOR DIRECT DIVISION INSERTION
+  // =========================================================================
+  async function createDivisionAction(formData: FormData) {
     "use server";
-    const name = formData.get("name") as string;
-    const seasonId = Number(formData.get("seasonId"));
-    const tier = Number(formData.get("tier")); // Grab the tier ranking
-  
-    if (!name || !seasonId || !tier) return;
-  
-    await db.insert(divisions).values({ name, seasonId, tier });
-    revalidatePath("/admin/divisions");
-    revalidatePath("/standings");
-  }
+    const name = formData.get("divisionName") as string;
+    const tierStr = formData.get("tierLevel") as string;
 
-  async function deleteDivision(formData: FormData) {
-    "use server";
-    const id = Number(formData.get("id"));
-    await db.delete(divisions).where(eq(divisions.id, id));
+    if (!name || name.trim() === "" || !tierStr) return;
+
+    await db.insert(divisions).values({
+      name: name.trim(),
+      tier: Number(tierStr),
+    });
+
+    // Revalidate relevant page caches immediately
     revalidatePath("/admin/divisions");
+    revalidatePath("/admin/dashboard");
+    revalidatePath("/players");
   }
 
   return (
-    <div className="space-y-10">
-      <header>
-        <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tighter italic">Division Management</h1>
-        <p className="text-slate-500 font-medium">Create league tiers and monitor team assignments.</p>
+    <div className="space-y-8 max-w-5xl mx-auto">
+      
+      {/* HEADER ROW */}
+      <header className="border-b border-slate-200/60 pb-5">
+        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600 block mb-1">
+          Infrastructure Engine
+        </span>
+        <h1 className="text-3xl font-black text-slate-950 uppercase tracking-tighter italic">
+          Division <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600">Tiers</span>
+        </h1>
+        <p className="text-slate-500 font-medium text-xs mt-0.5">
+          Configure competitive matrix bounds, tier rankings, and monitor group densities.
+        </p>
       </header>
 
-      {/* Create Division Card */}
-      <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-200">
-      <form action={addDivision} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-        <div className="md:col-span-4 space-y-2">
-          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Division Name</label>
-          <input name="name" placeholder="e.g. Premier Tier" required className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold" />
-        </div>
+      {/* CORE GRID CONTROLLER */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
-        <div className="md:col-span-3 space-y-2">
-          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Assign Season</label>
-          <select name="seasonId" required className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold appearance-none">
-            <option value="">Select Season</option>
-            {allSeasons.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-          </select>
-        </div>
+        {/* LEFT COLUMN: ACTIVE DIVISIONS LIST (Spans 7 columns) */}
+        <div className="lg:col-span-7 space-y-3">
+          <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 block px-1">
+            Active Structural Strata ({divisionStats.length})
+          </span>
 
-        {/* NEW SELECT BOX FOR TIER LEVEL */}
-        <div className="md:col-span-2 space-y-2">
-          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Tier Rank</label>
-          <select name="tier" required className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold appearance-none">
-            <option value="1">1st (Top)</option>
-            <option value="2">2nd Tier</option>
-            <option value="3">3rd Tier</option>
-            <option value="4">4th Tier</option>
-          </select>
-        </div>
-
-        <div className="md:col-span-3">
-          <button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white p-4 rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-all">
-            Create Division
-          </button>
-        </div>
-      </form>
-      </div>
-
-      {/* Divisions & Teams List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {divsWithTeams.map((div) => {
-          const assignedTeams = allTeams.filter(t => t.divisionId === div.id);
-          
-          return (
-            <div key={div.id} className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-              <div className="p-6 bg-slate-900 text-white flex justify-between items-center">
+          {divisionStats.map((div) => (
+            <div 
+              key={div.id} 
+              className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm flex items-center justify-between group hover:border-slate-300 transition-all"
+            >
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl bg-slate-950 text-white flex items-center justify-center text-xs font-black tracking-tight border border-slate-900 shadow-sm">
+                  T{div.tier}
+                </div>
                 <div>
-                  <div className="flex items-center gap-2 text-indigo-400 mb-1">
-                    <Trophy className="w-3 h-3" />
-                    <span className="text-[9px] font-black uppercase tracking-[0.2em]">{div.seasonName}</span>
-                  </div>
-                  <h3 className="font-black uppercase tracking-tight text-lg leading-none">{div.name}</h3>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Link href={`/admin/divisions/${div.id}`} className="p-2 text-slate-400 hover:text-indigo-400 transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
-                  </Link>
-                  <DeleteButton id={div.id} action={deleteDivision} label="Division" />
+                  <h3 className="font-black text-slate-950 text-sm tracking-tight group-hover:text-indigo-600 transition-colors">
+                    {div.name}
+                  </h3>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1.5 mt-0.5">
+                    <Shield className="w-3 h-3 text-slate-300" /> {div.teamCount} Squads Allocated
+                  </p>
                 </div>
               </div>
-
-              <div className="p-6 flex-1">
-                <div className="flex items-center gap-2 mb-4">
-                  <Users className="w-4 h-4 text-slate-400" />
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                    Teams ({assignedTeams.length})
-                  </span>
-                </div>
-                
-                <div className="space-y-2">
-                  {assignedTeams.map((team) => (
-                    <div key={team.id} className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between group">
-                      <span className="font-bold text-slate-700 uppercase text-xs">{team.name}</span>
-                      <div className="w-1.5 h-1.5 rounded-full bg-slate-200 group-hover:bg-indigo-500 transition-colors"></div>
-                    </div>
-                  ))}
-                  
-                  {assignedTeams.length === 0 && (
-                    <div className="py-8 text-center border-2 border-dashed border-slate-100 rounded-2xl">
-                      <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest italic">No teams assigned</p>
-                    </div>
-                  )}
-                </div>
-              </div>
+              <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-600 transition-colors" />
             </div>
-          );
-        })}
+          ))}
+
+          {divisionStats.length === 0 && (
+            <div className="bg-white border border-slate-200 rounded-2xl py-12 text-center text-slate-400 font-bold text-xs uppercase tracking-wider">
+              No division levels mapped inside the schema yet.
+            </div>
+          )}
+        </div>
+
+        {/* RIGHT COLUMN: QUICK GENERATION FACTORY (Spans 5 columns) */}
+        <div className="lg:col-span-5 bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm sticky top-6">
+          <div className="flex items-center gap-2 pb-4 border-b border-slate-100 mb-5">
+            <FolderTree className="w-4 h-4 text-indigo-600" />
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-400">Initialize New Tier</h3>
+          </div>
+
+          <form action={createDivisionAction} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-black uppercase tracking-wider text-slate-400 ml-1">Division Designation</label>
+              <input
+                type="text"
+                name="divisionName"
+                placeholder="e.g. Championship Division"
+                required
+                className="w-full p-3.5 bg-slate-50 border border-slate-200/60 rounded-xl font-bold text-xs uppercase text-slate-800 outline-none focus:bg-white focus:ring-2 focus:ring-indigo-600"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-black uppercase tracking-wider text-slate-400 ml-1">Tier Priority Level Weight</label>
+              <input
+                type="number"
+                name="tierLevel"
+                placeholder="e.g. 1 for Top, 2 for Second"
+                min="1"
+                required
+                className="w-full p-3.5 bg-slate-50 border border-slate-200/60 rounded-xl font-bold text-xs text-slate-800 outline-none focus:bg-white focus:ring-2 focus:ring-indigo-600"
+              />
+            </div>
+
+            <button 
+              type="submit" 
+              className="w-full mt-2 inline-flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase tracking-widest text-[10px] py-4 px-4 rounded-xl transition-all shadow-md shadow-indigo-100"
+            >
+              <Plus className="w-4 h-4 stroke-[2.5]" /> Launch Division Layer
+            </button>
+          </form>
+        </div>
+
       </div>
     </div>
   );
