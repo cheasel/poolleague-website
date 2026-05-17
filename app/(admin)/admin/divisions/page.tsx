@@ -2,7 +2,7 @@ import { db } from "@/src/db";
 import { divisions, teams } from "@/src/db/schema";
 import { eq, asc, count } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { Trophy, Plus, FolderTree, Shield, ChevronRight } from "lucide-react";
+import { Trophy, Plus, FolderTree, Shield, Trash2 } from "lucide-react";
 
 export default async function AdminDivisionsPage() {
   // 1. Fetch all divisions ranked by tier level
@@ -24,7 +24,7 @@ export default async function AdminDivisionsPage() {
   );
 
   // =========================================================================
-  // SERVER ACTION FOR DIRECT DIVISION INSERTION
+  // SERVER ACTION: CREATE DIVISION
   // =========================================================================
   async function createDivisionAction(formData: FormData) {
     "use server";
@@ -38,7 +38,24 @@ export default async function AdminDivisionsPage() {
       tier: Number(tierStr),
     });
 
-    // Revalidate relevant page caches immediately
+    revalidatePath("/admin/divisions");
+    revalidatePath("/admin/dashboard");
+  }
+
+  // =========================================================================
+  // SERVER ACTION: DELETE DIVISION (NEW MECHANICAL NODE)
+  // =========================================================================
+  async function deleteDivisionAction(formData: FormData) {
+    "use server";
+    const divisionIdStr = formData.get("divisionId") as string;
+    if (!divisionIdStr) return;
+
+    const divisionId = Number(divisionIdStr);
+
+    // Execute direct transactional drop matchers
+    await db.delete(divisions).where(eq(divisions.id, divisionId));
+
+    // Revalidate paths to drop items across layout contexts instantly
     revalidatePath("/admin/divisions");
     revalidatePath("/admin/dashboard");
     revalidatePath("/players");
@@ -56,14 +73,14 @@ export default async function AdminDivisionsPage() {
           Division <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600">Tiers</span>
         </h1>
         <p className="text-slate-500 font-medium text-xs mt-0.5">
-          Configure competitive matrix bounds, tier rankings, and monitor group densities.
+          Configure competitive matrix bounds, tier rankings, and modify structural assets instantly.
         </p>
       </header>
 
       {/* CORE GRID CONTROLLER */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
-        {/* LEFT COLUMN: ACTIVE DIVISIONS LIST (Spans 7 columns) */}
+        {/* LEFT COLUMN: ACTIVE DIVISIONS LIST */}
         <div className="lg:col-span-7 space-y-3">
           <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 block px-1">
             Active Structural Strata ({divisionStats.length})
@@ -87,7 +104,18 @@ export default async function AdminDivisionsPage() {
                   </p>
                 </div>
               </div>
-              <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-slate-600 transition-colors" />
+
+              {/* INJECTED: SECURE DELETE INLINE FORM CONTAINER */}
+              <form action={deleteDivisionAction} className="opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                <input type="hidden" name="divisionId" value={div.id} />
+                <button
+                  type="submit"
+                  title={`Drop ${div.name}`}
+                  className="w-9 h-9 rounded-xl hover:bg-red-50 text-slate-400 hover:text-red-600 flex items-center justify-center border border-transparent hover:border-red-200/60 transition-all outline-none"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </form>
             </div>
           ))}
 
@@ -98,7 +126,7 @@ export default async function AdminDivisionsPage() {
           )}
         </div>
 
-        {/* RIGHT COLUMN: QUICK GENERATION FACTORY (Spans 5 columns) */}
+        {/* RIGHT COLUMN: QUICK GENERATION FACTORY */}
         <div className="lg:col-span-5 bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm sticky top-6">
           <div className="flex items-center gap-2 pb-4 border-b border-slate-100 mb-5">
             <FolderTree className="w-4 h-4 text-indigo-600" />
@@ -122,7 +150,7 @@ export default async function AdminDivisionsPage() {
               <input
                 type="number"
                 name="tierLevel"
-                placeholder="e.g. 1 for Top, 2 for Second"
+                placeholder="e.g. 1"
                 min="1"
                 required
                 className="w-full p-3.5 bg-slate-50 border border-slate-200/60 rounded-xl font-bold text-xs text-slate-800 outline-none focus:bg-white focus:ring-2 focus:ring-indigo-600"
