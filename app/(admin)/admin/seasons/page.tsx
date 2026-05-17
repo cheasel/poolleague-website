@@ -4,6 +4,8 @@ import { eq, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { History, Plus, CalendarDays, Trash2, ToggleLeft } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminSeasonsPage() {
   // 1. Fetch all seasons, sorting the newest ones to the top
   const allSeasons = await db.select().from(seasons).orderBy(desc(seasons.startDate));

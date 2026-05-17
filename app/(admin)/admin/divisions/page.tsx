@@ -4,6 +4,8 @@ import { eq, asc, count } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { Trophy, Plus, FolderTree, Shield, Trash2 } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminDivisionsPage() {
   // 1. Fetch all divisions ranked by tier level
   const allDivisions = await db.select().from(divisions).orderBy(asc(divisions.tier));
