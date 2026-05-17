@@ -25,7 +25,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "npx drizzle-kit push && next build",
     "start": "next start",
     "lint": "next lint",
     "db:push": "npx drizzle-kit push",
