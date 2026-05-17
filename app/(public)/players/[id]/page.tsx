@@ -1,20 +1,26 @@
 import { db } from "@/src/db";
 import { players, matchGames, matches, teams, divisions, seasons } from "@/src/db/schema";
-import { eq, desc, or, and } from "drizzle-orm";
+import { eq, desc, or } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import PlayerProfileClient from "./player-profile-client";
 
-export default async function PlayerProfilePage({ params }: { params: { id: string } }) {
+interface PageProps {
+  params: Promise<{
+    id: string;
+  }>;
+}
+
+export default async function PlayerProfilePage({ params }: PageProps) {
   const { id } = await params;
   const playerId = Number(id);
 
-  // 1. Fetch fundamental profile tracking data
   const [player] = await db
     .select({
       id: players.id,
       name: players.name,
+      imageUrl: players.imageUrl, // <-- FETCH IMAGE NATIVELY
       teamName: teams.name,
     })
     .from(players)
@@ -25,10 +31,8 @@ export default async function PlayerProfilePage({ params }: { params: { id: stri
     return <div className="p-20 text-center font-black uppercase text-slate-400">Player profile sheet unavailable.</div>;
   }
 
-  // 2. Fetch distinct season listing for filtering configuration parameters
   const allSeasons = await db.select().from(seasons).orderBy(desc(seasons.name));
 
-  // 3. Chain relational logs tracking frame results matched with division tiers
   const homeTeams = alias(teams, "homeTeams");
   const awayTeams = alias(teams, "awayTeams");
 
@@ -66,7 +70,6 @@ export default async function PlayerProfilePage({ params }: { params: { id: stri
     )
     .orderBy(desc(matches.matchDate), desc(matchGames.gameOrder));
 
-  // 4. Gather list of names across entire system to map match IDs cleanly
   const globalPlayersList = await db.select().from(players);
   const playerMapRecord: Record<number, string> = {};
   globalPlayersList.forEach(p => {
@@ -81,11 +84,11 @@ export default async function PlayerProfilePage({ params }: { params: { id: stri
             <ArrowLeft className="w-4 h-4" /> Back to Analytics Leaderboard
           </Link>
         </header>
-  
-        {/* Fixed: Changed activeSeasons to allSeasons */}
+
         <PlayerProfileClient
           playerId={playerId}
           playerName={player.name}
+          imageUrl={player.imageUrl} // <-- FORWARD DIRECTLY DOWN
           teamName={player.teamName || "Unassigned Agent"}
           games={rawGames as any} 
           seasons={allSeasons}

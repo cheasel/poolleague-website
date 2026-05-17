@@ -6,14 +6,14 @@ import Link from "next/link";
 import { ArrowLeft, Save, Plus, ShieldCheck, Trash2, User, Users as UsersIcon } from "lucide-react";
 
 // =========================================================================
-// 1. FIXED TOP-LEVEL UTILITY: BULLETPROOF LEAGUE STANDINGS SYNC ENGINE
+// 1. TOP-LEVEL UTILITY: BULLETPROOF LEAGUE STANDINGS SYNC ENGINE
 // =========================================================================
 async function syncMatchTotals(targetMatchId: number) {
-  // 1. Fetch the match info to find out which two teams are playing
+  // A. Fetch the match info to find out which two teams are playing
   const [currentMatch] = await db.select().from(matches).where(eq(matches.id, targetMatchId));
   if (!currentMatch || !currentMatch.homeTeamId || !currentMatch.awayTeamId) return;
 
-  // 2. Fetch all current frames for this specific match to calculate the current scorecard total
+  // B. Fetch all current frames for this specific match to calculate the scorecard total
   const freshGamesList = await db.select().from(matchGames).where(eq(matchGames.matchId, targetMatchId));
   
   let homeMatchWins = 0;
@@ -25,7 +25,7 @@ async function syncMatchTotals(targetMatchId: number) {
     else if ((g.player2Score ?? 0) > (g.player1Score ?? 0)) awayMatchWins++;
   });
 
-  // 3. Update the parent match fixture scorecard totals
+  // C. Update the parent match fixture scorecard totals
   await db
     .update(matches)
     .set({
@@ -35,7 +35,7 @@ async function syncMatchTotals(targetMatchId: number) {
     })
     .where(eq(matches.id, targetMatchId));
 
-  // 4. RECOUNT TOTAL LEAGUE STANDINGS POINTS FOR BOTH TEAMS
+  // D. RECOUNT TOTAL LEAGUE STANDINGS POINTS FOR BOTH TEAMS
   const targetTeamIds = [currentMatch.homeTeamId, currentMatch.awayTeamId];
 
   for (const teamId of targetTeamIds) {
@@ -68,10 +68,18 @@ async function syncMatchTotals(targetMatchId: number) {
   }
 }
 
+// FIXED: Define explicit Promise-based interface structure for Next.js 15 compiler constraints
+interface PageProps {
+  params: Promise<{
+    id: string;
+  }>;
+}
+
 // =========================================================================
-// 2. SERVER COMPONENT MAIN ROUTE
+// 2. MAIN CORE SERVER COMPONENT ROUTE
 // =========================================================================
-export default async function MatchScorecardPage({ params }: { params: { id: string } }) {
+export default async function MatchScorecardPage({ params }: PageProps) {
+  // A. Await the params container Promise before using variables
   const { id } = await params;
   const matchId = Number(id);
 
@@ -115,7 +123,7 @@ export default async function MatchScorecardPage({ params }: { params: { id: str
     .orderBy(asc(matchGames.gameOrder));
 
   // =========================================================================
-  // 3. SERVER ACTIONS
+  // 3. INLINE SERVER ACTIONS FOR IN-MEMORY MUTATIONS
   // =========================================================================
   async function addFrameFrameRow() {
     "use server";
@@ -161,7 +169,6 @@ export default async function MatchScorecardPage({ params }: { params: { id: str
 
     await syncMatchTotals(matchId);
 
-    // Deep cache purge across all presentation layers
     revalidatePath("/");
     revalidatePath("/standings"); 
     revalidatePath("/teams");
@@ -263,6 +270,7 @@ export default async function MatchScorecardPage({ params }: { params: { id: str
           </form>
         </div>
 
+        {/* WIDESCREEN HORIZONTAL ROW LAYOUT MATRIX */}
         <div className="space-y-4">
           {existingFrames.map((frame) => {
             const isDouble = frame.gameType === "double";
@@ -276,17 +284,20 @@ export default async function MatchScorecardPage({ params }: { params: { id: str
                 <input type="hidden" name="gameId" value={frame.id} />
                 <input type="hidden" name="currentGameType" value={frame.gameType || "single"} />
                 
-                {/* 1. LEFT UTILS */}
+                {/* 1. LEFT UTILS: Index & Variant Controller */}
                 <div className="md:col-span-2 flex items-center justify-between md:justify-start gap-4 border-b md:border-b-0 pb-3 md:pb-0 border-slate-100">
                   <div>
                     <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">Frame</span>
                     <span className="text-xl font-black text-slate-900 tabular-nums">F{frame.gameOrder}</span>
                   </div>
+                  
                   <div className="flex-1 max-w-[110px]">
                     <button
                       formAction={changeGameTypeAction}
                       className={`w-full text-left px-2.5 py-2 rounded-xl border font-black text-[9px] uppercase tracking-wider flex items-center justify-between group transition-all ${
-                        isDouble ? "bg-purple-50 text-purple-600 border-purple-200" : "bg-blue-50 text-blue-600 border-blue-200"
+                        isDouble 
+                          ? "bg-purple-50 text-purple-600 border-purple-200" 
+                          : "bg-blue-50 text-blue-600 border-blue-200"
                       }`}
                     >
                       <span className="flex items-center gap-1">
@@ -297,12 +308,12 @@ export default async function MatchScorecardPage({ params }: { params: { id: str
                   </div>
                 </div>
 
-                {/* 2. HOME COMPETITORS */}
+                {/* 2. HOME COMPETITORS SLOTS */}
                 <div className="md:col-span-3 space-y-1.5">
                   <select 
                     name="player1Id" 
                     defaultValue={frame.player1Id ? String(frame.player1Id) : ""}
-                    className="w-full p-3 bg-slate-50 border border-slate-200/60 rounded-xl font-bold text-xs uppercase text-slate-800 outline-none"
+                    className="w-full p-3 bg-slate-50 border border-slate-200/60 rounded-xl font-bold text-xs uppercase text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500"
                   >
                     <option value="">Select Home Player...</option>
                     {homePlayers.map(p => <option key={p.id} value={String(p.id)}>{p.name}</option>)}
@@ -312,7 +323,7 @@ export default async function MatchScorecardPage({ params }: { params: { id: str
                     <select 
                       name="player1PartnerId" 
                       defaultValue={frame.player1PartnerId ? String(frame.player1PartnerId) : ""}
-                      className="w-full p-3 bg-slate-50 border border-slate-200/60 rounded-xl font-bold text-xs uppercase text-slate-800 outline-none"
+                      className="w-full p-3 bg-slate-50 border border-slate-200/60 rounded-xl font-bold text-xs uppercase text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500 animate-in fade-in slide-in-from-top-1 duration-150"
                     >
                       <option value="">Select Partner...</option>
                       {homePlayers.map(p => <option key={p.id} value={String(p.id)}>{p.name}</option>)}
@@ -320,40 +331,72 @@ export default async function MatchScorecardPage({ params }: { params: { id: str
                   )}
                 </div>
 
-                {/* 3. CORE SCORES INPUT GROUP */}
-                <div className="md:col-span-2 flex items-center justify-center gap-3 bg-slate-950 p-2.5 rounded-2xl max-w-[150px] mx-auto border border-slate-900 shadow-inner">
-                  <input type="number" name="player1Score" defaultValue={frame.player1Score ?? 0} className="w-12 text-center font-black text-xl text-white bg-slate-900 border border-slate-800 p-1.5 rounded-xl outline-none focus:bg-indigo-600 focus:border-indigo-500 tabular-nums" />
-                  <span className="text-[10px] font-black text-slate-600 select-none">VS</span>
-                  <input type="number" name="player2Score" defaultValue={frame.player2Score ?? 0} className="w-12 text-center font-black text-xl text-white bg-slate-900 border border-slate-800 p-1.5 rounded-xl outline-none focus:bg-indigo-600 focus:border-indigo-500 tabular-nums" />
+                {/* 3. CENTRAL LIVE SCORE INPUTS BLOCK */}
+                <div className="md:col-span-2 flex items-center justify-center gap-3 bg-slate-950 p-2.5 rounded-2xl max-w-[150px] mx-auto shadow-inner border border-slate-900">
+                  <input 
+                    type="number" 
+                    name="player1Score" 
+                    defaultValue={frame.player1Score ?? 0}
+                    className="w-12 text-center font-black text-xl text-white bg-slate-900 border border-slate-800 p-1.5 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 tabular-nums focus:bg-indigo-600 focus:border-indigo-500 transition-colors"
+                  />
+                  <span className="text-[10px] font-black text-slate-600 uppercase select-none">VS</span>
+                  <input 
+                    type="number" 
+                    name="player2Score" 
+                    defaultValue={frame.player2Score ?? 0}
+                    className="w-12 text-center font-black text-xl text-white bg-slate-900 border border-slate-800 p-1.5 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 tabular-nums focus:bg-indigo-600 focus:border-indigo-500 transition-colors"
+                  />
                 </div>
 
-                {/* 4. AWAY COMPETITORS */}
+                {/* 4. AWAY COMPETITORS SLOTS */}
                 <div className="md:col-span-3 space-y-1.5">
-                  <select name="player2Id" defaultValue={frame.player2Id ? String(frame.player2Id) : ""} className="w-full p-3 bg-slate-50 border border-slate-200/60 rounded-xl font-bold text-xs uppercase text-slate-800 outline-none">
+                  <select 
+                    name="player2Id" 
+                    defaultValue={frame.player2Id ? String(frame.player2Id) : ""}
+                    className="w-full p-3 bg-slate-50 border border-slate-200/60 rounded-xl font-bold text-xs uppercase text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
                     <option value="">Select Away Player...</option>
                     {awayPlayers.map(p => <option key={p.id} value={String(p.id)}>{p.name}</option>)}
                   </select>
 
                   {isDouble && (
-                    <select name="player2PartnerId" defaultValue={frame.player2PartnerId ? String(frame.player2PartnerId) : ""} className="w-full p-3 bg-slate-50 border border-slate-200/60 rounded-xl font-bold text-xs uppercase text-slate-800 outline-none">
+                    <select 
+                      name="player2PartnerId" 
+                      defaultValue={frame.player2PartnerId ? String(frame.player2PartnerId) : ""}
+                      className="w-full p-3 bg-slate-50 border border-slate-200/60 rounded-xl font-bold text-xs uppercase text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500 mt-2 animate-in fade-in slide-in-from-top-1 duration-150"
+                    >
                       <option value="">Select Partner...</option>
                       {awayPlayers.map(p => <option key={p.id} value={String(p.id)}>{p.name}</option>)}
                     </select>
                   )}
                 </div>
 
-                {/* 5. CONTROLS CONTAINER */}
+                {/* 5. RIGHT CONTROLS: Destructive / Save Operations */}
                 <div className="md:col-span-2 flex items-center justify-end gap-2 border-t md:border-t-0 pt-3 md:pt-0 border-slate-100 w-full md:w-auto">
-                  <button type="submit" className="p-3 text-[10px] font-black uppercase bg-emerald-600 text-white hover:bg-emerald-700 rounded-xl transition-all grow md:grow-0 flex items-center justify-center gap-1">
+                  <button 
+                    type="submit"
+                    className="p-3 text-[10px] font-black uppercase tracking-widest bg-emerald-600 text-white hover:bg-emerald-700 rounded-xl transition-all grow md:grow-0 text-center flex items-center justify-center gap-1 shadow-sm shadow-emerald-100"
+                  >
                     <Save className="w-3.5 h-3.5" /> Save
                   </button>
-                  <button formAction={deleteFrameRow} className="p-3 bg-slate-100 text-slate-400 hover:bg-rose-600 hover:text-white rounded-xl transition-all flex items-center justify-center grow md:grow-0">
+
+                  <button 
+                    formAction={deleteFrameRow}
+                    className="p-3 bg-slate-100 text-slate-400 hover:bg-rose-600 hover:text-white border border-slate-200/40 hover:border-rose-600 rounded-xl transition-all flex items-center justify-center grow md:grow-0"
+                  >
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
+
               </form>
             );
           })}
+
+          {existingFrames.length === 0 && (
+            <div className="bg-white p-20 rounded-[2.5rem] border border-slate-200 text-center text-xs font-black text-slate-300 uppercase tracking-widest italic shadow-sm">
+              No active match games appended to this frame sheet log yet.
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -5,7 +5,13 @@ import { alias } from "drizzle-orm/pg-core";
 import Link from "next/link";
 import { Calendar, Trophy, Layers, Shield, ArrowLeft, User, HelpCircle } from "lucide-react";
 
-export default async function PublicMatchDetailPage({ params }: { params: { id: string } }) {
+interface PageProps {
+  params: Promise<{
+    id: string;
+  }>;
+}
+
+export default async function PublicMatchDetailPage({ params }: PageProps) {
   const { id } = await params;
   const matchId = Number(id);
 

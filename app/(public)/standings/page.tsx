@@ -4,7 +4,14 @@ import { eq, asc, desc } from "drizzle-orm";
 import Link from "next/link";
 import StandingsClient from "./standings-client";
 
-export default async function StandingsPage({ searchParams }: { searchParams: { division?: string } }) {
+interface PageProps {
+  searchParams: Promise<{
+    division?: string;
+    sort?: string;
+  }>;
+}
+
+export default async function StandingsPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const selectedDivId = params.division ? Number(params.division) : null;
 

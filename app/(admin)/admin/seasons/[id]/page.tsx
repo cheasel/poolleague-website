@@ -6,7 +6,13 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Save, ArrowLeft, Trophy } from "lucide-react";
 
-export default async function EditSeasonPage({ params }: { params: { id: string } }) {
+interface PageProps {
+  params: Promise<{
+    id: string;
+  }>;
+}
+
+export default async function EditSeasonPage({ params }: PageProps) {
   const { id } = await params;
   const seasonId = Number(id);
 

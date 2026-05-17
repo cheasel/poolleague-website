@@ -6,7 +6,13 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Save, ArrowLeft, UserCircle2 } from "lucide-react";
 
-export default async function EditPlayerPage({ params }: { params: { id: string } }) {
+interface PageProps {
+  params: Promise<{
+    id: string;
+  }>;
+}
+
+export default async function EditPlayerPage({ params }: PageProps) {
   const { id } = await params;
   const playerId = Number(id);
 

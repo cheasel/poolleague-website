@@ -6,7 +6,13 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Save, ArrowLeft, Users } from "lucide-react";
 
-export default async function EditTeamPage({ params }: { params: { id: string } }) {
+interface PageProps {
+  params: Promise<{
+    id: string;
+  }>;
+}
+
+export default async function EditTeamPage({ params }: PageProps) {
   const { id } = await params;
   const teamId = Number(id);
 

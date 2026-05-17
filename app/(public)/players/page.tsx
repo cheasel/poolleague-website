@@ -4,10 +4,18 @@ import { eq, asc } from "drizzle-orm";
 import Link from "next/link";
 import PlayerStatsClient from "./player-stats-client";
 
-export default async function PlayerLeaderboardPage({ searchParams }: { searchParams: { division?: string } }) {
+interface PageProps {
+  searchParams: Promise<{
+    division?: string;
+    sort?: string;
+  }>;
+}
+
+export default async function PlayerLeaderboardPage({ searchParams }: PageProps) {
   const params = await searchParams;
   const selectedDivId = params.division ? Number(params.division) : null;
-
+  const currentSort = params.sort || "name_asc";
+  
   // 1. Fetch Divisions for tabs navigation
   const allDivisions = await db.select().from(divisions).orderBy(asc(divisions.tier));
   const activeDivId = selectedDivId || allDivisions[0]?.id;

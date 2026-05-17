@@ -6,7 +6,13 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import TeamProfileClient from "./team-profile-client";
 
-export default async function PublicTeamProfilePage({ params }: { params: { id: string } }) {
+interface PageProps {
+  params: Promise<{
+    id: string;
+  }>;
+}
+
+export default async function PublicTeamProfilePage({ params }: PageProps) {
   const { id } = await params;
   const teamId = Number(id);
 

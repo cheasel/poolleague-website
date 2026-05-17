@@ -43,8 +43,8 @@ async function main() {
   // Add this after your team insertion logic
   console.log("Seeding players...");
   await db.insert(schema.players).values([
-    { name: "Ronnie O'Sullivan", handicap: 0, teamId: teamA.id }, // Use teamA.id for safety
-    { name: "Judd Trump", handicap: 0, teamId: teamB.id },        // Use teamB.id for safety
+    { name: "Ronnie O'Sullivan", teamId: teamA.id }, // Use teamA.id for safety
+    { name: "Judd Trump", teamId: teamB.id },        // Use teamB.id for safety
   ]);
 
   console.log('--- Seeding Complete! ---');
