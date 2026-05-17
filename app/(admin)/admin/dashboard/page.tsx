@@ -56,14 +56,22 @@ export default async function AdminDashboardPage() {
     revalidatePath("/players");
   }
 
-  // C. Action: Schedule a New Match Fixture
+  // =========================================================================
+  // SERVER ACTION: GENERATE FIXTURE WITH ANTI-SELF-MATCHING GUARDS
+  // =========================================================================
   async function createMatchAction(formData: FormData) {
     "use server";
     const homeTeamId = formData.get("homeTeamId") ? Number(formData.get("homeTeamId")) : null;
     const awayTeamId = formData.get("awayTeamId") ? Number(formData.get("awayTeamId")) : null;
     const matchDateStr = formData.get("matchDate") as string;
 
-    if (!homeTeamId || !awayTeamId || homeTeamId === awayTeamId || !matchDateStr) return;
+    if (!homeTeamId || !awayTeamId || !matchDateStr) return;
+
+    // 🛡️ GUARD: Prevent a club squad from playing against itself
+    if (homeTeamId === awayTeamId) {
+      console.warn("⚠️ Aborted fixture: A team cannot be scheduled to compete against itself.");
+      return;
+    }
 
     await db.insert(matches).values({
       homeTeamId,

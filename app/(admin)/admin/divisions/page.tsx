@@ -43,7 +43,7 @@ export default async function AdminDivisionsPage() {
   }
 
   // =========================================================================
-  // SERVER ACTION: DELETE DIVISION (NEW MECHANICAL NODE)
+  // SERVER ACTION: SECURE DELETE DIVISION WITH RELATIONAL GUARDS
   // =========================================================================
   async function deleteDivisionAction(formData: FormData) {
     "use server";
@@ -52,10 +52,22 @@ export default async function AdminDivisionsPage() {
 
     const divisionId = Number(divisionIdStr);
 
-    // Execute direct transactional drop matchers
+    // 🛡️ GUARD: Verify if any teams are actively bound to this division tier
+    const assignedTeams = await db
+      .select()
+      .from(teams)
+      .where(eq(teams.divisionId, divisionId));
+
+    if (assignedTeams.length > 0) {
+      // In a production app, you can pass this back via an error state. 
+      // For now, we cleanly abort the transaction to safeguard data integrity.
+      console.warn(`⚠️ Aborted deletion: Division ID ${divisionId} contains active team relations.`);
+      return;
+    }
+
+    // Safely delete if the division is empty
     await db.delete(divisions).where(eq(divisions.id, divisionId));
 
-    // Revalidate paths to drop items across layout contexts instantly
     revalidatePath("/admin/divisions");
     revalidatePath("/admin/dashboard");
     revalidatePath("/players");

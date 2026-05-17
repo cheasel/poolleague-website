@@ -9,7 +9,7 @@ export default async function AdminSeasonsPage() {
   const allSeasons = await db.select().from(seasons).orderBy(desc(seasons.startDate));
 
   // =========================================================================
-  // SERVER ACTION: INITIALIZE A NEW SEASON
+  // SERVER ACTION: INITIALIZE A NEW SEASON WITH TIMELINE GUARDS
   // =========================================================================
   async function createSeasonAction(formData: FormData) {
     "use server";
@@ -19,10 +19,19 @@ export default async function AdminSeasonsPage() {
 
     if (!name || name.trim() === "" || !startStr || !endStr) return;
 
+    const startDate = new Date(startStr);
+    const endDate = new Date(endStr);
+
+    // 🛡️ GUARD: Ensure chronological timeline integrity
+    if (endDate <= startDate) {
+      console.warn("⚠️ Aborted creation: Closing Standings Date must occur after the Opening Fixture Date.");
+      return;
+    }
+
     await db.insert(seasons).values({
       name: name.trim(),
-      startDate: new Date(startStr),
-      endDate: new Date(endStr),
+      startDate,
+      endDate,
       isActive: false,
     });
 
