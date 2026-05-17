@@ -12,6 +12,8 @@ import {
   ShieldAlert
 } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminDashboardPage() {
   // 1. Fetch High-Level Metrics concurrently
   const [seasonCount] = await db.select({ count: count() }).from(seasons);

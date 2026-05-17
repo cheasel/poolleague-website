@@ -4,6 +4,8 @@ import { eq, asc, desc, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { Calendar, Plus, Trophy, Shield, CheckCircle2, AlertCircle } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 interface PageProps {
   searchParams: Promise<{
     selectedMatch?: string;

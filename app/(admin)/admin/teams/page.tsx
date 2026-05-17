@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { Trophy, Users, Hash, Plus, Trash2, Pencil } from "lucide-react";
 import Link from 'next/link';
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminTeamsPage() {
   // 1. Fetch data for the list and the dropdown
   // We join divisions and seasons to show exactly where each team belongs

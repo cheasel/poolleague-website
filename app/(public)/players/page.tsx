@@ -4,6 +4,8 @@ import { eq, asc, desc, or, and } from "drizzle-orm";
 import Link from "next/link";
 import { Trophy, Users, Search, ArrowUpDown, Award, Percent, Activity, Star, Zap } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 interface PageProps {
   searchParams: Promise<{
     division?: string;

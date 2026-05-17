@@ -1,6 +1,10 @@
 import { db } from './index'; // You'll need to export your db connection
 import * as schema from './schema';
 import { sql } from "drizzle-orm";
+import * as dotenv from 'dotenv';
+
+// Load env variables for local seeding
+dotenv.config({ path: '.env.local' });
 
 async function main() {
   console.log("Emptying existing data...");

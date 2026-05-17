@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { User, Plus, Trash2, Pencil, Shield } from "lucide-react";
 import Link from 'next/link';
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminPlayersPage() {
   // 1. Fetch data for the list
   const allPlayers = await db

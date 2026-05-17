@@ -4,6 +4,8 @@ import { eq, asc, desc } from "drizzle-orm";
 import Link from "next/link";
 import StandingsClient from "./standings-client";
 
+export const dynamic = "force-dynamic";
+
 interface PageProps {
   searchParams: Promise<{
     division?: string;
