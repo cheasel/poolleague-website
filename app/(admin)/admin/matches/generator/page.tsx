@@ -6,6 +6,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Sparkles, AlertTriangle } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 export default async function MatchScheduleGeneratorPage() {
   // 1. Fetch divisions so the admin can choose which league tier bracket to schedule
   const allDivisions = await db.select().from(divisions).orderBy(asc(divisions.tier));

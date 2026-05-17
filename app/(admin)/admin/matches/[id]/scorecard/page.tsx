@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import { ArrowLeft, Save, Plus, ShieldCheck, Trash2, User, Users as UsersIcon } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 // =========================================================================
 // 1. TOP-LEVEL UTILITY: BULLETPROOF LEAGUE STANDINGS SYNC ENGINE
 // =========================================================================

@@ -5,6 +5,8 @@ import { alias } from "drizzle-orm/pg-core";
 import Link from "next/link";
 import { ArrowLeft, Calendar, Shield, Trophy } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 // FIXED: Define the strict Promise-based interface structure for Next.js 15
 interface PageProps {
   params: Promise<{

@@ -6,6 +6,8 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import TeamProfileClient from "./team-profile-client";
 
+export const dynamic = "force-dynamic";
+
 interface PageProps {
   params: Promise<{
     id: string;

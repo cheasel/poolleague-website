@@ -5,6 +5,8 @@ import { alias } from "drizzle-orm/pg-core";
 import Link from "next/link";
 import { Calendar, ArrowUpDown, CalendarDays, CheckCircle2, Trophy, Clock } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 interface PageProps {
   searchParams: Promise<{
     division?: string;

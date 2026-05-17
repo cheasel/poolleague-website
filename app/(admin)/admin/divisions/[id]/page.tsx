@@ -6,6 +6,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft, Shield, Users, Plus, Trash2, LayoutDashboard } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 // FIXED: Define strict Promise-based PageProps structure to clear Next.js 15 compilation constraints
 interface PageProps {
   params: Promise<{

@@ -6,6 +6,8 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import PlayerProfileClient from "./player-profile-client";
 
+export const dynamic = "force-dynamic";
+
 interface PageProps {
   params: Promise<{
     id: string;

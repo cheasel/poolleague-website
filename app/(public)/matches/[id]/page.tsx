@@ -5,6 +5,8 @@ import { alias } from "drizzle-orm/pg-core";
 import Link from "next/link";
 import { Calendar, Trophy, Layers, Shield, ArrowLeft, User, HelpCircle } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 interface PageProps {
   params: Promise<{
     id: string;

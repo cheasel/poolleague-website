@@ -6,6 +6,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Save, ArrowLeft, UserCircle2 } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 interface PageProps {
   params: Promise<{
     id: string;
