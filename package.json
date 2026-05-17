@@ -28,10 +28,10 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "npx drizzle-kit push && next build",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "db:push": "npx drizzle-kit push",
+    "db:push": "drizzle-kit push",
     "db:seed": "tsx src/db/seed.ts"
   }
 }
