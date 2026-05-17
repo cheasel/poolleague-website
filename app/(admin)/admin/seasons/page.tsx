@@ -1,132 +1,214 @@
 import { db } from "@/src/db";
-import { seasons, divisions } from "@/src/db/schema";
-import { eq, asc } from "drizzle-orm";
+import { seasons } from "@/src/db/schema";
+import { eq, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import DeleteButton from "@/components/delete-button";
-import { Trophy, Layers, Plus, CalendarDays } from "lucide-react";
-import Link from "next/link";
+import { History, Plus, CalendarDays, Trash2, ToggleLeft } from "lucide-react";
 
 export default async function AdminSeasonsPage() {
-  // 1. Fetch data
-  const allSeasons = await db.select().from(seasons).orderBy(asc(seasons.name));
-  const allDivisions = await db.select().from(divisions);
+  // 1. Fetch all seasons, sorting the newest ones to the top
+  const allSeasons = await db.select().from(seasons).orderBy(desc(seasons.startDate));
 
-  // --- SERVER ACTIONS ---
-  async function addSeason(formData: FormData) {
+  // =========================================================================
+  // SERVER ACTION: INITIALIZE A NEW SEASON
+  // =========================================================================
+  async function createSeasonAction(formData: FormData) {
     "use server";
-    const name = formData.get("name") as string;
-    if (!name) return;
+    const name = formData.get("seasonName") as string;
+    const startStr = formData.get("startDate") as string;
+    const endStr = formData.get("endDate") as string;
 
-    await db.insert(seasons).values({ name });
+    if (!name || name.trim() === "" || !startStr || !endStr) return;
+
+    await db.insert(seasons).values({
+      name: name.trim(),
+      startDate: new Date(startStr),
+      endDate: new Date(endStr),
+      isActive: false,
+    });
+
     revalidatePath("/admin/seasons");
+    revalidatePath("/admin/dashboard");
   }
 
-  async function deleteSeason(formData: FormData) {
+  // =========================================================================
+  // SERVER ACTION: TOGGLE ACTIVE STATUS
+  // =========================================================================
+  async function activateSeasonAction(formData: FormData) {
     "use server";
-    const id = Number(formData.get("id"));
-    await db.delete(seasons).where(eq(seasons.id, id));
+    const seasonIdStr = formData.get("seasonId") as string;
+    if (!seasonIdStr) return;
+    const seasonId = Number(seasonIdStr);
+
+    await db.update(seasons).set({ isActive: false });
+    await db.update(seasons).set({ isActive: true }).where(eq(seasons.id, seasonId));
+
     revalidatePath("/admin/seasons");
-    revalidatePath("/admin/divisions"); // Revalidate related pages
+    revalidatePath("/admin/dashboard");
+  }
+
+  // =========================================================================
+  // SERVER ACTION: DELETE A SEASON
+  // =========================================================================
+  async function deleteSeasonAction(formData: FormData) {
+    "use server";
+    const seasonIdStr = formData.get("seasonId") as string;
+    if (!seasonIdStr) return;
+
+    await db.delete(seasons).where(eq(seasons.id, Number(seasonIdStr)));
+
+    revalidatePath("/admin/seasons");
+    revalidatePath("/admin/dashboard");
   }
 
   return (
-    <div className="space-y-10">
-      <header>
-        <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tighter italic">Season Management</h1>
-        <p className="text-slate-500 font-medium">Define league timelines and organize divisions.</p>
+    <div className="space-y-8 max-w-5xl mx-auto">
+      
+      {/* HEADER ROW */}
+      <header className="border-b border-slate-200/60 pb-5">
+        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600 block mb-1">
+          Infrastructure Engine
+        </span>
+        <h1 className="text-3xl font-black text-slate-950 uppercase tracking-tighter italic">
+          Season <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-600 to-indigo-600">Ledger</span>
+        </h1>
+        <p className="text-slate-500 font-medium text-xs mt-0.5">
+          Establish operational timelines, toggle active competitive splits, and manage historical ledgers.
+        </p>
       </header>
 
-      {/* Add Season Form */}
-      <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-200">
-        <form action={addSeason} className="flex flex-col md:flex-row gap-4 items-end">
-          <div className="flex-1 space-y-2 w-full">
-            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">New Season Name</label>
-            <input 
-              name="name" 
-              placeholder="e.g. Summer 2026 Championship" 
-              required 
-              className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold" 
-            />
-          </div>
-          <button className="w-full md:w-auto bg-indigo-600 hover:bg-indigo-700 text-white px-10 py-4 rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-all">
-            <Plus className="w-4 h-4" /> Start Season
-          </button>
-        </form>
-      </div>
+      {/* CORE GRID ENGINE */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        {/* LEFT COLUMN: SEASONS LIST */}
+        <div className="lg:col-span-7 space-y-3">
+          <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 block px-1">
+            Historical & Current Timelines ({allSeasons.length})
+          </span>
 
-      {/* Seasons List with Nested Divisions */}
-      <div className="grid grid-cols-1 gap-6">
-        {allSeasons.map((season) => {
-          const associatedDivs = allDivisions.filter(d => d.seasonId === season.id);
-          
-          return (
-            <div key={season.id} className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden">
-              <div className="p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div className="flex items-center gap-6">
-                  <div className="bg-amber-100 p-4 rounded-2xl">
-                    <Trophy className="w-6 h-6 text-amber-600" />
+          {allSeasons.map((season) => {
+            const currentIsActive = season.isActive === true;
+            
+            // ⚡ FIXED: Safe parsing fallbacks to eliminate "Date | null" compiler type alerts
+            const displayStart = season.startDate ? new Date(season.startDate).toLocaleDateString() : "TBD";
+            const displayEnd = season.endDate ? new Date(season.endDate).toLocaleDateString() : "TBD";
+            
+            return (
+              <div 
+                key={season.id} 
+                className={`bg-white border p-5 rounded-2xl shadow-sm flex items-center justify-between group transition-all ${
+                  currentIsActive ? "border-red-500 ring-1 ring-red-500/20" : "border-slate-200 hover:border-slate-300"
+                }`}
+              >
+                <div className="flex items-center gap-4">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center border shadow-sm ${
+                    currentIsActive 
+                      ? "bg-red-600 text-white border-red-700" 
+                      : "bg-slate-50 text-slate-400 border-slate-200"
+                  }`}>
+                    <CalendarDays className="w-4 h-4" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight leading-none">
-                      {season.name}
-                    </h2>
-                    <div className="flex items-center gap-2 mt-2">
-                      <CalendarDays className="w-3 h-3 text-slate-400" />
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                        Created: {season.startDate ? new Date(season.startDate).toLocaleDateString() : 'Active Session'}
-                      </span>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-black text-slate-950 text-sm tracking-tight">
+                        {season.name}
+                      </h3>
+                      {currentIsActive && (
+                        <span className="bg-emerald-500 text-white text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md">
+                          Live Active
+                        </span>
+                      )}
                     </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-4 w-full md:w-auto border-t md:border-t-0 pt-4 md:pt-0">
-                  <div className="px-4 py-2 bg-slate-50 rounded-xl border border-slate-100">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Divisions</span>
-                    <span className="text-lg font-black text-indigo-600 leading-none">{associatedDivs.length}</span>
-                  </div>
-                  <Link href={`/admin/seasons/${season.id}`} className="p-2 text-slate-300 hover:text-indigo-600 transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
-                  </Link>
-                  <DeleteButton id={season.id} action={deleteSeason} label="Season" />
-                </div>
-              </div>
-
-              {/* Nested Division List */}
-              <div className="bg-slate-50/50 px-8 py-6 border-t border-slate-100">
-                <div className="flex items-center gap-2 mb-4">
-                  <Layers className="w-4 h-4 text-slate-400" />
-                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Contained Divisions</h3>
-                </div>
-
-                <div className="flex flex-wrap gap-3">
-                  {associatedDivs.map((div) => (
-                    <div 
-                      key={div.id} 
-                      className="bg-white px-4 py-2 rounded-xl border border-slate-200 flex items-center gap-3 shadow-sm group hover:border-indigo-300 transition-colors"
-                    >
-                      <span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
-                      <span className="font-bold text-slate-700 uppercase text-xs tracking-tight">
-                        {div.name}
-                      </span>
-                    </div>
-                  ))}
-
-                  {associatedDivs.length === 0 && (
-                    <p className="text-xs font-bold text-slate-300 uppercase italic tracking-widest py-2">
-                      No divisions assigned to this season yet.
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5 tabular-nums">
+                      {displayStart} — {displayEnd}
                     </p>
+                  </div>
+                </div>
+
+                {/* INLINE ACTION TOGGLES AND FORMS */}
+                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
+                  {!currentIsActive && (
+                    <form action={activateSeasonAction}>
+                      <input type="hidden" name="seasonId" value={season.id} />
+                      <button
+                        type="submit"
+                        title="Set Season as Active"
+                        className="w-9 h-9 rounded-xl hover:bg-slate-50 text-slate-400 hover:text-indigo-600 flex items-center justify-center transition-all outline-none"
+                      >
+                        <ToggleLeft className="w-5 h-5" />
+                      </button>
+                    </form>
                   )}
+
+                  <form action={deleteSeasonAction}>
+                    <input type="hidden" name="seasonId" value={season.id} />
+                    <button
+                      type="submit"
+                      title={`Drop ${season.name}`}
+                      className="w-9 h-9 rounded-xl hover:bg-red-50 text-slate-400 hover:text-red-600 flex items-center justify-center border border-transparent hover:border-red-200/60 transition-all outline-none"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </form>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
 
-        {allSeasons.length === 0 && (
-          <div className="p-20 text-center border-4 border-dashed border-slate-100 rounded-[3rem]">
-            <p className="text-slate-300 font-black uppercase tracking-widest italic text-lg">No seasons found.</p>
+          {allSeasons.length === 0 && (
+            <div className="bg-white border border-slate-200 rounded-2xl py-12 text-center text-slate-400 font-bold text-xs uppercase tracking-wider">
+              No tournament seasons declared inside the system yet.
+            </div>
+          )}
+        </div>
+
+        {/* RIGHT COLUMN: INITIALIZE SEASON FACTORY */}
+        <div className="lg:col-span-5 bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm sticky top-6">
+          <div className="flex items-center gap-2 pb-4 border-b border-slate-100 mb-5">
+            <History className="w-4 h-4 text-red-500" />
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-400">Initialize New Season</h3>
           </div>
-        )}
+
+          <form action={createSeasonAction} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-black uppercase tracking-wider text-slate-400 ml-1">Season Identifier Name</label>
+              <input
+                type="text"
+                name="seasonName"
+                placeholder="e.g. Winter Split 2026"
+                required
+                className="w-full p-3.5 bg-slate-50 border border-slate-200/60 rounded-xl font-bold text-xs uppercase text-slate-800 outline-none focus:bg-white focus:ring-2 focus:ring-red-500"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-black uppercase tracking-wider text-slate-400 ml-1">Opening Fixture Launch Date</label>
+              <input
+                type="date"
+                name="startDate"
+                required
+                className="w-full p-3.5 bg-slate-50 border border-slate-200/60 rounded-xl font-bold text-xs text-slate-800 uppercase outline-none focus:bg-white focus:ring-2 focus:ring-red-500"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-black uppercase tracking-wider text-slate-400 ml-1">Closing Standings Lock Date</label>
+              <input
+                type="date"
+                name="endDate"
+                required
+                className="w-full p-3.5 bg-slate-50 border border-slate-200/60 rounded-xl font-bold text-xs text-slate-800 uppercase outline-none focus:bg-white focus:ring-2 focus:ring-red-500"
+              />
+            </div>
+
+            <button 
+              type="submit" 
+              className="w-full mt-2 inline-flex items-center justify-center gap-1.5 bg-red-600 hover:bg-red-700 text-white font-black uppercase tracking-widest text-[10px] py-4 px-4 rounded-xl transition-all shadow-md shadow-red-100"
+            >
+              <Plus className="w-4 h-4 stroke-[2.5]" /> Launch Season Block
+            </button>
+          </form>
+        </div>
+
       </div>
     </div>
   );
