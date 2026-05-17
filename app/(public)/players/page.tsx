@@ -1,130 +1,244 @@
 import { db } from "@/src/db";
-import { players, matchGames, teams, divisions } from "@/src/db/schema";
-import { eq, asc } from "drizzle-orm";
+import { players, teams, divisions, matchGames } from "@/src/db/schema";
+import { eq, asc, desc, or, and } from "drizzle-orm";
 import Link from "next/link";
-import PlayerStatsClient from "./player-stats-client";
+import { Trophy, Users, Search, ArrowUpDown, Award, Flame, Percent } from "lucide-react";
 
+// Strict Promise-based searchParams schema for Next.js 15 compiler compliance
 interface PageProps {
   searchParams: Promise<{
     division?: string;
     sort?: string;
+    search?: string;
   }>;
 }
 
-export default async function PlayerLeaderboardPage({ searchParams }: PageProps) {
+export default async function PublicPlayersPage({ searchParams }: PageProps) {
+  // 1. Await page parameter boundaries
   const params = await searchParams;
   const selectedDivId = params.division ? Number(params.division) : null;
-  const currentSort = params.sort || "name_asc";
-  
-  // 1. Fetch Divisions for tabs navigation
+  const currentSort = params.sort || "win_rate_desc";
+  const searchQuery = params.search?.trim().toLowerCase() || "";
+
+  // 2. Fetch all divisions for the filtering layout header ribbon
   const allDivisions = await db.select().from(divisions).orderBy(asc(divisions.tier));
   const activeDivId = selectedDivId || allDivisions[0]?.id;
 
-  // 2. Fetch Players belonging to active division (including imageUrl)
-  const allPlayers = activeDivId
+  // 3. Query base players list mapped to their active club squads
+  const rawPlayersList = activeDivId
     ? await db
         .select({
           id: players.id,
           name: players.name,
-          imageUrl: players.imageUrl, // <-- EXPLICITLY FETCH IMAGE URL
           teamName: teams.name,
+          divisionId: teams.divisionId,
         })
         .from(players)
         .leftJoin(teams, eq(players.teamId, teams.id))
         .where(eq(teams.divisionId, activeDivId))
     : [];
 
-  const allGames = await db.select().from(matchGames);
+  // 4. Fetch all played match games to compile frame metrics on the server side
+  const completedFrames = await db.select().from(matchGames);
 
-  // 3. Process statistical rows
-  const playerStats = allPlayers.map((player) => {
-    const stats = {
-      single: { play: 0, win: 0, lost: 0 },
-      double: { play: 0, win: 0, lost: 0 },
-    };
-    
-    const uniqueMatches = new Set<number>();
+  // 5. Compute real-time statistics matrices per player
+  const computedLeaderboard = rawPlayersList
+    .map((player) => {
+      let framesPlayed = 0;
+      let framesWon = 0;
 
-    allGames.forEach((game) => {
-      const isHome = game.player1Id === player.id || game.player1PartnerId === player.id;
-      const isAway = game.player2Id === player.id || game.player2PartnerId === player.id;
-      
-      if (!isHome && !isAway) return;
+      completedFrames.forEach((frame) => {
+        const isHomePlayer = frame.player1Id === player.id || frame.player1PartnerId === player.id;
+        const isAwayPlayer = frame.player2Id === player.id || frame.player2PartnerId === player.id;
 
-      if (game.matchId) uniqueMatches.add(game.matchId);
+        // Skip unplayed frame slots
+        if ((frame.player1Score ?? 0) === 0 && (frame.player2Score ?? 0) === 0) return;
 
-      const isDouble = game.gameType === 'double';
-      const playerWon = isHome 
-        ? (game.player1Score! > game.player2Score!) 
-        : (game.player2Score! > game.player1Score!);
-      
-      const cat = isDouble ? 'double' : 'single';
+        if (isHomePlayer) {
+          framesPlayed++;
+          if ((frame.player1Score ?? 0) > (frame.player2Score ?? 0)) framesWon++;
+        } else if (isAwayPlayer) {
+          framesPlayed++;
+          if ((frame.player2Score ?? 0) > (frame.player1Score ?? 0)) framesWon++;
+        }
+      });
 
-      stats[cat].play++;
-      if (playerWon) stats[cat].win++;
-      else stats[cat].lost++;
-    });
+      const winRate = framesPlayed > 0 ? (framesWon / framesPlayed) * 100 : 0;
 
-    const totalPlay = stats.single.play + stats.double.play;
-    const totalWin = stats.single.win + stats.double.win;
-    const totalLost = stats.single.lost + stats.double.lost;
+      return {
+        ...player,
+        framesPlayed,
+        framesWon,
+        winRate,
+      };
+    })
+    // Apply client-side text search indexing filters
+    .filter((player) => player.name.toLowerCase().includes(searchQuery));
 
-    const calcPct = (w: number, p: number) => p > 0 ? ((w / p) * 100).toFixed(1) : "0.0";
-
-    return {
-      id: player.id,
-      name: player.name,
-      imageUrl: player.imageUrl, // <-- PASS THROUGH TO CLIENT
-      teamName: player.teamName || "Free Agent",
-      matchPlay: uniqueMatches.size,
-      singlePlay: stats.single.play,
-      singleWin: stats.single.win,
-      singleLost: stats.single.lost,
-      singlePct: calcPct(stats.single.win, stats.single.play),
-      doublePlay: stats.double.play,
-      doubleWin: stats.double.win,
-      doubleLost: stats.double.lost,
-      doublePct: calcPct(stats.double.win, stats.double.play),
-      totalPlay,
-      totalWin,
-      totalLost,
-      totalPct: calcPct(totalWin, totalPlay),
-    };
+  // 6. Execute sorting strategy alignments
+  const sortedLeaderboard = [...computedLeaderboard].sort((a, b) => {
+    switch (currentSort) {
+      case "frames_won_desc":
+        return b.framesWon - a.framesWon;
+      case "frames_played_desc":
+        return b.framesPlayed - a.framesPlayed;
+      case "name_asc":
+        return a.name.localeCompare(b.name);
+      case "win_rate_desc":
+    default:
+      return b.winRate - a.winRate || b.framesWon - a.framesWon;
+    }
   });
 
-  const sortedPlayers = playerStats.sort((a, b) => Number(b.totalPct) - Number(a.totalPct));
-
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-8">
-      <div className="max-w-[1600px] mx-auto">
-        <header className="mb-8">
-          <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tighter italic">Player Analytics</h1>
-          <p className="text-slate-500 font-medium">Categorized performance breakdown by match and framework frames.</p>
+    <div className="space-y-10 max-w-6xl mx-auto px-4 py-8">
+      {/* HEADER SECTION */}
+      <header>
+        <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tighter italic">Player Rankings</h1>
+        <p className="text-slate-500 font-medium text-xs">Official individual performance statistics, leaderboard rankings, and frame win rates.</p>
+      </header>
 
-          <div className="flex gap-2 mt-8 overflow-x-auto pb-2">
-            {allDivisions.map((div) => (
+      {/* FILTERS TOOLBAR WRAPPER */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center bg-slate-50 border border-slate-200 p-4 rounded-3xl">
+        {/* Division Selection Ribbon Tabs */}
+        <div className="lg:col-span-6 flex gap-1.5 overflow-x-auto scrollbar-none py-1">
+          {allDivisions.map((div) => (
+            <Link
+              key={div.id}
+              href={`/players?division=${div.id}&sort=${currentSort}&search=${searchQuery}`}
+              className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all whitespace-nowrap border ${
+                activeDivId === div.id
+                  ? "bg-slate-900 text-white border-slate-900 shadow-sm"
+                  : "bg-white text-slate-500 border-slate-200 hover:border-indigo-300"
+              }`}
+            >
+              {div.name}
+            </Link>
+          ))}
+        </div>
+
+        {/* Live Search bar UI form redirection (native HTML pass via forms query params) */}
+        <form method="GET" action="/players" className="lg:col-span-3 relative">
+          <input type="hidden" name="division" value={activeDivId || ""} />
+          <input type="hidden" name="sort" value={currentSort} />
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            name="search"
+            placeholder="Search player name..."
+            defaultValue={params.search || ""}
+            className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl font-bold text-xs uppercase placeholder:text-slate-300 text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+          />
+        </form>
+
+        {/* Sorting Controller Triggers */}
+        <div className="lg:col-span-3 flex justify-end gap-1">
+          {[
+            { key: "win_rate_desc", label: "%", icon: Percent, tip: "Win Percentage" },
+            { key: "frames_won_desc", label: "Wins", icon: Trophy, tip: "Frames Won" },
+            { key: "name_asc", label: "A-Z", icon: ArrowUpDown, tip: "Name Alphabetical" },
+          ].map((opt) => {
+            const Icon = opt.icon;
+            const isSelected = currentSort === opt.key;
+            return (
               <Link
-                key={div.id}
-                href={`/players?division=${div.id}`}
-                className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border ${
-                  activeDivId === div.id 
-                    ? 'bg-slate-900 text-white border-slate-900 shadow-lg shadow-slate-200' 
-                    : 'bg-white text-slate-400 border-slate-200 hover:border-indigo-400 hover:text-indigo-600'
+                key={opt.key}
+                href={`/players?division=${activeDivId}&sort=${opt.key}&search=${searchQuery}`}
+                title={opt.tip}
+                className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border ${
+                  isSelected
+                    ? "bg-indigo-600 text-white border-indigo-600"
+                    : "bg-white text-slate-600 border-slate-200 hover:border-indigo-300"
                 }`}
               >
-                {div.name}
+                <Icon className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">{opt.label}</span>
               </Link>
-            ))}
-          </div>
-        </header>
+            );
+          })}
+        </div>
+      </div>
 
-        {activeDivId && (
-          <PlayerStatsClient 
-            initialPlayers={sortedPlayers} 
-            divisions={allDivisions} 
-            activeDivId={activeDivId} 
-          />
-        )}
+      {/* LEADERBOARD TABLE MATRIX GRID */}
+      <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-left">
+            <thead>
+              <tr className="bg-slate-50/70 border-b border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                <th className="py-4 px-6 w-16 text-center">Rank</th>
+                <th className="py-4 px-6">Player / Club</th>
+                <th className="py-4 px-4 text-center w-28">Played</th>
+                <th className="py-4 px-4 text-center w-28">Won</th>
+                <th className="py-4 px-6 text-center w-36 bg-slate-50/40">Win Ratio</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 font-bold text-slate-800 text-xs uppercase tracking-tight">
+              {sortedLeaderboard.map((player, index) => {
+                const isTopThree = index < 3 && player.framesPlayed > 0;
+                
+                return (
+                  <tr key={player.id} className="hover:bg-slate-50/30 transition-colors group">
+                    {/* Leaderboard Rank Identifier */}
+                    <td className="py-5 px-6 text-center">
+                      {isTopThree ? (
+                        <span className={`inline-flex items-center justify-center w-6 h-6 rounded-lg font-black text-[11px] ${
+                          index === 0 ? "bg-amber-100 text-amber-700 border border-amber-200" :
+                          index === 1 ? "bg-slate-100 text-slate-600 border border-slate-200" :
+                                        "bg-orange-100 text-orange-700 border border-orange-200"
+                        }`}>
+                          {index + 1}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 font-black text-[11px] tabular-nums">{index + 1}</span>
+                      )}
+                    </td>
+
+                    {/* Core Identity Cells */}
+                    <td className="py-5 px-6">
+                      <div className="font-black text-slate-900 group-hover:text-indigo-600 transition-colors text-sm normal-case">
+                        {player.name}
+                      </div>
+                      <div className="text-[10px] text-slate-400 font-medium flex items-center gap-1 mt-0.5">
+                        <Users className="w-3 h-3 text-slate-300" /> {player.teamName || "Free Agent Teamless"}
+                      </div>
+                    </td>
+
+                    {/* Frames Statistics Blocks */}
+                    <td className="py-5 px-4 text-center font-bold text-slate-500 tabular-nums">{player.framesPlayed}</td>
+                    <td className="py-5 px-4 text-center font-black text-slate-800 tabular-nums">{player.framesWon}</td>
+                    
+                    {/* Aggregated Win Percentage Meter Column */}
+                    <td className="py-5 px-6 text-center bg-slate-50/20 group-hover:bg-indigo-50/20 transition-colors">
+                      <div className="flex items-center justify-center gap-2">
+                        <span className="font-black text-slate-900 text-sm tabular-nums min-w-[45px] text-right">
+                          {player.winRate.toFixed(1)}%
+                        </span>
+                        <div className="w-16 bg-slate-100 h-2 rounded-full overflow-hidden hidden sm:block border border-slate-200/50">
+                          <div 
+                            className={`h-full rounded-full ${
+                              player.winRate >= 65 ? "bg-emerald-500" :
+                              player.winRate >= 45 ? "bg-indigo-500" :
+                                                     "bg-slate-400"
+                            }`} 
+                            style={{ width: `${player.winRate}%` }} 
+                          />
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+
+              {sortedLeaderboard.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="py-24 text-center text-slate-300 font-black uppercase tracking-widest italic">
+                    No active roster players matched your selection criteria frameworks.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );
