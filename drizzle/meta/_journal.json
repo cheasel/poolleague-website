@@ -1,41 +1,5 @@
 {
   "version": "7",
   "dialect": "postgresql",
-  "entries": [
-    {
-      "idx": 0,
-      "version": "7",
-      "when": 1778843246978,
-      "tag": "0000_lame_morlocks",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1778850250350,
-      "tag": "0001_ambiguous_omega_sentinel",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1778853229141,
-      "tag": "0002_early_phantom_reporter",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1778936917999,
-      "tag": "0003_clear_magma",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1778943556366,
-      "tag": "0004_rare_thena",
-      "breakpoints": true
-    }
-  ]
+  "entries": []
 }
