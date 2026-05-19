@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Trophy, Users, Star, Layers } from "lucide-react";
 
 interface PlayerStatRow {
@@ -25,16 +26,44 @@ interface PlayerStatRow {
   totalPct: string;
 }
 
-interface PlayerStatsClientProps {
-  initialPlayers: PlayerStatRow[];
-  divisions: any[];
-  activeDivId: number;
+interface FilterDropdownItem {
+  id: number;
+  name: string;
 }
 
-export default function PlayerStatsClient({ initialPlayers }: PlayerStatsClientProps) {
+interface PlayerStatsClientProps {
+  initialPlayers: PlayerStatRow[];
+  seasons: FilterDropdownItem[];
+  divisions: FilterDropdownItem[];
+  selectedSeasonId?: number;
+  selectedDivisionId?: number;
+}
+
+export default function PlayerStatsClient({ 
+  initialPlayers, 
+  seasons, 
+  divisions, 
+  selectedSeasonId, 
+  selectedDivisionId 
+}: PlayerStatsClientProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
   const [pageSize, setPageSize] = useState<number>(25);
   const [enableMpFilter, setEnableMpFilter] = useState<boolean>(false);
   const [minMpPercentage, setMinMpPercentage] = useState<number>(30);
+
+  // URL Parameter Sync Handler
+  const handleFilterChange = (key: 'seasonId' | 'divisionId', value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (value) {
+      params.set(key, value);
+    } else {
+      params.delete(key);
+    }
+    router.push(`${pathname}?${params.toString()}`);
+  };
 
   const maxMatchesPlayed = useMemo(() => {
     if (initialPlayers.length === 0) return 0;
@@ -55,21 +84,50 @@ export default function PlayerStatsClient({ initialPlayers }: PlayerStatsClientP
   return (
     <div className="space-y-6">
       {/* FILTER PANEL */}
-      <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 flex flex-col sm:flex-row gap-4 items-center justify-between">
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <select
-            value={pageSize}
-            onChange={(e) => setPageSize(Number(e.target.value))}
-            className="w-full sm:w-auto p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl font-bold text-xs text-slate-800 transition-colors outline-none cursor-pointer"
-          >
-            <option value={10}>Top 10 Performers</option>
-            <option value={25}>Top 25 Performers</option>
-            <option value={50}>Top 50 Performers</option>
-            <option value={100}>All Active Players</option>
-          </select>
+      <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 flex flex-col md:flex-row gap-4 items-center justify-between">
+        
+        {/* Scope Selectors: Season & Division */}
+        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+          <div className="flex flex-col gap-1 min-w-[140px]">
+            <select
+              value={selectedSeasonId || ""}
+              onChange={(e) => handleFilterChange('seasonId', e.target.value)}
+              className="p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl font-bold text-xs text-slate-800 transition-colors outline-none cursor-pointer"
+            >
+              {seasons.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-1 min-w-[140px]">
+            <select
+              value={selectedDivisionId || ""}
+              onChange={(e) => handleFilterChange('divisionId', e.target.value)}
+              className="p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl font-bold text-xs text-slate-800 transition-colors outline-none cursor-pointer"
+            >
+              {divisions.map((d) => (
+                <option key={d.id} value={d.id}>{d.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <select
+              value={pageSize}
+              onChange={(e) => setPageSize(Number(e.target.value))}
+              className="p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl font-bold text-xs text-slate-800 transition-colors outline-none cursor-pointer"
+            >
+              <option value={10}>Top 10 Performers</option>
+              <option value={25}>Top 25 Performers</option>
+              <option value={50}>Top 50 Performers</option>
+              <option value={100}>All Active Players</option>
+            </select>
+          </div>
         </div>
 
-        <div className="bg-slate-50/60 px-4 py-2 rounded-xl border border-slate-200/60 flex items-center justify-between gap-4 w-full sm:w-auto">
+        {/* Attendance Filter Component */}
+        <div className="bg-slate-50/60 px-4 py-2 rounded-xl border border-slate-200/60 flex items-center justify-between gap-4 w-full md:w-auto/60">
           <div className="flex items-center gap-2.5">
             <input
               type="checkbox"
@@ -100,12 +158,11 @@ export default function PlayerStatsClient({ initialPlayers }: PlayerStatsClientP
         </div>
       </div>
 
-      {/* RENDER TABLE */}
+      {/* RENDER TABLE MATRIX */}
       <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              {/* CATEGORY CATEGORIZATION BLOCK */}
               <tr className="bg-slate-50/70 text-slate-400 text-[10px] font-bold uppercase tracking-widest border-b border-slate-200/60">
                 <th className="px-4 py-3" colSpan={3}>
                   <span className="inline-flex items-center gap-1.5"><Users className="w-3.5 h-3.5 text-slate-400" /> Identity Profile</span>
@@ -120,7 +177,6 @@ export default function PlayerStatsClient({ initialPlayers }: PlayerStatsClientP
                   <span className="inline-flex items-center gap-1.5"><Trophy className="w-3.5 h-3.5 text-indigo-600" /> Overall Metrics</span>
                 </th>
               </tr>
-              {/* PRIMARY STAT HEADERS */}
               <tr className="bg-slate-50 text-slate-700 font-bold uppercase text-[10px] tracking-wider border-b border-slate-200">
                 <th className="px-4 py-4 sticky left-0 bg-slate-50 z-10 border-r border-slate-200/60">Competitor</th>
                 <th className="px-4 py-4 text-slate-500">Club Squad</th>
@@ -148,7 +204,6 @@ export default function PlayerStatsClient({ initialPlayers }: PlayerStatsClientP
             <tbody className="divide-y divide-slate-150 font-medium text-slate-600">
               {processedPlayers.map((p, idx) => (
                 <tr key={p.id} className="hover:bg-slate-50/60 transition-colors group">
-                  {/* Identity */}
                   <td className="px-4 py-3.5 font-bold text-slate-900 sticky left-0 bg-white group-hover:bg-slate-50/60 border-r border-slate-200/60 z-10 whitespace-nowrap">
                     <Link href={`/players/${p.id}`} className="hover:text-indigo-600 transition-colors flex items-center gap-3">
                       <span className="text-[11px] font-mono font-bold text-slate-400 w-4 text-center">{idx + 1}</span>
@@ -183,7 +238,7 @@ export default function PlayerStatsClient({ initialPlayers }: PlayerStatsClientP
                   <td className="px-3 py-3.5 text-center text-slate-400 font-mono tabular-nums">{p.doubleLost}</td>
                   <td className="px-4 py-3.5 text-center font-extrabold text-slate-900 bg-slate-50/50 border-r border-slate-200/60 font-mono tabular-nums">{p.doublePct}%</td>
                   
-                  {/* Overall */}
+                  {/* Overall (Singles + Doubles Aggregate) */}
                   <td className="px-3 py-3.5 text-center font-semibold text-slate-700 bg-indigo-50/[0.1] font-mono tabular-nums">{p.totalPlay}</td>
                   <td className="px-3 py-3.5 text-center font-bold text-emerald-600 bg-indigo-50/[0.1] font-mono tabular-nums">{p.totalWin}</td>
                   <td className="px-3 py-3.5 text-center text-slate-400 bg-indigo-50/[0.1] font-mono tabular-nums">{p.totalLost}</td>
