@@ -110,13 +110,28 @@ export default function MatchDashboard({
                     {getTeamName(activeMatch.homeTeamId)} <span className="text-slate-300 font-mono">vs</span> {getTeamName(activeMatch.awayTeamId)}
                   </h2>
                 </div>
-                {activeMatch.status !== "completed" && (
-                  <form action={(fd) => startTransition(async () => { await finalizeMatchAction(fd); })}>
-                    <input type="hidden" name="matchId" value={activeMatch.id} />
-                    <button type="submit" className="bg-emerald-600 text-white font-black text-[9px] uppercase tracking-widest py-2 px-4 rounded-xl">
-                      Lock Final Scores
-                    </button>
-                  </form>
+                {activeMatch.status !== "completed" && finalizeMatchAction && (
+                    /* ✅ UPGRADED: Explicit onSubmit mapping using useTransition to guarantee delivery */
+                    <form 
+                        onSubmit={(e) => {
+                        e.preventDefault();
+                        if (confirm("Are you sure you want to lock this match? This will finalize standings and distribute league points!")) {
+                            const formData = new FormData(e.currentTarget);
+                            startTransition(async () => {
+                            await finalizeMatchAction(formData);
+                            });
+                        }
+                        }}
+                    >
+                        <input type="hidden" name="matchId" value={activeMatch.id} />
+                        <button 
+                        type="submit" 
+                        disabled={isPending}
+                        className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black text-[9px] uppercase tracking-widest py-2 px-4 rounded-xl transition-all cursor-pointer"
+                        >
+                        {isPending ? "Locking Scores..." : "Lock Final Scores"}
+                        </button>
+                    </form>
                 )}
               </div>
 
