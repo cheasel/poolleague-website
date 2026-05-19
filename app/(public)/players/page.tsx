@@ -15,15 +15,14 @@ interface PageProps {
 export default async function PublicPlayersPage({ searchParams }: PageProps) {
   const params = await searchParams;
   
-  // 1. Fetch filter lists
+  // 1. Fetch seasons and divisions dropdown arrays safely
   const allSeasons = await db.select().from(seasons).orderBy(desc(seasons.startDate));
   const allDivisions = await db.select().from(divisions).orderBy(divisions.tier);
 
-  // Smart Fallbacks: Use URL params if present, otherwise don't strictly lock the query down if tables are empty
   const selectedSeasonId = params.seasonId ? Number(params.seasonId) : (allSeasons[0]?.id || null);
   const selectedDivisionId = params.divisionId ? Number(params.divisionId) : (allDivisions[0]?.id || null);
 
-  // 2. Completed matches calculation per team (Unchanged logic)
+  // 2. Compute overall team completions for the denominator
   const teamCompletedCounts = await db
     .select({
       teamId: teams.id,
@@ -48,7 +47,7 @@ export default async function PublicPlayersPage({ searchParams }: PageProps) {
     return acc;
   }, {} as Record<number, number>);
 
-  // 3. Extract player performances with explicit LEFT joins to prevent clipping rows
+  // 3. Main stats aggregation query
   const rawLeaderboard = await db
     .select({
       id: players.id,
@@ -57,8 +56,9 @@ export default async function PublicPlayersPage({ searchParams }: PageProps) {
       teamId: players.teamId,
       teamName: teams.name,
       divisionId: teams.divisionId,
-      seasonId: matches.seasonId,
       matchPlay: sql<number>`count(distinct ${matchGames.matchId})`,
+      
+      // Singles performance values
       singlePlay: sql<number>`count(case when ${matchGames.gameType} = 'single' then 1 else null end)`,
       singleWin: sql<number>`
         count(
@@ -70,6 +70,8 @@ export default async function PublicPlayersPage({ searchParams }: PageProps) {
           end
         )
       `,
+
+      // Doubles performance values
       doublePlay: sql<number>`count(case when ${matchGames.gameType} = 'double' then 1 else null end)`,
       doubleWin: sql<number>`
         count(
@@ -91,22 +93,19 @@ export default async function PublicPlayersPage({ searchParams }: PageProps) {
           or ${players.id} = ${matchGames.player2Id} 
           or ${players.id} = ${matchGames.player2PartnerId}`
     )
-    .leftJoin(matches, eq(matchGames.matchId, matches.id))
-    .groupBy(players.id, players.name, teams.name, players.teamId, players.imageUrl, teams.divisionId, matches.seasonId);
+    .groupBy(players.id, players.name, teams.name, players.teamId, players.imageUrl, teams.divisionId);
 
-  // 4. Map, filter, and fallback-guard data rows
+  // 4. Transform records and aggregate overall metrics cleanly
   const initialPlayers = rawLeaderboard
     .filter((p) => {
-      // ✅ FIX: If data is missing fields or tables aren't fully populated yet, 
-      // don't hide the player entirely.
-      const matchesSeason = selectedSeasonId ? (p.seasonId === selectedSeasonId || !p.seasonId) : true;
-      const matchesDivision = selectedDivisionId ? (p.divisionId === selectedDivisionId || !p.divisionId) : true;
-      return matchesSeason && matchesDivision;
+      // Division scope fallback filter
+      return selectedDivisionId ? p.divisionId === selectedDivisionId : true;
     })
     .map((p) => {
       const singleLost = Math.max(0, p.singlePlay - p.singleWin);
       const doubleLost = Math.max(0, p.doublePlay - p.doubleWin);
       
+      // 🎯 OVERALL SUM CALCULATIONS: Exact sums of your Singles and Doubles arrays
       const totalPlay = p.singlePlay + p.doublePlay;
       const totalWin = p.singleWin + p.doubleWin;
       const totalLost = singleLost + doubleLost;
@@ -139,7 +138,9 @@ export default async function PublicPlayersPage({ searchParams }: PageProps) {
         totalPctNum: Number(totalPct)
       };
     })
+    // Filter out unplayed lines
     .filter((player) => player.totalPlay > 0)
+    // 🎯 INITIAL SORT RULE: Orders elements cleanly by Overall Winrate descending
     .sort((a, b) => b.totalPctNum - a.totalPctNum);
 
   return (
