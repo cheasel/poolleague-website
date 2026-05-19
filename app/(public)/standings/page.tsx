@@ -101,7 +101,7 @@ export default async function PublicStandingsPage({ searchParams }: PageProps) {
     const overallFramesLost = t.homeFramesLost + t.awayFramesLost;
 
     // Points rule formulation: 3 for a Win, 1 for a Draw
-    const overallPoints = (overallWins * 3) + (overallDraws * 1);
+    const overallPoints = (overallWins * 2) + (overallDraws * 1);
     const frameDifference = overallFramesWon - overallFramesLost;
 
     return {
