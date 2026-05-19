@@ -155,7 +155,7 @@ export default async function LeagueHomepage() {
                   </div>
                   <div className="col-span-2 text-center font-bold text-slate-500 tabular-nums text-xs">
                     {/* Placeholder dynamic division wins fallback */}
-                    {Math.floor((team.points ?? 0) / 2)}
+                    {Math.floor((team.points ?? 0))}
                   </div>
                   <div className="col-span-2 text-center font-black text-indigo-600 tabular-nums text-sm bg-indigo-50/50 py-1 rounded-xl max-w-[50px] mx-auto w-full">
                     {team.points ?? 0}
