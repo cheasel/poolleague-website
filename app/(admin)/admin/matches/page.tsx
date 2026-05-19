@@ -277,7 +277,6 @@ export default async function AdminMatchesPage({ searchParams }: PageProps) {
                           <input type="radio" name="gameType" value="single" defaultChecked className="peer accent-indigo-600" />
                           Singles Frame
                         </label>
-                        {/* 2. Add an explicit HTML ID to the radio input check vector */}
                         <label className="flex items-center justify-center gap-2 p-3 bg-white border border-slate-200 rounded-xl font-bold text-xs uppercase cursor-pointer has-[:checked]:border-indigo-600 has-[:checked]:bg-indigo-50/30">
                           <input type="radio" name="gameType" value="double" id="doublesTrigger" className="peer accent-indigo-600" />
                           Doubles Frame
@@ -285,49 +284,103 @@ export default async function AdminMatchesPage({ searchParams }: PageProps) {
                       </div>
                     </div>
 
-                    {/* Master Flex Core Rows container */}
-                    <div className="space-y-3">
-                      {/* Primary Core Competitor Input Rows */}
-                      <div className="grid grid-cols-7 gap-2 items-center text-center">
-                        <div className="col-span-3">
-                          <select name="player1Id" required className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-xs uppercase text-slate-800 outline-none truncate">
-                            <option value="">Select Home Competitor...</option>
+                    {/* Unified Grid Container: Split 50/50 between Home and Away */}
+                    <div className="grid grid-cols-2 gap-4">
+                      
+                      {/* LEFT SIDE: HOME TEAM BLOCK */}
+                      <div className="space-y-3 border-r border-slate-200/60 pr-2">
+                        <span className="text-[9px] font-black uppercase tracking-widest text-indigo-600 block px-1">Home Team Side</span>
+                        
+                        <div>
+                          <select 
+                            name="player1Id" 
+                            id="homePlayerSelect"
+                            required 
+                            className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-xs uppercase text-slate-800 outline-none truncate"
+                            onChange={(e) => {
+                              const partner = document.getElementById('homePartnerSelect') as HTMLSelectElement;
+                              if (e.target.value && e.target.value === partner?.value) {
+                                alert('A player cannot be partnered with themselves!');
+                                e.target.value = '';
+                              }
+                            }}
+                          >
+                            <option value="">Select Home Player...</option>
                             {availableHomePlayers.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                           </select>
                         </div>
-                        <div className="col-span-1">
-                          <input type="number" name="player1Score" placeholder="0" min="0" className="w-full p-3 bg-white border border-slate-200 rounded-xl font-black text-center font-mono text-sm text-slate-950 outline-none" />
-                        </div>
-                        <div className="col-span-1 font-black text-slate-300 font-mono text-xs">VS</div>
-                        <div className="col-span-1">
-                          <input type="number" name="player2Score" placeholder="0" min="0" className="w-full p-3 bg-white border border-slate-200 rounded-xl font-black text-center font-mono text-sm text-slate-950 outline-none" />
-                        </div>
-                        <div className="col-span-3">
-                          <select name="player2Id" required className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-xs uppercase text-slate-800 outline-none truncate">
-                            <option value="">Select Away Competitor...</option>
-                            {availableAwayPlayers.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                          </select>
-                        </div>
-                      </div>
 
-                      {/* ✅ FIXED: Clean Tailwind v4 native group-has variant check */}
-                      <div className="grid grid-cols-7 gap-2 items-center text-center transition-all duration-300 opacity-0 max-h-0 overflow-hidden group-has-[#doublesTrigger:checked]:opacity-100 group-has-[#doublesTrigger:checked]:max-h-24">
-                        <div className="col-span-3">
-                          <select name="player1PartnerId" className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-xs uppercase text-slate-800 outline-none truncate">
+                        <div className="transition-all duration-300 opacity-0 max-h-0 overflow-hidden group-has-[#doublesTrigger:checked]:opacity-100 group-has-[#doublesTrigger:checked]:max-h-24">
+                          <select 
+                            name="player1PartnerId" 
+                            id="homePartnerSelect"
+                            className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-xs uppercase text-slate-800 outline-none truncate"
+                            onChange={(e) => {
+                              const primary = document.getElementById('homePlayerSelect') as HTMLSelectElement;
+                              if (e.target.value && e.target.value === primary?.value) {
+                                alert('A player cannot be partnered with themselves!');
+                                e.target.value = '';
+                              }
+                            }}
+                          >
                             <option value="">Select Home Partner...</option>
                             {availableHomePlayers.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                           </select>
                         </div>
-                        <div className="col-span-1"></div>
-                        <div className="col-span-1 font-black text-slate-300 font-mono text-xs">&</div>
-                        <div className="col-span-1"></div>
-                        <div className="col-span-3">
-                          <select name="player2PartnerId" className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-xs uppercase text-slate-800 outline-none truncate">
+
+                        <div className="pt-2">
+                          <label className="text-[9px] font-black uppercase tracking-wider text-slate-400 block mb-1">Home Score</label>
+                          <input type="number" name="player1Score" placeholder="0" min="0" className="w-full p-3 bg-white border border-slate-200 rounded-xl font-black text-center font-mono text-sm text-slate-950 outline-none" />
+                        </div>
+                      </div>
+
+                      {/* RIGHT SIDE: AWAY TEAM BLOCK */}
+                      <div className="space-y-3 pl-2">
+                        <span className="text-[9px] font-black uppercase tracking-widest text-violet-600 block px-1">Away Team Side</span>
+                        
+                        <div>
+                          <select 
+                            name="player2Id" 
+                            id="awayPlayerSelect"
+                            required 
+                            className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-xs uppercase text-slate-800 outline-none truncate"
+                            onChange={(e) => {
+                              const partner = document.getElementById('awayPartnerSelect') as HTMLSelectElement;
+                              if (e.target.value && e.target.value === partner?.value) {
+                                alert('A player cannot be partnered with themselves!');
+                                e.target.value = '';
+                              }
+                            }}
+                          >
+                            <option value="">Select Away Player...</option>
+                            {availableAwayPlayers.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                          </select>
+                        </div>
+
+                        <div className="transition-all duration-300 opacity-0 max-h-0 overflow-hidden group-has-[#doublesTrigger:checked]:opacity-100 group-has-[#doublesTrigger:checked]:max-h-24">
+                          <select 
+                            name="player2PartnerId" 
+                            id="awayPartnerSelect"
+                            className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-xs uppercase text-slate-800 outline-none truncate"
+                            onChange={(e) => {
+                              const primary = document.getElementById('awayPlayerSelect') as HTMLSelectElement;
+                              if (e.target.value && e.target.value === primary?.value) {
+                                alert('A player cannot be partnered with themselves!');
+                                e.target.value = '';
+                              }
+                            }}
+                          >
                             <option value="">Select Away Partner...</option>
                             {availableAwayPlayers.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                           </select>
                         </div>
+
+                        <div className="pt-2">
+                          <label className="text-[9px] font-black uppercase tracking-wider text-slate-400 block mb-1">Away Score</label>
+                          <input type="number" name="player2Score" placeholder="0" min="0" className="w-full p-3 bg-white border border-slate-200 rounded-xl font-black text-center font-mono text-sm text-slate-950 outline-none" />
+                        </div>
                       </div>
+
                     </div>
 
                     <button type="submit" className="w-full inline-flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase tracking-widest text-[10px] py-3.5 rounded-xl transition-all shadow-md shadow-indigo-100">
