@@ -6,9 +6,10 @@ import Link from "next/link";
 interface PlayerStatRow {
   id: number;
   name: string;
-  imageUrl: string | null; // <-- EXTEND PROPS contract
+  imageUrl: string | null;
   teamName: string;
   matchPlay: number;
+  maxTeamMatches: number; // 🎯 Added to track custom team counts dynamically
   singlePlay: number;
   singleWin: number;
   singleLost: number;
@@ -114,7 +115,6 @@ export default function PlayerStatsClient({ initialPlayers, divisions, activeDiv
                 <th className="px-4 py-6 sticky left-0 bg-slate-900 z-10">Player</th>
                 <th className="px-4 py-6 text-slate-400">Team</th>
                 <th className="px-4 py-6 text-center bg-amber-500 text-slate-900 ring-inset ring-1 ring-amber-400">Match Play (MP)</th>
-                {/* Columns */}
                 <th className="px-4 py-6 text-center bg-slate-800/50">Play</th>
                 <th className="px-4 py-6 text-center bg-slate-800/50">Win</th>
                 <th className="px-4 py-6 text-center bg-slate-800/50">Lost</th>
@@ -134,8 +134,6 @@ export default function PlayerStatsClient({ initialPlayers, divisions, activeDiv
                 <tr key={p.id} className="hover:bg-slate-50 transition-colors group">
                   <td className="px-4 py-5 font-black text-slate-900 uppercase whitespace-nowrap sticky left-0 bg-white group-hover:bg-slate-50 border-r border-slate-100 z-10">
                     <Link href={`/players/${p.id}`} className="hover:text-indigo-600 transition-colors flex items-center gap-3">
-                      
-                      {/* INLINE ROW PHOTO AVATAR */}
                       <div className="w-8 h-8 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 shrink-0 hidden sm:flex items-center justify-center">
                         {p.imageUrl ? (
                           <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
@@ -145,18 +143,18 @@ export default function PlayerStatsClient({ initialPlayers, divisions, activeDiv
                           </div>
                         )}
                       </div>
-
                       <span>{p.name}</span>
                     </Link>
                   </td>
                   <td className="px-4 py-5 text-slate-500 font-bold uppercase tracking-tight whitespace-nowrap">
                     {p.teamName}
                   </td>
+                  
+                  {/* 🎯 UPDATED: Displays their individual appearances alongside their team's max completed matches */}
                   <td className="px-4 py-5 text-center font-black text-slate-900 bg-amber-50 border-x border-amber-100 italic text-sm">
-                    {p.matchPlay}
+                    {p.matchPlay} <span className="text-[10px] text-amber-700/60 font-normal">/ {p.maxTeamMatches}</span>
                   </td>
                   
-                  {/* Stats Cells */}
                   <td className="px-4 py-5 text-center font-medium bg-slate-50/30">{p.singlePlay}</td>
                   <td className="px-4 py-5 text-center font-bold text-green-600 bg-slate-50/30">{p.singleWin}</td>
                   <td className="px-4 py-5 text-center font-bold text-red-400 bg-slate-50/30">{p.singleLost}</td>
