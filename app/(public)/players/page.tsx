@@ -1,11 +1,12 @@
 import { db } from "@/src/db";
 import { players, matchGames, teams, matches } from "@/src/db/schema";
-import { eq, sql, desc, and, or } from "drizzle-orm";
+import { eq, sql, desc } from "drizzle-orm";
+import PlayerStatsClient from "./PlayerStatsClient";
 
 export const dynamic = "force-dynamic";
 
 export default async function PublicPlayersPage() {
-  // 1. Get the completed match counts for every team dynamically
+  // 1. Calculate how many matches EACH team has actually completed so far (Unchanged Logic)
   const teamCompletedCounts = await db
     .select({
       teamId: teams.id,
@@ -25,13 +26,12 @@ export default async function PublicPlayersPage() {
     )
     .groupBy(teams.id);
 
-  // Map them to a quick-lookup object { teamId: completedCount }
   const completedMap = teamCompletedCounts.reduce((acc, curr) => {
     acc[curr.teamId] = Number(curr.completedMatches || 0);
     return acc;
   }, {} as Record<number, number>);
 
-  // 2. Define the main frames won SQL logic
+  // 2. Fetch all raw stats broken down into your grid components (Unchanged Logic)
   const framesWonSql = sql<number>`
     count(
       case 
@@ -44,16 +44,36 @@ export default async function PublicPlayersPage() {
     )
   `;
 
-  // 3. Fetch player stats with unique match night appearance grouping
-  const playerLeaderboard = await db
+  const rawLeaderboard = await db
     .select({
       id: players.id,
       name: players.name,
+      imageUrl: players.imageUrl,
       teamId: players.teamId,
       teamName: teams.name,
-      appearances: sql<number>`count(distinct ${matchGames.matchId})`,
-      framesPlayed: sql<number>`count(${matchGames.id})`,
-      framesWon: framesWonSql,
+      matchPlay: sql<number>`count(distinct ${matchGames.matchId})`,
+      singlePlay: sql<number>`count(case when ${matchGames.gameType} = 'single' then 1 else null end)`,
+      singleWin: sql<number>`
+        count(
+          case 
+            when ${matchGames.gameType} = 'single' 
+                 and ((${players.id} = ${matchGames.player1Id} and ${matchGames.player1Score} > ${matchGames.player2Score}) or 
+                      (${players.id} = ${matchGames.player2Id} and ${matchGames.player2Score} > ${matchGames.player1Score})) then 1 
+            else null 
+          end
+        )
+      `,
+      doublePlay: sql<number>`count(case when ${matchGames.gameType} = 'double' then 1 else null end)`,
+      doubleWin: sql<number>`
+        count(
+          case 
+            when ${matchGames.gameType} = 'double' 
+                 and ((${players.id} = ${matchGames.player1Id} or ${players.id} = ${matchGames.player1PartnerId}) and ${matchGames.player1Score} > ${matchGames.player2Score} or 
+                      (${players.id} = ${matchGames.player2Id} or ${players.id} = ${matchGames.player2PartnerId}) and ${matchGames.player2Score} > ${matchGames.player1Score}) then 1 
+            else null 
+          end
+        )
+      `,
     })
     .from(players)
     .leftJoin(teams, eq(players.teamId, teams.id))
@@ -64,72 +84,62 @@ export default async function PublicPlayersPage() {
           or ${players.id} = ${matchGames.player2Id} 
           or ${players.id} = ${matchGames.player2PartnerId}`
     )
-    .groupBy(players.id, players.name, teams.name, players.teamId)
+    .groupBy(players.id, players.name, teams.name, players.teamId, players.imageUrl)
     .orderBy(desc(framesWonSql));
 
+  // 3. Format the data & Filter out players who haven't played any frames yet
+  const initialPlayers = rawLeaderboard
+    .map((p) => {
+      const singleLost = Math.max(0, p.singlePlay - p.singleWin);
+      const doubleLost = Math.max(0, p.doublePlay - p.doubleWin);
+      
+      const totalPlay = p.singlePlay + p.doublePlay;
+      const totalWin = p.singleWin + p.doubleWin;
+      const totalLost = singleLost + doubleLost;
+
+      const singlePct = p.singlePlay > 0 ? ((p.singleWin / p.singlePlay) * 100).toFixed(0) : "0";
+      const doublePct = p.doublePlay > 0 ? ((p.doubleWin / p.doublePlay) * 100).toFixed(0) : "0";
+      const totalPct = totalPlay > 0 ? ((totalWin / totalPlay) * 100).toFixed(0) : "0";
+
+      const totalTeamMatches = p.teamId ? (completedMap[p.teamId] || 0) : 0;
+
+      return {
+        id: p.id,
+        name: p.name,
+        imageUrl: p.imageUrl,
+        teamName: p.teamName || "Unassigned",
+        matchPlay: p.matchPlay, 
+        maxTeamMatches: totalTeamMatches,
+        singlePlay: p.singlePlay,
+        singleWin: p.singleWin,
+        singleLost,
+        singlePct,
+        doublePlay: p.doublePlay,
+        doubleWin: p.doubleWin,
+        doubleLost,
+        doublePct,
+        totalPlay,
+        totalWin,
+        totalLost,
+        totalPct,
+      };
+    })
+    // 🎯 FILTER: Only show players with at least 1 frame played
+    .filter(player => player.totalPlay > 0);
+
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      {/* Restoring your clean, original header style */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900">Player Stats</h1>
-        <p className="text-sm text-slate-500">League player performance and appearance trackers.</p>
+    <div className="max-w-7xl mx-auto px-4 py-10 space-y-8">
+      <div>
+        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600 block mb-1">Seasonal Analytics</span>
+        <h1 className="text-3xl font-black text-slate-950 uppercase tracking-tighter italic">
+          Player <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600">Leaderboard</span>
+        </h1>
+        <p className="text-slate-500 font-medium text-xs mt-1">
+          Live statistics tracking framing efficiency, singles performance, and overall win ratios.
+        </p>
       </div>
 
-      {/* Restoring your original clean table structure */}
-      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-sm">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-600">
-                <th className="py-3 px-4 text-center w-12">Rank</th>
-                <th className="py-3 px-4">Player</th>
-                <th className="py-3 px-4">Team</th>
-                <th className="py-3 px-4 text-center">Appearances</th>
-                <th className="py-3 px-4 text-center">Frames Played</th>
-                <th className="py-3 px-4 text-center">Frames Won</th>
-                <th className="py-3 px-4 text-center">Win %</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200 text-slate-700">
-              {playerLeaderboard.map((player, index) => {
-                const winRatio = player.framesPlayed > 0 
-                  ? Math.round((player.framesWon / player.framesPlayed) * 100) 
-                  : 0;
-
-                // 🎯 FIXED: Dynamic max cap based strictly on their specific team's completed schedules
-                const maxPossibleAppearances = player.teamId ? (completedMap[player.teamId] || 0) : 0;
-
-                return (
-                  <tr key={player.id} className="hover:bg-slate-50">
-                    <td className="py-3 px-4 text-center font-medium text-slate-400">
-                      {index + 1}
-                    </td>
-                    <td className="py-3 px-4 font-semibold text-slate-900">
-                      {player.name}
-                    </td>
-                    <td className="py-3 px-4 text-slate-500">
-                      {player.teamName || "Unassigned"}
-                    </td>
-                    <td className="py-3 px-4 text-center tabular-nums">
-                      {player.appearances} 
-                      <span className="text-xs text-slate-400 font-normal"> / {maxPossibleAppearances}</span>
-                    </td>
-                    <td className="py-3 px-4 text-center tabular-nums">
-                      {player.framesPlayed}
-                    </td>
-                    <td className="py-3 px-4 text-center tabular-nums font-semibold text-slate-900">
-                      {player.framesWon}
-                    </td>
-                    <td className="py-3 px-4 text-center font-medium tabular-nums">
-                      {winRatio}%
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <PlayerStatsClient initialPlayers={initialPlayers} divisions={[]} activeDivId={1} />
     </div>
   );
 }

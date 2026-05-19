@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
+import { Trophy, Users, Star, Layers } from "lucide-react";
 
 interface PlayerStatRow {
   id: number;
@@ -9,7 +10,7 @@ interface PlayerStatRow {
   imageUrl: string | null;
   teamName: string;
   matchPlay: number;
-  maxTeamMatches: number; // 🎯 Added to track custom team counts dynamically
+  maxTeamMatches: number;
   singlePlay: number;
   singleWin: number;
   singleLost: number;
@@ -26,11 +27,11 @@ interface PlayerStatRow {
 
 interface PlayerStatsClientProps {
   initialPlayers: PlayerStatRow[];
-  divisions: { id: number; name: string; tier: number }[];
+  divisions: any[];
   activeDivId: number;
 }
 
-export default function PlayerStatsClient({ initialPlayers, divisions, activeDivId }: PlayerStatsClientProps) {
+export default function PlayerStatsClient({ initialPlayers }: PlayerStatsClientProps) {
   const [pageSize, setPageSize] = useState<number>(25);
   const [enableMpFilter, setEnableMpFilter] = useState<boolean>(false);
   const [minMpPercentage, setMinMpPercentage] = useState<number>(30);
@@ -53,38 +54,36 @@ export default function PlayerStatsClient({ initialPlayers, divisions, activeDiv
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-200 grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-        <div className="flex items-center gap-4">
-          <div className="space-y-1">
-            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block ml-1">Show Records</label>
-            <select
-              value={pageSize}
-              onChange={(e) => setPageSize(Number(e.target.value))}
-              className="p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900 outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value={10}>Top 10 Players</option>
-              <option value={25}>Top 25 Players</option>
-              <option value={50}>Top 50 Players</option>
-              <option value={100}>All Records</option>
-            </select>
-          </div>
+      {/* FILTER PANEL */}
+      <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 flex flex-col sm:flex-row gap-4 items-center justify-between">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <select
+            value={pageSize}
+            onChange={(e) => setPageSize(Number(e.target.value))}
+            className="w-full sm:w-auto p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl font-bold text-xs text-slate-800 transition-colors outline-none cursor-pointer"
+          >
+            <option value={10}>Top 10 Performers</option>
+            <option value={25}>Top 25 Performers</option>
+            <option value={50}>Top 50 Performers</option>
+            <option value={100}>All Active Players</option>
+          </select>
         </div>
 
-        <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+        <div className="bg-slate-50/60 px-4 py-2 rounded-xl border border-slate-200/60 flex items-center justify-between gap-4 w-full sm:w-auto">
+          <div className="flex items-center gap-2.5">
             <input
               type="checkbox"
               id="mpFilterToggle"
               checked={enableMpFilter}
               onChange={(e) => setEnableMpFilter(e.target.checked)}
-              className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 accent-indigo-600 cursor-pointer"
+              className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-0 accent-indigo-600 cursor-pointer"
             />
-            <label htmlFor="mpFilterToggle" className="text-xs font-black text-slate-700 uppercase tracking-tight cursor-pointer selection:bg-transparent">
-              Exclude players with low attendance
+            <label htmlFor="mpFilterToggle" className="text-[11px] font-bold text-slate-600 uppercase tracking-tight cursor-pointer select-none">
+              Filter Low Attendance
             </label>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
             <input
               type="number"
               min={0}
@@ -92,81 +91,103 @@ export default function PlayerStatsClient({ initialPlayers, divisions, activeDiv
               disabled={!enableMpFilter}
               value={minMpPercentage}
               onChange={(e) => setMinMpPercentage(Math.min(100, Math.max(0, Number(e.target.value))))}
-              className={`w-16 p-2 text-center font-black border rounded-xl outline-none transition-all ${
-                enableMpFilter ? 'bg-white border-slate-200 text-slate-900 focus:ring-2 focus:ring-indigo-500' : 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'
+              className={`w-12 p-1 text-center font-bold text-xs border rounded-lg outline-none transition-all ${
+                enableMpFilter ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'
               }`}
             />
-            <span className="text-xs font-black text-slate-400">%</span>
+            <span className="text-[11px] font-bold text-slate-400">%</span>
           </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-2xl overflow-hidden">
+      {/* RENDER TABLE */}
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-[11px] md:text-xs">
+          <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="bg-slate-900 text-slate-500 uppercase tracking-[0.2em] font-black border-b border-slate-800">
-                <th className="px-4 py-4" colSpan={3}>Identity & Attendance</th>
-                <th className="px-4 py-4 text-center border-x border-slate-800 bg-slate-800/50" colSpan={4}>Singles</th>
-                <th className="px-4 py-4 text-center border-r border-slate-800 bg-slate-800/30" colSpan={4}>Doubles</th>
-                <th className="px-4 py-4 text-center bg-indigo-950 text-indigo-400" colSpan={4}>Overall Totals</th>
+              {/* CATEGORY CATEGORIZATION BLOCK */}
+              <tr className="bg-slate-50/70 text-slate-400 text-[10px] font-bold uppercase tracking-widest border-b border-slate-200/60">
+                <th className="px-4 py-3" colSpan={3}>
+                  <span className="inline-flex items-center gap-1.5"><Users className="w-3.5 h-3.5 text-slate-400" /> Identity Profile</span>
+                </th>
+                <th className="px-4 py-3 text-center border-x border-slate-200/60 bg-slate-50/40" colSpan={4}>
+                  <span className="inline-flex items-center gap-1.5"><Star className="w-3.5 h-3.5 text-amber-500" /> Singles Bracket</span>
+                </th>
+                <th className="px-4 py-3 text-center border-r border-slate-200/60" colSpan={4}>
+                  <span className="inline-flex items-center gap-1.5"><Layers className="w-3.5 h-3.5 text-indigo-500" /> Doubles Roster</span>
+                </th>
+                <th className="px-4 py-3 text-center bg-indigo-50/40 text-indigo-950" colSpan={4}>
+                  <span className="inline-flex items-center gap-1.5"><Trophy className="w-3.5 h-3.5 text-indigo-600" /> Overall Metrics</span>
+                </th>
               </tr>
-              <tr className="bg-slate-900 text-white uppercase tracking-widest font-black border-b border-slate-800">
-                <th className="px-4 py-6 sticky left-0 bg-slate-900 z-10">Player</th>
-                <th className="px-4 py-6 text-slate-400">Team</th>
-                <th className="px-4 py-6 text-center bg-amber-500 text-slate-900 ring-inset ring-1 ring-amber-400">Match Play (MP)</th>
-                <th className="px-4 py-6 text-center bg-slate-800/50">Play</th>
-                <th className="px-4 py-6 text-center bg-slate-800/50">Win</th>
-                <th className="px-4 py-6 text-center bg-slate-800/50">Lost</th>
-                <th className="px-4 py-6 text-center bg-slate-800/50 text-indigo-400">W%</th>
-                <th className="px-4 py-6 text-center bg-slate-800/30">Play</th>
-                <th className="px-4 py-6 text-center bg-slate-800/30">Win</th>
-                <th className="px-4 py-6 text-center bg-slate-800/30">Lost</th>
-                <th className="px-4 py-6 text-center bg-slate-800/30 text-indigo-400">W%</th>
-                <th className="px-4 py-6 text-center bg-indigo-900/20">Play</th>
-                <th className="px-4 py-6 text-center bg-indigo-900/20">Win</th>
-                <th className="px-4 py-6 text-center bg-indigo-900/20">Lost</th>
-                <th className="px-4 py-6 text-center bg-indigo-600 text-white">Total W%</th>
+              {/* PRIMARY STAT HEADERS */}
+              <tr className="bg-slate-50 text-slate-700 font-bold uppercase text-[10px] tracking-wider border-b border-slate-200">
+                <th className="px-4 py-4 sticky left-0 bg-slate-50 z-10 border-r border-slate-200/60">Competitor</th>
+                <th className="px-4 py-4 text-slate-500">Club Squad</th>
+                <th className="px-4 py-4 text-center bg-amber-500/10 text-amber-800 border-r border-slate-200/60">Match Play</th>
+                
+                {/* Singles */}
+                <th className="px-3 py-4 text-center bg-slate-50/40">Played</th>
+                <th className="px-3 py-4 text-center bg-slate-50/40 text-emerald-600">Won</th>
+                <th className="px-3 py-4 text-center bg-slate-50/40 text-rose-500">Lost</th>
+                <th className="px-4 py-4 text-center bg-slate-100/80 font-black border-r border-slate-200/60">Win %</th>
+
+                {/* Doubles */}
+                <th className="px-3 py-4 text-center">Played</th>
+                <th className="px-3 py-4 text-center text-emerald-600">Won</th>
+                <th className="px-3 py-4 text-center text-rose-500">Lost</th>
+                <th className="px-4 py-4 text-center bg-slate-50 font-black border-r border-slate-200/60">Win %</th>
+
+                {/* Overall */}
+                <th className="px-3 py-4 text-center bg-indigo-50/20 text-slate-600">Total</th>
+                <th className="px-3 py-4 text-center bg-indigo-50/20 text-emerald-600">Won</th>
+                <th className="px-3 py-4 text-center bg-indigo-50/20 text-rose-500">Lost</th>
+                <th className="px-4 py-4 text-center bg-indigo-600 text-white font-black">Success %</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
-              {processedPlayers.map((p) => (
-                <tr key={p.id} className="hover:bg-slate-50 transition-colors group">
-                  <td className="px-4 py-5 font-black text-slate-900 uppercase whitespace-nowrap sticky left-0 bg-white group-hover:bg-slate-50 border-r border-slate-100 z-10">
+            <tbody className="divide-y divide-slate-150 font-medium text-slate-600">
+              {processedPlayers.map((p, idx) => (
+                <tr key={p.id} className="hover:bg-slate-50/60 transition-colors group">
+                  {/* Identity */}
+                  <td className="px-4 py-3.5 font-bold text-slate-900 sticky left-0 bg-white group-hover:bg-slate-50/60 border-r border-slate-200/60 z-10 whitespace-nowrap">
                     <Link href={`/players/${p.id}`} className="hover:text-indigo-600 transition-colors flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-xl overflow-hidden bg-slate-100 border border-slate-200 shrink-0 hidden sm:flex items-center justify-center">
+                      <span className="text-[11px] font-mono font-bold text-slate-400 w-4 text-center">{idx + 1}</span>
+                      <div className="w-7 h-7 rounded-lg overflow-hidden bg-slate-100 border border-slate-200 shrink-0 hidden sm:flex items-center justify-center shadow-inner">
                         {p.imageUrl ? (
                           <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-[10px] font-black bg-slate-200 text-slate-500">
+                          <div className="w-full h-full flex items-center justify-center text-[10px] font-black bg-gradient-to-br from-slate-200 to-slate-300 text-slate-600">
                             {p.name.charAt(0)}
                           </div>
                         )}
                       </div>
-                      <span>{p.name}</span>
+                      <span className="uppercase tracking-tight text-[12px]">{p.name}</span>
                     </Link>
                   </td>
-                  <td className="px-4 py-5 text-slate-500 font-bold uppercase tracking-tight whitespace-nowrap">
+                  <td className="px-4 py-3.5 text-slate-500 font-semibold uppercase tracking-tight whitespace-nowrap text-[11px]">
                     {p.teamName}
                   </td>
-                  
-                  {/* 🎯 UPDATED: Displays their individual appearances alongside their team's max completed matches */}
-                  <td className="px-4 py-5 text-center font-black text-slate-900 bg-amber-50 border-x border-amber-100 italic text-sm">
-                    {p.matchPlay} <span className="text-[10px] text-amber-700/60 font-normal">/ {p.maxTeamMatches}</span>
+                  <td className="px-4 py-3.5 text-center font-bold text-slate-900 bg-amber-500/[0.04] border-r border-slate-200/60 tabular-nums">
+                    {p.matchPlay} <span className="text-[10px] text-slate-400 font-normal">/ {p.maxTeamMatches}</span>
                   </td>
                   
-                  <td className="px-4 py-5 text-center font-medium bg-slate-50/30">{p.singlePlay}</td>
-                  <td className="px-4 py-5 text-center font-bold text-green-600 bg-slate-50/30">{p.singleWin}</td>
-                  <td className="px-4 py-5 text-center font-bold text-red-400 bg-slate-50/30">{p.singleLost}</td>
-                  <td className="px-4 py-5 text-center font-black text-indigo-600 bg-slate-50/30 italic">{p.singlePct}%</td>
-                  <td className="px-4 py-5 text-center font-medium">{p.doublePlay}</td>
-                  <td className="px-4 py-5 text-center font-bold text-green-600">{p.doubleWin}</td>
-                  <td className="px-4 py-5 text-center font-bold text-red-400">{p.doubleLost}</td>
-                  <td className="px-4 py-5 text-center font-black text-indigo-600 italic">{p.doublePct}%</td>
-                  <td className="px-4 py-5 text-center font-black text-slate-900 bg-indigo-50/20">{p.totalPlay}</td>
-                  <td className="px-4 py-5 text-center font-black text-green-600 bg-indigo-50/20">{p.totalWin}</td>
-                  <td className="px-4 py-5 text-center font-black text-red-400 bg-indigo-50/20">{p.totalLost}</td>
-                  <td className="px-4 py-5 text-center bg-indigo-600 text-white font-black italic shadow-inner">
+                  {/* Singles */}
+                  <td className="px-3 py-3.5 text-center bg-slate-50/[0.15] font-mono tabular-nums">{p.singlePlay}</td>
+                  <td className="px-3 py-3.5 text-center font-bold text-emerald-600 bg-slate-50/[0.15] font-mono tabular-nums">{p.singleWin}</td>
+                  <td className="px-3 py-3.5 text-center text-slate-400 bg-slate-50/[0.15] font-mono tabular-nums">{p.singleLost}</td>
+                  <td className="px-4 py-3.5 text-center font-extrabold text-slate-900 bg-slate-100/40 border-r border-slate-200/60 font-mono tabular-nums">{p.singlePct}%</td>
+                  
+                  {/* Doubles */}
+                  <td className="px-3 py-3.5 text-center font-mono tabular-nums">{p.doublePlay}</td>
+                  <td className="px-3 py-3.5 text-center font-bold text-emerald-600 font-mono tabular-nums">{p.doubleWin}</td>
+                  <td className="px-3 py-3.5 text-center text-slate-400 font-mono tabular-nums">{p.doubleLost}</td>
+                  <td className="px-4 py-3.5 text-center font-extrabold text-slate-900 bg-slate-50/50 border-r border-slate-200/60 font-mono tabular-nums">{p.doublePct}%</td>
+                  
+                  {/* Overall */}
+                  <td className="px-3 py-3.5 text-center font-semibold text-slate-700 bg-indigo-50/[0.1] font-mono tabular-nums">{p.totalPlay}</td>
+                  <td className="px-3 py-3.5 text-center font-bold text-emerald-600 bg-indigo-50/[0.1] font-mono tabular-nums">{p.totalWin}</td>
+                  <td className="px-3 py-3.5 text-center text-slate-400 bg-indigo-50/[0.1] font-mono tabular-nums">{p.totalLost}</td>
+                  <td className="px-4 py-3.5 text-center bg-indigo-600 text-white font-black font-mono tabular-nums italic shadow-sm">
                     {p.totalPct}%
                   </td>
                 </tr>
