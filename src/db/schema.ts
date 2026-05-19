@@ -62,16 +62,20 @@ export const teamMemberships = pgTable('team_memberships', {
 });
 
 // 4. Match & Scoring Tables
-export const matches = pgTable('matches', {
-  id: serial('id').primaryKey(),
-  seasonId: integer('season_id').references(() => seasons.id),
-  divisionId: integer('division_id').references(() => divisions.id),
-  homeTeamId: integer('home_team_id').references(() => teams.id),
-  awayTeamId: integer('away_team_id').references(() => teams.id),
-  homeTeamScoreTotal: integer('home_team_score_total').default(0),
-  awayTeamScoreTotal: integer('away_team_score_total').default(0),
-  matchDate: timestamp('match_date'),
-  status: matchStatusEnum('status').default('scheduled'),
+export const matches = pgTable("matches", {
+  id: serial("id").primaryKey(),
+  date: timestamp("date"),
+  status: varchar("status", { length: 50 }).default("scheduled"), // 'scheduled', 'completed', etc.
+  
+  // 🎯 ADD THIS LINE HERE:
+  weekNumber: integer("week_number").default(1).notNull(),
+
+  homeTeamId: integer("home_team_id"),
+  awayTeamId: integer("away_team_id"),
+  homeScore: integer("home_score"),
+  awayScore: integer("away_score"),
+  seasonId: integer("season_id"),
+  divisionId: integer("division_id"),
 });
 
 export const matchGames = pgTable("match_games", {

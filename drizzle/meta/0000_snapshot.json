@@ -1,6 +1,6 @@
 {
-  "id": "0ab263ee-aaf5-46ee-8fbd-95aefdc36354",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "3437f1d0-2885-434f-a89b-3880f30f70df",
+  "prevId": "019aa0fc-b950-4e85-8db3-ea4453ecb9f4",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -16,13 +16,40 @@
         },
         "name": {
           "name": "name",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
           "notNull": true
+        },
+        "season_id": {
+          "name": "season_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tier": {
+          "name": "tier",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
         }
       },
       "indexes": {},
-      "foreignKeys": {},
+      "foreignKeys": {
+        "divisions_season_id_seasons_id_fk": {
+          "name": "divisions_season_id_seasons_id_fk",
+          "tableFrom": "divisions",
+          "tableTo": "seasons",
+          "columnsFrom": [
+            "season_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -188,17 +215,25 @@
           "primaryKey": true,
           "notNull": true
         },
-        "season_id": {
-          "name": "season_id",
-          "type": "integer",
+        "date": {
+          "name": "date",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": false
         },
-        "division_id": {
-          "name": "division_id",
+        "status": {
+          "name": "status",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'scheduled'"
+        },
+        "week_number": {
+          "name": "week_number",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true,
+          "default": 1
         },
         "home_team_id": {
           "name": "home_team_id",
@@ -212,90 +247,33 @@
           "primaryKey": false,
           "notNull": false
         },
-        "home_team_score_total": {
-          "name": "home_team_score_total",
+        "home_score": {
+          "name": "home_score",
           "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "default": 0
-        },
-        "away_team_score_total": {
-          "name": "away_team_score_total",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "default": 0
-        },
-        "match_date": {
-          "name": "match_date",
-          "type": "timestamp",
           "primaryKey": false,
           "notNull": false
         },
-        "status": {
-          "name": "status",
-          "type": "match_status",
-          "typeSchema": "public",
+        "away_score": {
+          "name": "away_score",
+          "type": "integer",
           "primaryKey": false,
-          "notNull": false,
-          "default": "'scheduled'"
+          "notNull": false
+        },
+        "season_id": {
+          "name": "season_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "division_id": {
+          "name": "division_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
-      "foreignKeys": {
-        "matches_season_id_seasons_id_fk": {
-          "name": "matches_season_id_seasons_id_fk",
-          "tableFrom": "matches",
-          "tableTo": "seasons",
-          "columnsFrom": [
-            "season_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "matches_division_id_divisions_id_fk": {
-          "name": "matches_division_id_divisions_id_fk",
-          "tableFrom": "matches",
-          "tableTo": "divisions",
-          "columnsFrom": [
-            "division_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "matches_home_team_id_teams_id_fk": {
-          "name": "matches_home_team_id_teams_id_fk",
-          "tableFrom": "matches",
-          "tableTo": "teams",
-          "columnsFrom": [
-            "home_team_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "matches_away_team_id_teams_id_fk": {
-          "name": "matches_away_team_id_teams_id_fk",
-          "tableFrom": "matches",
-          "tableTo": "teams",
-          "columnsFrom": [
-            "away_team_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -314,20 +292,19 @@
         },
         "name": {
           "name": "name",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
           "notNull": true
-        },
-        "handicap": {
-          "name": "handicap",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "default": 0
         },
         "team_id": {
           "name": "team_id",
           "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "image_url": {
+          "name": "image_url",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         }
@@ -344,7 +321,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -561,7 +538,7 @@
         },
         "name": {
           "name": "name",
-          "type": "text",
+          "type": "varchar(255)",
           "primaryKey": false,
           "notNull": true
         },
@@ -571,22 +548,49 @@
           "primaryKey": false,
           "notNull": false
         },
-        "is_active": {
-          "name": "is_active",
-          "type": "boolean",
+        "division_id": {
+          "name": "division_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "points": {
+          "name": "points",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "sets_won": {
+          "name": "sets_won",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "sets_lost": {
+          "name": "sets_lost",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
           "primaryKey": false,
           "notNull": false,
-          "default": true
+          "default": "now()"
         }
       },
       "indexes": {},
       "foreignKeys": {
-        "teams_home_venue_id_venues_id_fk": {
-          "name": "teams_home_venue_id_venues_id_fk",
+        "teams_division_id_divisions_id_fk": {
+          "name": "teams_division_id_divisions_id_fk",
           "tableFrom": "teams",
-          "tableTo": "venues",
+          "tableTo": "divisions",
           "columnsFrom": [
-            "home_venue_id"
+            "division_id"
           ],
           "columnsTo": [
             "id"
