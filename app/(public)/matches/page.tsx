@@ -9,35 +9,33 @@ interface PageProps {
   searchParams: Promise<{
     seasonId?: string;
     divisionId?: string;
-    date?: string;
+    sort?: "asc" | "desc";
   }>;
 }
 
 export default async function PublicMatchesPage({ searchParams }: PageProps) {
   const params = await searchParams;
 
-  // 1. Fetch lookup criteria safely for header navigation controls
+  // 1. Fetch lookup criteria safely
   const allSeasons = await db.select().from(seasons).orderBy(desc(seasons.startDate));
   const allDivisions = await db.select().from(divisions).orderBy(divisions.tier);
 
   const selectedSeasonId = params.seasonId ? Number(params.seasonId) : (allSeasons[0]?.id || null);
   const selectedDivisionId = params.divisionId ? Number(params.divisionId) : (allDivisions[0]?.id || null);
-  const selectedDate = params.date || ""; // ISO string format: YYYY-MM-DD
-
-  // 2. Build flexible, non-breaking SQL conditions array
-  const conditions = [];
   
+  // 🎯 Default sorting direction to 'asc' if not explicitly defined in URL
+  const sortDirection = params.sort === "desc" ? "desc" : "asc";
+
+  // 2. Build SQL conditions array
+  const conditions = [];
   if (selectedSeasonId) {
     conditions.push(eq(matches.seasonId, selectedSeasonId));
   }
   if (selectedDivisionId) {
     conditions.push(eq(matches.divisionId, selectedDivisionId));
   }
-  if (selectedDate) {
-    conditions.push(eq(sql`DATE(${matches.date})`, selectedDate));
-  }
 
-  // 3. Query dataset with clean relational details
+  // 3. Query dataset with sorting order applied dynamically
   const allMatchesRaw = await db
     .select({
       id: matches.id,
@@ -56,14 +54,14 @@ export default async function PublicMatchesPage({ searchParams }: PageProps) {
     .leftJoin(sql`teams as home_teams`, eq(matches.homeTeamId, sql`home_teams.id`))
     .leftJoin(sql`teams as away_teams`, eq(matches.awayTeamId, sql`away_teams.id`))
     .where(conditions.length > 0 ? and(...conditions) : undefined)
-    .orderBy(asc(matches.date));
+    // 🎯 Dynamically sort by date asc or desc
+    .orderBy(sortDirection === "desc" ? desc(matches.date) : asc(matches.date));
 
-  // 4. Format and normalize structural attributes safely
+  // 4. Format structural attributes safely
   const formattedMatches = allMatchesRaw.map((m) => ({
     id: m.id,
     date: m.date ? new Date(m.date).toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' }) : "TBD",
-    rawDateString: m.date ? new Date(m.date).toISOString().split('T')[0] : "",
-    status: m.status || "scheduled", // 'completed' vs alternative states
+    status: m.status || "scheduled",
     weekNumber: m.weekNumber || 1,
     homeTeam: m.homeTeamName || "Home Team",
     awayTeam: m.awayTeamName || "Away Team",
@@ -71,7 +69,6 @@ export default async function PublicMatchesPage({ searchParams }: PageProps) {
     awayScore: m.awayScore !== null ? Number(m.awayScore) : null,
   }));
 
-  // Separate array blocks instantly to power high-speed layout rendering blocks
   const completedResults = formattedMatches.filter((m) => m.status === "completed");
   const upcomingFixtures = formattedMatches.filter((m) => m.status !== "completed");
 
@@ -94,7 +91,7 @@ export default async function PublicMatchesPage({ searchParams }: PageProps) {
         divisions={allDivisions.map(d => ({ id: d.id, name: d.name }))}
         selectedSeasonId={selectedSeasonId || undefined}
         selectedDivisionId={selectedDivisionId || undefined}
-        selectedDate={selectedDate}
+        sortDirection={sortDirection}
       />
     </div>
   );

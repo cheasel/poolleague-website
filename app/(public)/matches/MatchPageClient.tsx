@@ -2,12 +2,11 @@
 
 import { useState, useMemo, useEffect } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { Calendar, Layers, Trophy, CalendarDays, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { Calendar, Users, Trophy, CalendarDays, ArrowRight, ChevronLeft, ChevronRight, ArrowUpDown } from "lucide-react";
 
 interface MatchRow {
   id: number;
   date: string;
-  rawDateString: string;
   status: string;
   weekNumber: number;
   homeTeam: string;
@@ -28,7 +27,7 @@ interface MatchPageClientProps {
   divisions: DropdownItem[];
   selectedSeasonId?: number;
   selectedDivisionId?: number;
-  selectedDate: string;
+  sortDirection: "asc" | "desc";
 }
 
 export default function MatchPageClient({
@@ -38,26 +37,21 @@ export default function MatchPageClient({
   divisions,
   selectedSeasonId,
   selectedDivisionId,
-  selectedDate
+  sortDirection
 }: MatchPageClientProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  // Navigation Tabs State: 'fixtures' or 'results'
   const [activeTab, setActiveTab] = useState<'fixtures' | 'results'>('results');
-  
-  // Pagination State Matrix
   const [currentPage, setCurrentPage] = useState<number>(1);
   const itemsPerPage = 20;
 
-  // Reset pagination index if parameters shift
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedSeasonId, selectedDivisionId, selectedDate, activeTab]);
+  }, [selectedSeasonId, selectedDivisionId, sortDirection, activeTab]);
 
-  // URL Parameter synchronizer pipeline
-  const handleParamChange = (key: 'seasonId' | 'divisionId' | 'date', value: string) => {
+  const handleParamChange = (key: 'seasonId' | 'divisionId' | 'sort', value: string) => {
     const params = new URLSearchParams(searchParams.toString());
     if (value) {
       params.set(key, value);
@@ -67,12 +61,10 @@ export default function MatchPageClient({
     router.push(`${pathname}?${params.toString()}`);
   };
 
-  // Determine active view context
   const activeDataset = useMemo(() => {
     return activeTab === 'fixtures' ? upcomingFixtures : completedResults;
   }, [activeTab, upcomingFixtures, completedResults]);
 
-  // Pagination processing block
   const totalPages = Math.ceil(activeDataset.length / itemsPerPage) || 1;
   const paginatedMatches = useMemo(() => {
     const offset = (currentPage - 1) * itemsPerPage;
@@ -112,22 +104,16 @@ export default function MatchPageClient({
             </select>
           </div>
 
-          {/* Chronological Calendar Date Filter Input */}
-          <div className="relative min-w-[160px] w-full sm:w-auto">
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => handleParamChange('date', e.target.value)}
-              className="w-full p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl font-bold text-xs text-slate-800 transition-colors outline-none cursor-pointer appearance-none"
-            />
-            {selectedDate && (
-              <button 
-                onClick={() => handleParamChange('date', '')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-black text-slate-400 hover:text-slate-600 uppercase"
-              >
-                Clear
-              </button>
-            )}
+          {/* 🎯 Chronological Order Select */}
+          <div className="min-w-[150px] w-full sm:w-auto">
+            <select
+              value={sortDirection}
+              onChange={(e) => handleParamChange('sort', e.target.value)}
+              className="w-full p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl font-bold text-xs text-slate-800 transition-colors outline-none cursor-pointer"
+            >
+              <option value="asc">Date: Oldest First</option>
+              <option value="desc">Date: Newest First</option>
+            </select>
           </div>
 
         </div>
@@ -161,7 +147,7 @@ export default function MatchPageClient({
               <Calendar className="w-6 h-6" />
             </span>
             <h3 className="font-bold text-slate-800 text-sm uppercase tracking-tight">No Matches Configured</h3>
-            <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">There are no matches matching your selected date or division settings inside this calendar block.</p>
+            <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">There are no matches currently scheduled inside this division criteria.</p>
           </div>
         ) : (
           <div className="divide-y divide-slate-100">
@@ -188,14 +174,12 @@ export default function MatchPageClient({
                 {/* Scoreboard/Matchup Center Node */}
                 <div className="flex-1 flex items-center justify-between sm:justify-center gap-6 max-w-lg mx-auto w-full">
                   
-                  {/* Home Entity */}
                   <div className="text-right flex-1 min-w-0">
                     <span className="font-black text-slate-900 uppercase tracking-tight text-[13px] block truncate group-hover:text-indigo-600 transition-colors">
                       {match.homeTeam}
                     </span>
                   </div>
 
-                  {/* Indicator Box */}
                   <div className="flex items-center gap-2 shrink-0 px-2">
                     {match.status === 'completed' ? (
                       <div className="flex items-center gap-1 bg-slate-950 px-3 py-1.5 rounded-xl text-white font-mono text-sm font-black shadow-inner">
@@ -210,7 +194,6 @@ export default function MatchPageClient({
                     )}
                   </div>
 
-                  {/* Away Entity */}
                   <div className="text-left flex-1 min-w-0">
                     <span className="font-black text-slate-900 uppercase tracking-tight text-[13px] block truncate group-hover:text-indigo-600 transition-colors">
                       {match.awayTeam}
