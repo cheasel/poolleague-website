@@ -85,13 +85,13 @@ export default function MatchDashboard({
                     {m.status}
                   </span>
                   <span className="text-[10px] font-bold text-slate-400">
-                    {m.matchDate ? new Date(m.matchDate).toLocaleDateString() : "TBD"}
+                    {m.date ? new Date(m.date).toLocaleDateString() : "TBD"}
                   </span>
                 </div>
                 <div className="flex justify-between items-center font-black text-xs uppercase tracking-tight">
                   <span>{getTeamName(m.homeTeamId)}</span>
                   <span className="font-mono px-2 bg-slate-100 text-slate-950 rounded">
-                    {m.homeTeamScoreTotal ?? 0} : {m.awayTeamScoreTotal ?? 0}
+                    {m.homeScore ?? 0} : {m.awayScore ?? 0}
                   </span>
                   <span>{getTeamName(m.awayTeamId)}</span>
                 </div>
