@@ -267,7 +267,7 @@ export default async function AdminMatchesPage({ searchParams }: PageProps) {
                   </div>
 
                   {/* ✅ UPGRADED: Standard HTML Form elements utilizing CSS peer-checked properties to dynamically expand doubles forms without forcing use-client tracking loops */}
-                  <form action={addFrameAction} className="space-y-4">
+                  <form action={addFrameAction} className="space-y-4 group">
                     <input type="hidden" name="matchId" value={activeMatch.id} />
                     
                     <div className="space-y-1.5">
@@ -277,6 +277,7 @@ export default async function AdminMatchesPage({ searchParams }: PageProps) {
                           <input type="radio" name="gameType" value="single" defaultChecked className="peer accent-indigo-600" />
                           Singles Frame
                         </label>
+                        {/* 2. Add an explicit HTML ID to the radio input check vector */}
                         <label className="flex items-center justify-center gap-2 p-3 bg-white border border-slate-200 rounded-xl font-bold text-xs uppercase cursor-pointer has-[:checked]:border-indigo-600 has-[:checked]:bg-indigo-50/30">
                           <input type="radio" name="gameType" value="double" id="doublesTrigger" className="peer accent-indigo-600" />
                           Doubles Frame
@@ -309,8 +310,8 @@ export default async function AdminMatchesPage({ searchParams }: PageProps) {
                         </div>
                       </div>
 
-                      {/* ✅ UPGRADED: Dynamic Tailwind Selector context mapping. Extends height instantly if #doublesTrigger option matches value */}
-                      <div className="grid grid-cols-7 gap-2 items-center text-center transition-all [...form:has(#doublesTrigger:checked)_&]:opacity-100 [...form:has(#doublesTrigger:checked)_&]:max-h-20 max-h-0 opacity-0 overflow-hidden">
+                      {/* ✅ FIXED: Clean Tailwind v4 native group-has variant check */}
+                      <div className="grid grid-cols-7 gap-2 items-center text-center transition-all duration-300 opacity-0 max-h-0 overflow-hidden group-has-[#doublesTrigger:checked]:opacity-100 group-has-[#doublesTrigger:checked]:max-h-24">
                         <div className="col-span-3">
                           <select name="player1PartnerId" className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-xs uppercase text-slate-800 outline-none truncate">
                             <option value="">Select Home Partner...</option>
