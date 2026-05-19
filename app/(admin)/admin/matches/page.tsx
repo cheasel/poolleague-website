@@ -18,7 +18,7 @@ export default async function AdminMatchesPage({ searchParams }: PageProps) {
   const activeMatchId = params.selectedMatch ? Number(params.selectedMatch) : null;
   const sortParam = params.sort === "asc" ? "asc" : "desc";
 
-  const sortOrder = sortParam === "asc" ? asc(matches.matchDate) : desc(matches.matchDate);
+  const sortOrder = sortParam === "asc" ? asc(matches.date) : desc(matches.date);
 
   // Fetch all matches from DB
   const allMatches = await db.select().from(matches).orderBy(sortOrder);
@@ -74,8 +74,8 @@ export default async function AdminMatchesPage({ searchParams }: PageProps) {
       await db
         .update(matches)
         .set({
-          homeTeamScoreTotal: (currentMatchRecord[0].homeTeamScoreTotal || 0) + homeIncrement,
-          awayTeamScoreTotal: (currentMatchRecord[0].awayTeamScoreTotal || 0) + awayIncrement,
+          homeScore: (currentMatchRecord[0].homeScore || 0) + homeIncrement,
+          awayScore: (currentMatchRecord[0].awayScore || 0) + awayIncrement,
         })
         .where(eq(matches.id, matchId));
     }
@@ -90,8 +90,8 @@ export default async function AdminMatchesPage({ searchParams }: PageProps) {
     const currentMatch = await db.select().from(matches).where(eq(matches.id, matchId));
     if (!currentMatch[0] || !currentMatch[0].homeTeamId || !currentMatch[0].awayTeamId) return;
 
-    const homeScore = currentMatch[0].homeTeamScoreTotal || 0;
-    const awayScore = currentMatch[0].awayTeamScoreTotal || 0;
+    const homeScore = currentMatch[0].homeScore || 0;
+    const awayScore = currentMatch[0].awayScore || 0;
 
     let homePointsAward = 0;
     let awayPointsAward = 0;

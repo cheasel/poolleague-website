@@ -75,14 +75,16 @@ export default async function AdminDashboardPage() {
         const matchDay = new Date(baseDate);
         matchDay.setDate(baseDate.getDate() + round * 7);
 
+        const seasonId = formData.get("seasonId") ? Number(formData.get("seasonId")) : null;
+        const divisionId = formData.get("divisionId") ? Number(formData.get("divisionId")) : null;
+
         // Commit fixture directly to your database pipeline ledger
-        await db.insert(matches).values({
+        await db.insert(matches).values({  
           homeTeamId: homeTeam.id,
           awayTeamId: awayTeam.id,
-          matchDate: matchDay,
-          status: "scheduled",
-          homeTeamScoreTotal: 0,
-          awayTeamScoreTotal: 0,
+          date: matchDay, 
+          seasonId: seasonId,
+          divisionId: divisionId,
         });
       }
     }
@@ -123,12 +125,12 @@ export default async function AdminDashboardPage() {
     if (!homeTeamId || !awayTeamId || homeTeamId === awayTeamId || !matchDateStr) return;
 
     await db.insert(matches).values({
-      homeTeamId,
-      awayTeamId,
-      matchDate: new Date(matchDateStr),
+      homeTeamId: homeTeamId, // 🧠 Changed from homeTeam.id to just homeTeamId
+      awayTeamId: awayTeamId,
+      date: new Date(),
       status: "scheduled",
-      homeTeamScoreTotal: 0,
-      awayTeamScoreTotal: 0,
+      homeScore: 0,
+      awayScore: 0,
     });
 
     revalidatePath("/admin/dashboard");

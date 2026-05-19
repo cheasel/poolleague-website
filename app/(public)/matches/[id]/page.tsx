@@ -24,12 +24,12 @@ export default async function PublicMatchDetailPage({ params }: PageProps) {
   const [matchData] = await db
     .select({
       id: matches.id,
-      matchDate: matches.matchDate,
+      matchDate: matches.date,
       status: matches.status,
       homeTeamId: matches.homeTeamId,
       awayTeamId: matches.awayTeamId,
-      homeTeamScoreTotal: matches.homeTeamScoreTotal,
-      awayTeamScoreTotal: matches.awayTeamScoreTotal,
+      homeTeamScoreTotal: matches.homeScore,
+      awayTeamScoreTotal: matches.awayScore,
       divisionId: homeTeams.divisionId, // Fixed: point to the aliased team table
       divisionName: divisions.name,
       seasonName: seasons.name,

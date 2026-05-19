@@ -31,8 +31,8 @@ async function syncMatchTotals(targetMatchId: number) {
   await db
     .update(matches)
     .set({
-      homeTeamScoreTotal: homeMatchWins,
-      awayTeamScoreTotal: awayMatchWins,
+      homeScore: homeMatchWins,
+      awayScore: awayMatchWins,
       status: freshGamesList.length > 0 ? "completed" : "scheduled", 
     })
     .where(eq(matches.id, targetMatchId));
@@ -57,8 +57,8 @@ async function syncMatchTotals(targetMatchId: number) {
     allTeamMatches.forEach((m) => {
       const isHome = m.homeTeamId === teamId;
       const isWin = isHome 
-        ? (m.homeTeamScoreTotal ?? 0) > (m.awayTeamScoreTotal ?? 0)
-        : (m.awayTeamScoreTotal ?? 0) > (m.homeTeamScoreTotal ?? 0);
+        ? (m.homeScore ?? 0) > (m.awayScore ?? 0)
+        : (m.awayScore ?? 0) > (m.homeScore ?? 0);
 
       if (isWin) {
         totalPoints += 2; // 🏆 2 Points awarded per match victory
@@ -88,13 +88,13 @@ export default async function MatchScorecardPage({ params }: PageProps) {
   const [match] = await db
     .select({
       id: matches.id,
-      matchDate: matches.matchDate,
+      matchDate: matches.date,
       status: matches.status,
       homeTeamId: matches.homeTeamId,
       awayTeamId: matches.awayTeamId,
       homeTeamName: teams.name,
-      homeTeamScoreTotal: matches.homeTeamScoreTotal,
-      awayTeamScoreTotal: matches.awayTeamScoreTotal,
+      homeTeamScoreTotal: matches.homeScore,
+      awayTeamScoreTotal: matches.awayScore,
     })
     .from(matches)
     .leftJoin(teams, eq(matches.homeTeamId, teams.id))

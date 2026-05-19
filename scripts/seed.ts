@@ -95,10 +95,10 @@ async function runSeed() {
         {
           homeTeamId: crucibleClub.id,
           awayTeamId: rackPack.id,
-          homeTeamScoreTotal: 3,
-          awayTeamScoreTotal: 1,
+          homeScore: 3,
+          awayScore: 1,
           status: "completed",
-          matchDate: new Date("2026-05-10"), // ⚡ FIXED: Wrapped string in a real Date instance
+          date: new Date("2026-05-10"), // ⚡ FIXED: Wrapped string in a real Date instance
         },
       ])
       .returning();

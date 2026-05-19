@@ -49,7 +49,7 @@ export default async function PlayerProfilePage({ params }: PageProps) {
       player1Score: matchGames.player1Score,
       player2Score: matchGames.player2Score,
       matchId: matchGames.matchId,
-      matchDate: matches.matchDate,
+      matchDate: matches.date,
       homeTeamName: homeTeams.name,
       awayTeamName: awayTeams.name,
       seasonId: divisions.seasonId,
@@ -70,7 +70,7 @@ export default async function PlayerProfilePage({ params }: PageProps) {
         eq(matchGames.player2PartnerId, playerId)
       )
     )
-    .orderBy(desc(matches.matchDate), desc(matchGames.gameOrder));
+    .orderBy(desc(matches.date), desc(matchGames.gameOrder));
 
   const globalPlayersList = await db.select().from(players);
   const playerMapRecord: Record<number, string> = {};

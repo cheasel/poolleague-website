@@ -48,8 +48,8 @@ export default async function StandingsPage({ searchParams }: PageProps) {
       if (!isHome && !isAway) return;
 
       played++;
-      const homeScore = Number(match.homeTeamScoreTotal || 0);
-      const awayScore = Number(match.awayTeamScoreTotal || 0);
+      const homeScore = Number(match.homeScore || 0);
+      const awayScore = Number(match.awayScore || 0);
 
       if (isHome) {
         framesFor += homeScore;

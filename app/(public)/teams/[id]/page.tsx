@@ -102,20 +102,20 @@ export default async function PublicTeamProfilePage({ params }: PageProps) {
   const teamMatches = await db
     .select({
       id: matches.id,
-      matchDate: matches.matchDate,
+      matchDate: matches.date,
       status: matches.status,
       homeTeamId: matches.homeTeamId,
       awayTeamId: matches.awayTeamId,
       homeTeamName: homeTeamsAlias.name,
       awayTeamName: awayTeamsAlias.name,
-      homeTeamScoreTotal: matches.homeTeamScoreTotal,
-      awayTeamScoreTotal: matches.awayTeamScoreTotal,
+      homeTeamScoreTotal: matches.homeScore,
+      awayTeamScoreTotal: matches.awayScore,
     })
     .from(matches)
     .leftJoin(homeTeamsAlias, eq(matches.homeTeamId, homeTeamsAlias.id))
     .leftJoin(awayTeamsAlias, eq(matches.awayTeamId, awayTeamsAlias.id))
     .where(or(eq(matches.homeTeamId, teamId), eq(matches.awayTeamId, teamId)))
-    .orderBy(desc(matches.matchDate));
+    .orderBy(desc(matches.date));
 
   return (
     <div className="min-h-screen bg-slate-50 p-4 md:p-12">

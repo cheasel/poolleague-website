@@ -27,10 +27,10 @@ export default async function AdminMatchDetailPage({ params }: PageProps) {
   const [match] = await db
     .select({
       id: matches.id,
-      matchDate: matches.matchDate,
+      matchDate: matches.date,
       status: matches.status,
-      homeTeamScoreTotal: matches.homeTeamScoreTotal,
-      awayTeamScoreTotal: matches.awayTeamScoreTotal,
+      homeTeamScoreTotal: matches.homeScore,
+      awayTeamScoreTotal: matches.awayScore,
       homeTeamName: homeTeamsAlias.name,
       awayTeamName: awayTeamsAlias.name,
       divisionName: divisions.name,

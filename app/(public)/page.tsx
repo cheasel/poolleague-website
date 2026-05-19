@@ -29,17 +29,17 @@ export default async function LeagueHomepage() {
   const recentResults = await db
     .select({
       id: matches.id,
-      matchDate: matches.matchDate,
+      matchDate: matches.date,
       homeTeamName: homeTeamsAlias.name,
       awayTeamName: awayTeamsAlias.name,
-      homeTeamScoreTotal: matches.homeTeamScoreTotal,
-      awayTeamScoreTotal: matches.awayTeamScoreTotal,
+      homeTeamScoreTotal: matches.homeScore,
+      awayTeamScoreTotal: matches.awayScore,
     })
     .from(matches)
     .leftJoin(homeTeamsAlias, eq(matches.homeTeamId, homeTeamsAlias.id))
     .leftJoin(awayTeamsAlias, eq(matches.awayTeamId, awayTeamsAlias.id))
     .where(eq(matches.status, "completed"))
-    .orderBy(desc(matches.matchDate), desc(matches.id))
+    .orderBy(desc(matches.date), desc(matches.id))
     .limit(3);
 
   return (
