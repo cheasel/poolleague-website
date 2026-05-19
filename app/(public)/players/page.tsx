@@ -15,14 +15,12 @@ interface PageProps {
 export default async function PublicPlayersPage({ searchParams }: PageProps) {
   const params = await searchParams;
   
-  // 1. Fetch seasons and divisions dropdown arrays safely
   const allSeasons = await db.select().from(seasons).orderBy(desc(seasons.startDate));
   const allDivisions = await db.select().from(divisions).orderBy(divisions.tier);
 
   const selectedSeasonId = params.seasonId ? Number(params.seasonId) : (allSeasons[0]?.id || null);
   const selectedDivisionId = params.divisionId ? Number(params.divisionId) : (allDivisions[0]?.id || null);
 
-  // 2. Compute overall team completions for the denominator
   const teamCompletedCounts = await db
     .select({
       teamId: teams.id,
@@ -47,7 +45,6 @@ export default async function PublicPlayersPage({ searchParams }: PageProps) {
     return acc;
   }, {} as Record<number, number>);
 
-  // 3. Main stats aggregation query
   const rawLeaderboard = await db
     .select({
       id: players.id,
@@ -58,7 +55,6 @@ export default async function PublicPlayersPage({ searchParams }: PageProps) {
       divisionId: teams.divisionId,
       matchPlay: sql<number>`count(distinct ${matchGames.matchId})`,
       
-      // Singles performance values
       singlePlay: sql<number>`count(case when ${matchGames.gameType} = 'single' then 1 else null end)`,
       singleWin: sql<number>`
         count(
@@ -71,7 +67,6 @@ export default async function PublicPlayersPage({ searchParams }: PageProps) {
         )
       `,
 
-      // Doubles performance values
       doublePlay: sql<number>`count(case when ${matchGames.gameType} = 'double' then 1 else null end)`,
       doubleWin: sql<number>`
         count(
@@ -95,23 +90,27 @@ export default async function PublicPlayersPage({ searchParams }: PageProps) {
     )
     .groupBy(players.id, players.name, teams.name, players.teamId, players.imageUrl, teams.divisionId);
 
-  // 4. Transform records and aggregate overall metrics cleanly
   const initialPlayers = rawLeaderboard
     .filter((p) => {
-      // Division scope fallback filter
       return selectedDivisionId ? p.divisionId === selectedDivisionId : true;
     })
     .map((p) => {
-      const singleLost = Math.max(0, p.singlePlay - p.singleWin);
-      const doubleLost = Math.max(0, p.doublePlay - p.doubleWin);
+      // 🎯 FORCE NUMERIC CONVERSION to prevent string concatenation ("1" + "2" = "12")
+      const sPlay = Number(p.singlePlay || 0);
+      const sWin = Number(p.singleWin || 0);
+      const dPlay = Number(p.doublePlay || 0);
+      const dWin = Number(p.doubleWin || 0);
+
+      const singleLost = Math.max(0, sPlay - sWin);
+      const doubleLost = Math.max(0, dPlay - dWin);
       
-      // 🎯 OVERALL SUM CALCULATIONS: Exact sums of your Singles and Doubles arrays
-      const totalPlay = p.singlePlay + p.doublePlay;
-      const totalWin = p.singleWin + p.doubleWin;
+      // 🎯 Correct Mathematical Sums
+      const totalPlay = sPlay + dPlay;
+      const totalWin = sWin + dWin;
       const totalLost = singleLost + doubleLost;
 
-      const singlePct = p.singlePlay > 0 ? ((p.singleWin / p.singlePlay) * 100).toFixed(0) : "0";
-      const doublePct = p.doublePlay > 0 ? ((p.doubleWin / p.doublePlay) * 100).toFixed(0) : "0";
+      const singlePct = sPlay > 0 ? ((sWin / sPlay) * 100).toFixed(0) : "0";
+      const doublePct = dPlay > 0 ? ((dWin / dPlay) * 100).toFixed(0) : "0";
       const totalPct = totalPlay > 0 ? ((totalWin / totalPlay) * 100).toFixed(0) : "0";
 
       const totalTeamMatches = p.teamId ? (completedMap[p.teamId] || 0) : 0;
@@ -121,14 +120,14 @@ export default async function PublicPlayersPage({ searchParams }: PageProps) {
         name: p.name,
         imageUrl: p.imageUrl,
         teamName: p.teamName || "Unassigned",
-        matchPlay: p.matchPlay, 
+        matchPlay: Number(p.matchPlay || 0), 
         maxTeamMatches: totalTeamMatches,
-        singlePlay: p.singlePlay,
-        singleWin: p.singleWin,
+        singlePlay: sPlay,
+        singleWin: sWin,
         singleLost,
         singlePct,
-        doublePlay: p.doublePlay,
-        doubleWin: p.doubleWin,
+        doublePlay: dPlay,
+        doubleWin: dWin,
         doubleLost,
         doublePct,
         totalPlay,
@@ -138,9 +137,7 @@ export default async function PublicPlayersPage({ searchParams }: PageProps) {
         totalPctNum: Number(totalPct)
       };
     })
-    // Filter out unplayed lines
     .filter((player) => player.totalPlay > 0)
-    // 🎯 INITIAL SORT RULE: Orders elements cleanly by Overall Winrate descending
     .sort((a, b) => b.totalPctNum - a.totalPctNum);
 
   return (
