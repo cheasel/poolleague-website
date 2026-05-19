@@ -1,131 +1,165 @@
 import { db } from "@/src/db";
-import { teams, divisions, matches, seasons } from "@/src/db/schema";
-import { eq, asc, desc } from "drizzle-orm";
-import Link from "next/link";
-import StandingsClient from "./standings-client";
+import { teams, matches, seasons, divisions } from "@/src/db/schema";
+import { eq, sql, desc, and } from "drizzle-orm";
+import StandingsClient from "./StandingsClient";
 
 export const dynamic = "force-dynamic";
 
 interface PageProps {
   searchParams: Promise<{
-    division?: string;
-    sort?: string;
+    seasonId?: string;
+    divisionId?: string;
   }>;
 }
 
-export default async function StandingsPage({ searchParams }: PageProps) {
+export default async function PublicStandingsPage({ searchParams }: PageProps) {
   const params = await searchParams;
-  const selectedDivId = params.division ? Number(params.division) : null;
 
-  // 1. Fetch Divisions for structural navigation tabs
-  const allDivisions = await db.select().from(divisions).orderBy(asc(divisions.tier));
-  const activeDivId = selectedDivId || allDivisions[0]?.id;
+  // 1. Fetch dropdown lists
+  const allSeasons = await db.select().from(seasons).orderBy(desc(seasons.startDate));
+  const allDivisions = await db.select().from(divisions).orderBy(divisions.tier);
 
-  // 2. Fetch Teams belonging to the active division tier
-  const activeTeams = activeDivId
-    ? await db.select().from(teams).where(eq(teams.divisionId, activeDivId))
-    : [];
+  const selectedSeasonId = params.seasonId ? Number(params.seasonId) : (allSeasons[0]?.id || null);
+  const selectedDivisionId = params.divisionId ? Number(params.divisionId) : (allDivisions[0]?.id || null);
 
-  // 3. Fetch all completed matches to aggregate current metrics live
-  const allCompletedMatches = await db
-    .select()
+  // 2. Build target conditions
+  const conditions = [eq(matches.status, "completed")];
+  if (selectedSeasonId) conditions.push(eq(matches.seasonId, selectedSeasonId));
+  if (selectedDivisionId) conditions.push(eq(matches.divisionId, selectedDivisionId));
+
+  // 3. Extract completed matches within the filtered scope
+  const completedMatches = await db
+    .select({
+      id: matches.id,
+      homeTeamId: matches.homeTeamId,
+      awayTeamId: matches.awayTeamId,
+      homeScore: matches.homeScore,
+      awayScore: matches.awayScore,
+    })
     .from(matches)
-    .where(eq(matches.status, "completed"));
+    .where(and(...conditions));
 
-  // 4. In-Memory Processing Matrix for Standings Rows
-  const standingsRows = activeTeams.map((team) => {
-    let played = 0;
-    let won = 0;
-    let lost = 0;
-    let drawn = 0;
-    let framesFor = 0;
-    let framesAgainst = 0;
+  // 4. Fetch teams assigned to the selected division scope
+  const divisionTeams = selectedDivisionId 
+    ? await db.select().from(teams).where(eq(teams.divisionId, selectedDivisionId))
+    : await db.select().from(teams);
 
-    allCompletedMatches.forEach((match) => {
-      const isHome = match.homeTeamId === team.id;
-      const isAway = match.awayTeamId === team.id;
-
-      if (!isHome && !isAway) return;
-
-      played++;
-      const homeScore = Number(match.homeScore || 0);
-      const awayScore = Number(match.awayScore || 0);
-
-      if (isHome) {
-        framesFor += homeScore;
-        framesAgainst += awayScore;
-        if (homeScore > awayScore) won++;
-        else if (homeScore < awayScore) lost++;
-        else drawn++;
-      } else {
-        framesFor += awayScore;
-        framesAgainst += homeScore;
-        if (awayScore > homeScore) won++;
-        else if (awayScore < homeScore) lost++;
-        else drawn++;
-      }
-    });
-
-    // Compute standard league point weights (3 for Win, 1 for Draw)
-    const points = (won * 2) + (drawn * 1);
-    const frameDifference = framesFor - framesAgainst;
-
-    return {
-      teamId: team.id,
-      teamName: team.name,
-      played,
-      won,
-      lost,
-      drawn,
-      framesFor,
-      framesAgainst,
-      frameDifference,
-      points,
+  // 5. Build memory ledger matrix to calculate stats
+  const standingsMap = divisionTeams.reduce((acc, team) => {
+    acc[team.id] = {
+      id: team.id,
+      name: team.name,
+      // Home Performance Tracker
+      homePlayed: 0, homeWins: 0, homeDraws: 0, homeLosses: 0, homeFramesWon: 0, homeFramesLost: 0,
+      // Away Performance Tracker
+      awayPlayed: 0, awayWins: 0, awayDraws: 0, awayLosses: 0, awayFramesWon: 0, awayFramesLost: 0,
     };
+    return acc;
+  }, {} as Record<number, any>);
+
+  // Loop through match metrics to populate the ledger
+  completedMatches.forEach((match) => {
+    const home = standingsMap[match.homeTeamId!];
+    const away = standingsMap[match.awayTeamId!];
+
+    if (!home || !away) return; // Guard against out-of-scope records
+
+    const hScore = Number(match.homeScore || 0);
+    const aScore = Number(match.awayScore || 0);
+
+    // Increment played counters
+    home.homePlayed += 1;
+    away.awayPlayed += 1;
+
+    // Increment frames counts
+    home.homeFramesWon += hScore;
+    home.homeFramesLost += aScore;
+    away.awayFramesWon += aScore;
+    away.awayFramesLost += hScore;
+
+    // Evaluate match points
+    if (hScore > aScore) {
+      home.homeWins += 1;
+      away.awayLosses += 1;
+    } else if (hScore < aScore) {
+      away.awayWins += 1;
+      home.homeLosses += 1;
+    } else {
+      home.homeDraws += 1;
+      away.awayDraws += 1;
+    }
   });
 
-  // Sort logically: highest points first, followed by frame difference tie-breakers
-  const sortedStandings = standingsRows.sort((a, b) => {
-    if (b.points !== a.points) return b.points - a.points;
-    return b.frameDifference - a.frameDifference;
+  // 6. Map to clean response nodes & compute final standing points
+  const calculatedStandings = Object.values(standingsMap).map((t: any) => {
+    // Aggregated Totals
+    const overallPlayed = t.homePlayed + t.awayPlayed;
+    const overallWins = t.homeWins + t.awayWins;
+    const overallDraws = t.homeDraws + t.awayDraws;
+    const overallLosses = t.homeLosses + t.awayLosses;
+    const overallFramesWon = t.homeFramesWon + t.awayFramesWon;
+    const overallFramesLost = t.homeFramesLost + t.awayFramesLost;
+
+    // Points rule formulation: 3 for a Win, 1 for a Draw
+    const overallPoints = (overallWins * 3) + (overallDraws * 1);
+    const frameDifference = overallFramesWon - overallFramesLost;
+
+    return {
+      id: t.id,
+      name: t.name,
+      overallPlayed,
+      overallWins,
+      overallDraws,
+      overallLosses,
+      overallFramesWon,
+      overallFramesLost,
+      frameDifference,
+      overallPoints,
+      // Specific matrices passed directly down to build Advanced Standings
+      home: {
+        played: t.homePlayed,
+        wins: t.homeWins,
+        draws: t.homeDraws,
+        losses: t.homeLosses,
+        fw: t.homeFramesWon,
+        fl: t.homeFramesLost,
+      },
+      away: {
+        played: t.awayPlayed,
+        wins: t.awayWins,
+        draws: t.awayDraws,
+        losses: t.awayLosses,
+        fw: t.awayFramesWon,
+        fl: t.awayFramesLost,
+      }
+    };
+  })
+  // Official Sort Precedence: Points Descending -> Frame Difference Descending -> Frames Won Descending
+  .sort((a, b) => {
+    if (b.overallPoints !== a.overallPoints) return b.overallPoints - a.overallPoints;
+    if (b.frameDifference !== a.frameDifference) return b.frameDifference - a.frameDifference;
+    return b.overallFramesWon - a.overallFramesWon;
   });
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-8">
-      <div className="max-w-6xl mx-auto space-y-8">
-        <header className="space-y-4">
-          <div>
-            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-500 block mb-1">League Tables</span>
-            <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tighter italic leading-none">Official Standings</h1>
-            <p className="text-slate-500 text-xs font-medium mt-1">Real-time ranking matrices evaluated by frame differentials and point weights.</p>
-          </div>
-
-          {/* Bracket Division Selector Tabs Ribbon */}
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
-            {allDivisions.map((div) => (
-              <Link
-                key={div.id}
-                href={`/standings?division=${div.id}`}
-                className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border ${
-                  activeDivId === div.id
-                    ? "bg-slate-900 text-white border-slate-900 shadow-lg shadow-slate-200"
-                    : "bg-white text-slate-400 border-slate-200 hover:border-indigo-400 hover:text-indigo-600"
-                }`}
-              >
-                {div.name}
-              </Link>
-            ))}
-          </div>
-        </header>
-
-        {activeDivId && sortedStandings.length > 0 ? (
-          <StandingsClient initialRows={sortedStandings} />
-        ) : (
-          <div className="bg-white rounded-[2.5rem] border border-slate-200 p-20 text-center font-black uppercase tracking-widest text-slate-300 italic shadow-sm">
-            No active clubs rostered in this division tier bracket yet.
-          </div>
-        )}
+    <div className="max-w-7xl mx-auto px-4 py-10 space-y-8">
+      <div>
+        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600 block mb-1">Rankings Matrix</span>
+        <h1 className="text-3xl font-black text-slate-950 uppercase tracking-tighter italic">
+          League <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600">Standings</span>
+        </h1>
+        <p className="text-slate-500 font-medium text-xs mt-1">
+          Live point tracking tables compiled by wins, locations splits, and structural frame differentials.
+        </p>
       </div>
+
+      <StandingsClient 
+        standings={calculatedStandings}
+        seasons={allSeasons.map(s => ({ id: s.id, name: s.name }))}
+        divisions={allDivisions.map(d => ({ id: d.id, name: d.name }))}
+        selectedSeasonId={selectedSeasonId || undefined}
+        selectedDivisionId={selectedDivisionId || undefined}
+      />
     </div>
   );
 }
