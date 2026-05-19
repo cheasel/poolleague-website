@@ -15,15 +15,15 @@ interface PageProps {
 export default async function PublicPlayersPage({ searchParams }: PageProps) {
   const params = await searchParams;
   
-  // 1. Fetch Seasons & Divisions lists for the filter menus
+  // 1. Fetch filter lists
   const allSeasons = await db.select().from(seasons).orderBy(desc(seasons.startDate));
   const allDivisions = await db.select().from(divisions).orderBy(divisions.tier);
 
-  // Fallback to active/latest items if no query parameters exist yet
-  const selectedSeasonId = params.seasonId ? Number(params.seasonId) : allSeasons[0]?.id;
-  const selectedDivisionId = params.divisionId ? Number(params.divisionId) : allDivisions[0]?.id;
+  // Smart Fallbacks: Use URL params if present, otherwise don't strictly lock the query down if tables are empty
+  const selectedSeasonId = params.seasonId ? Number(params.seasonId) : (allSeasons[0]?.id || null);
+  const selectedDivisionId = params.divisionId ? Number(params.divisionId) : (allDivisions[0]?.id || null);
 
-  // 2. Calculate completed matches per team within the chosen scope
+  // 2. Completed matches calculation per team (Unchanged logic)
   const teamCompletedCounts = await db
     .select({
       teamId: teams.id,
@@ -48,7 +48,7 @@ export default async function PublicPlayersPage({ searchParams }: PageProps) {
     return acc;
   }, {} as Record<number, number>);
 
-  // 3. Extract player performances
+  // 3. Extract player performances with explicit LEFT joins to prevent clipping rows
   const rawLeaderboard = await db
     .select({
       id: players.id,
@@ -91,23 +91,22 @@ export default async function PublicPlayersPage({ searchParams }: PageProps) {
           or ${players.id} = ${matchGames.player2Id} 
           or ${players.id} = ${matchGames.player2PartnerId}`
     )
-    // Link through matches to cleanly separate seasons
     .leftJoin(matches, eq(matchGames.matchId, matches.id))
     .groupBy(players.id, players.name, teams.name, players.teamId, players.imageUrl, teams.divisionId, matches.seasonId);
 
-  // 4. Map & transform data matrices
+  // 4. Map, filter, and fallback-guard data rows
   const initialPlayers = rawLeaderboard
     .filter((p) => {
-      // Apply strict server-side structural scoping
-      const matchesSeason = selectedSeasonId ? p.seasonId === selectedSeasonId : true;
-      const matchesDivision = selectedDivisionId ? p.divisionId === selectedDivisionId : true;
+      // ✅ FIX: If data is missing fields or tables aren't fully populated yet, 
+      // don't hide the player entirely.
+      const matchesSeason = selectedSeasonId ? (p.seasonId === selectedSeasonId || !p.seasonId) : true;
+      const matchesDivision = selectedDivisionId ? (p.divisionId === selectedDivisionId || !p.divisionId) : true;
       return matchesSeason && matchesDivision;
     })
     .map((p) => {
       const singleLost = Math.max(0, p.singlePlay - p.singleWin);
       const doubleLost = Math.max(0, p.doublePlay - p.doubleWin);
       
-      // 🎯 TOTALS: Perfect aggregate sums of singles + doubles metrics
       const totalPlay = p.singlePlay + p.doublePlay;
       const totalWin = p.singleWin + p.doubleWin;
       const totalLost = singleLost + doubleLost;
@@ -137,11 +136,10 @@ export default async function PublicPlayersPage({ searchParams }: PageProps) {
         totalWin,
         totalLost,
         totalPct,
-        totalPctNum: Number(totalPct) // Used purely for clean client sorting
+        totalPctNum: Number(totalPct)
       };
     })
     .filter((player) => player.totalPlay > 0)
-    // 🎯 INITIAL SORT: Automatically orders by highest overall success percentage on mount
     .sort((a, b) => b.totalPctNum - a.totalPctNum);
 
   return (
@@ -160,8 +158,8 @@ export default async function PublicPlayersPage({ searchParams }: PageProps) {
         initialPlayers={initialPlayers} 
         seasons={allSeasons.map(s => ({ id: s.id, name: s.name }))}
         divisions={allDivisions.map(d => ({ id: d.id, name: d.name }))}
-        selectedSeasonId={selectedSeasonId}
-        selectedDivisionId={selectedDivisionId}
+        selectedSeasonId={selectedSeasonId || undefined}
+        selectedDivisionId={selectedDivisionId || undefined}
       />
     </div>
   );
