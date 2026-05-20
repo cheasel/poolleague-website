@@ -85,7 +85,7 @@ export default function PlayerStatsClient({
     <div className="space-y-6">
       {/* FILTER PANEL */}
       <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 flex flex-col md:flex-row gap-4 items-center justify-between">
-        
+
         {/* Scope Selectors: Season & Division */}
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
           <div className="flex flex-col gap-1 min-w-[140px]">
@@ -127,7 +127,7 @@ export default function PlayerStatsClient({
         </div>
 
         {/* Attendance Filter Component */}
-        <div className="bg-slate-50/60 px-4 py-2 rounded-xl border border-slate-200/60 flex items-center justify-between gap-4 w-full md:w-auto/60">
+        <div className="bg-slate-50/60 px-4 py-2 rounded-xl border border-slate-200/60 flex items-center justify-between gap-4 w-full md:w-auto">
           <div className="flex items-center gap-2.5">
             <input
               type="checkbox"
@@ -181,7 +181,7 @@ export default function PlayerStatsClient({
                 <th className="px-4 py-4 sticky left-0 bg-slate-50 z-10 border-r border-slate-200/60">Competitor</th>
                 <th className="px-4 py-4 text-slate-500">Club Squad</th>
                 <th className="px-4 py-4 text-center bg-amber-500/10 text-amber-800 border-r border-slate-200/60">Match Play</th>
-                
+
                 {/* Singles */}
                 <th className="px-3 py-4 text-center bg-slate-50/40">Played</th>
                 <th className="px-3 py-4 text-center bg-slate-50/40 text-emerald-600">Won</th>
@@ -225,19 +225,19 @@ export default function PlayerStatsClient({
                   <td className="px-4 py-3.5 text-center font-bold text-slate-900 bg-amber-500/[0.04] border-r border-slate-200/60 tabular-nums">
                     {p.matchPlay} <span className="text-[10px] text-slate-400 font-normal">/ {p.maxTeamMatches}</span>
                   </td>
-                  
+
                   {/* Singles */}
                   <td className="px-3 py-3.5 text-center bg-slate-50/[0.15] font-mono tabular-nums">{p.singlePlay}</td>
                   <td className="px-3 py-3.5 text-center font-bold text-emerald-600 bg-slate-50/[0.15] font-mono tabular-nums">{p.singleWin}</td>
                   <td className="px-3 py-3.5 text-center text-slate-400 bg-slate-50/[0.15] font-mono tabular-nums">{p.singleLost}</td>
                   <td className="px-4 py-3.5 text-center font-extrabold text-slate-900 bg-slate-100/40 border-r border-slate-200/60 font-mono tabular-nums">{p.singlePct}%</td>
-                  
+
                   {/* Doubles */}
                   <td className="px-3 py-3.5 text-center font-mono tabular-nums">{p.doublePlay}</td>
                   <td className="px-3 py-3.5 text-center font-bold text-emerald-600 font-mono tabular-nums">{p.doubleWin}</td>
                   <td className="px-3 py-3.5 text-center text-slate-400 font-mono tabular-nums">{p.doubleLost}</td>
                   <td className="px-4 py-3.5 text-center font-extrabold text-slate-900 bg-slate-50/50 border-r border-slate-200/60 font-mono tabular-nums">{p.doublePct}%</td>
-                  
+
                   {/* Overall (Singles + Doubles Aggregate) */}
                   <td className="px-3 py-3.5 text-center font-semibold text-slate-700 bg-indigo-50/[0.1] font-mono tabular-nums">{p.totalPlay}</td>
                   <td className="px-3 py-3.5 text-center font-bold text-emerald-600 bg-indigo-50/[0.1] font-mono tabular-nums">{p.totalWin}</td>
