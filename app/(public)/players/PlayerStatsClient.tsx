@@ -11,7 +11,9 @@ interface PlayerStatRow {
   imageUrl: string | null;
   teamName: string;
   matchPlay: number;
-  framePlay: number; // 🎯 ADDED
+  maxTeamMatches: number; // 🎯 Total team matches context
+  framePlay: number;
+  maxTeamFrames: number;  // 🎯 Total team frames context
   singlePlay: number;
   singleWin: number;
   singleLost: number;
@@ -51,30 +53,26 @@ export default function PlayerStatsClient({
   const searchParams = useSearchParams();
 
   const [pageSize, setPageSize] = useState<number>(25);
-  const [enableFrameFilter, setEnableFrameFilter] = useState<boolean>(false); // 🎯 CHANGED: Named for frame logic explicitly
-  const [minFramePercentage, setMinFramePercentage] = useState<number>(30); // 🎯 CHANGED: Target frame logic percentage
+  const [enableFrameFilter, setEnableFrameFilter] = useState<boolean>(false);
+  const [minFramePercentage, setMinFramePercentage] = useState<number>(30);
 
-  // URL Parameter Sync Handler
   const handleFilterChange = (key: 'seasonId' | 'divisionId', value: string) => {
     const params = new URLSearchParams(searchParams.toString());
-    if (value) {
-      params.set(key, value);
-    } else {
-      params.delete(key);
-    }
+    if (value) params.set(key, value);
+    else params.delete(key);
     router.push(`${pathname}?${params.toString()}`);
   };
 
   const maxFramesPlayed = useMemo(() => {
     if (initialPlayers.length === 0) return 0;
-    return Math.max(...initialPlayers.map(p => p.framePlay)); // 🎯 CHANGED: Find maximum frame play context
+    return Math.max(...initialPlayers.map(p => p.framePlay));
   }, [initialPlayers]);
 
   const processedPlayers = useMemo(() => {
     let result = [...initialPlayers];
     if (enableFrameFilter && maxFramesPlayed > 0) {
       result = result.filter((player) => {
-        const frameAttendancePct = (player.framePlay / maxFramesPlayed) * 100; // 🎯 CHANGED: Evaluate based on frames played
+        const frameAttendancePct = (player.framePlay / maxFramesPlayed) * 100;
         return frameAttendancePct >= minFramePercentage;
       });
     }
@@ -85,48 +83,36 @@ export default function PlayerStatsClient({
     <div className="space-y-6">
       {/* FILTER PANEL */}
       <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 flex flex-col md:flex-row gap-4 items-center justify-between">
-
-        {/* Scope Selectors: Season & Division */}
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-          <div className="flex flex-col gap-1 min-w-[140px]">
-            <select
-              value={selectedSeasonId || ""}
-              onChange={(e) => handleFilterChange('seasonId', e.target.value)}
-              className="p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl font-bold text-xs text-slate-800 transition-colors outline-none cursor-pointer"
-            >
-              {seasons.map((s) => (
-                <option key={s.id} value={s.id}>{s.name}</option>
-              ))}
-            </select>
-          </div>
+          <select
+            value={selectedSeasonId || ""}
+            onChange={(e) => handleFilterChange('seasonId', e.target.value)}
+            className="p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl font-bold text-xs text-slate-800 outline-none cursor-pointer"
+          >
+            {seasons.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
 
-          <div className="flex flex-col gap-1 min-w-[140px]">
-            <select
-              value={selectedDivisionId || ""}
-              onChange={(e) => handleFilterChange('divisionId', e.target.value)}
-              className="p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl font-bold text-xs text-slate-800 transition-colors outline-none cursor-pointer"
-            >
-              {divisions.map((d) => (
-                <option key={d.id} value={d.id}>{d.name}</option>
-              ))}
-            </select>
-          </div>
+          <select
+            value={selectedDivisionId || ""}
+            onChange={(e) => handleFilterChange('divisionId', e.target.value)}
+            className="p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl font-bold text-xs text-slate-800 outline-none cursor-pointer"
+          >
+            {divisions.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+          </select>
 
-          <div className="flex flex-col gap-1">
-            <select
-              value={pageSize}
-              onChange={(e) => setPageSize(Number(e.target.value))}
-              className="p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl font-bold text-xs text-slate-800 transition-colors outline-none cursor-pointer"
-            >
-              <option value={10}>Top 10 Performers</option>
-              <option value={25}>Top 25 Performers</option>
-              <option value={50}>Top 50 Performers</option>
-              <option value={100}>All Active Players</option>
-            </select>
-          </div>
+          <select
+            value={pageSize}
+            onChange={(e) => setPageSize(Number(e.target.value))}
+            className="p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl font-bold text-xs text-slate-800 outline-none cursor-pointer"
+          >
+            <option value={10}>Top 10 Performers</option>
+            <option value={25}>Top 25 Performers</option>
+            <option value={50}>Top 50 Performers</option>
+            <option value={100}>All Active Players</option>
+          </select>
         </div>
 
-        {/* 🎯 CHANGED: Frame Attendance Filter Component */}
+        {/* Frame Attendance Filter Component */}
         <div className="bg-slate-50/60 px-4 py-2 rounded-xl border border-slate-200/60 flex items-center justify-between gap-4 w-full md:w-auto">
           <div className="flex items-center gap-2.5">
             <input
@@ -149,7 +135,7 @@ export default function PlayerStatsClient({
               disabled={!enableFrameFilter}
               value={minFramePercentage}
               onChange={(e) => setMinFramePercentage(Math.min(100, Math.max(0, Number(e.target.value))))}
-              className={`w-12 p-1 text-center font-bold text-xs border rounded-lg outline-none transition-all ${
+              className={`w-12 p-1 text-center font-bold text-xs border rounded-lg outline-none ${
                 enableFrameFilter ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'
               }`}
             />
@@ -164,7 +150,7 @@ export default function PlayerStatsClient({
           <table className="w-full text-left border-collapse text-xs">
             <thead>
               <tr className="bg-slate-50/70 text-slate-400 text-[10px] font-bold uppercase tracking-widest border-b border-slate-200/60">
-                <th className="px-4 py-3" colSpan={4}> {/* 🎯 CHANGED: Increased colSpan from 3 to 4 to cover new frame column */}
+                <th className="px-4 py-3" colSpan={4}>
                   <span className="inline-flex items-center gap-1.5"><Users className="w-3.5 h-3.5 text-slate-400" /> Identity Profile</span>
                 </th>
                 <th className="px-4 py-3 text-center border-x border-slate-200/60 bg-slate-50/40" colSpan={4}>
@@ -181,7 +167,7 @@ export default function PlayerStatsClient({
                 <th className="px-4 py-4 sticky left-0 bg-slate-50 z-10 border-r border-slate-200/60">Competitor</th>
                 <th className="px-4 py-4 text-slate-500">Club Squad</th>
                 <th className="px-4 py-4 text-center bg-amber-500/10 text-amber-800 border-r border-slate-200/60">Match Play</th>
-                <th className="px-4 py-4 text-center bg-blue-500/10 text-blue-800 border-r border-slate-200/60">Frame Play</th> {/* 🎯 ADDED */}
+                <th className="px-4 py-4 text-center bg-blue-500/10 text-blue-800 border-r border-slate-200/60">Frame Play</th>
 
                 {/* Singles */}
                 <th className="px-3 py-4 text-center bg-slate-50/40">Played</th>
@@ -223,11 +209,13 @@ export default function PlayerStatsClient({
                   <td className="px-4 py-3.5 text-slate-500 font-semibold uppercase tracking-tight whitespace-nowrap text-[11px]">
                     {p.teamName}
                   </td>
+                  {/* 🎯 CHANGED: Formatted to show attendance / total matches */}
                   <td className="px-4 py-3.5 text-center font-bold text-slate-900 bg-amber-500/[0.04] border-r border-slate-200/60 tabular-nums">
-                    {p.matchPlay}
+                    {p.matchPlay} <span className="text-[10px] text-slate-400 font-normal">/ {p.maxTeamMatches}</span>
                   </td>
+                  {/* 🎯 CHANGED: Formatted to show frame play / total frames */}
                   <td className="px-4 py-3.5 text-center font-bold text-slate-900 bg-blue-500/[0.04] border-r border-slate-200/60 tabular-nums">
-                    {p.framePlay} {/* 🎯 ADDED */}
+                    {p.framePlay} <span className="text-[10px] text-slate-400 font-normal">/ {p.maxTeamFrames}</span>
                   </td>
 
                   {/* Singles */}
@@ -242,7 +230,7 @@ export default function PlayerStatsClient({
                   <td className="px-3 py-3.5 text-center text-slate-400 font-mono tabular-nums">{p.doubleLost}</td>
                   <td className="px-4 py-3.5 text-center font-extrabold text-slate-900 bg-slate-50/50 border-r border-slate-200/60 font-mono tabular-nums">{p.doublePct}%</td>
 
-                  {/* Overall (Singles + Doubles Aggregate) */}
+                  {/* Overall */}
                   <td className="px-3 py-3.5 text-center font-semibold text-slate-700 bg-indigo-50/[0.1] font-mono tabular-nums">{p.totalPlay}</td>
                   <td className="px-3 py-3.5 text-center font-bold text-emerald-600 bg-indigo-50/[0.1] font-mono tabular-nums">{p.totalWin}</td>
                   <td className="px-3 py-3.5 text-center text-slate-400 bg-indigo-50/[0.1] font-mono tabular-nums">{p.totalLost}</td>

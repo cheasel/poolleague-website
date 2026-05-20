@@ -1,6 +1,6 @@
 import { db } from "@/src/db";
 import { teams, matches, players, seasons, divisions, matchGames } from "@/src/db/schema";
-import { eq, and, desc, sql, or } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
 import PlayerStatsClient from "./PlayerStatsClient";
 
 export const dynamic = "force-dynamic";
@@ -15,19 +15,20 @@ interface PageProps {
 export default async function PublicPlayersPage({ searchParams }: PageProps) {
   const params = await searchParams;
 
-  // Fetch lookups for dropdown selectors
   const allSeasons = await db.select().from(seasons).orderBy(desc(seasons.startDate));
   const allDivisions = await db.select().from(divisions).orderBy(divisions.tier);
 
   const selectedSeasonId = params.seasonId ? Number(params.seasonId) : (allSeasons[0]?.id || null);
   const selectedDivisionId = params.divisionId ? Number(params.divisionId) : (allDivisions[0]?.id || null);
 
-  // Fetch completed matches within selected scope
+  // 1. Fetch completed fixtures
   const completedMatches = await db
     .select({
       id: matches.id,
       homeTeamId: matches.homeTeamId,
       awayTeamId: matches.awayTeamId,
+      homeScore: matches.homeScore,
+      awayScore: matches.awayScore,
     })
     .from(matches)
     .where(
@@ -40,14 +41,24 @@ export default async function PublicPlayersPage({ searchParams }: PageProps) {
 
   const completedMatchIds = completedMatches.map((m) => m.id);
 
-  // Map total completed match sets played per individual team club ledger
+  // Map total match counts and absolute frames per team schedule
   const teamMatchCountMap: Record<number, number> = {};
+  const teamTotalFramesMap: Record<number, number> = {};
+
   completedMatches.forEach((m) => {
-    if (m.homeTeamId) teamMatchCountMap[m.homeTeamId] = (teamMatchCountMap[m.homeTeamId] || 0) + 1;
-    if (m.awayTeamId) teamMatchCountMap[m.awayTeamId] = (teamMatchCountMap[m.awayTeamId] || 0) + 1;
+    const totalMatchFrames = Number(m.homeScore || 0) + Number(m.awayScore || 0);
+
+    if (m.homeTeamId) {
+      teamMatchCountMap[m.homeTeamId] = (teamMatchCountMap[m.homeTeamId] || 0) + 1;
+      teamTotalFramesMap[m.homeTeamId] = (teamTotalFramesMap[m.homeTeamId] || 0) + totalMatchFrames;
+    }
+    if (m.awayTeamId) {
+      teamMatchCountMap[m.awayTeamId] = (teamMatchCountMap[m.awayTeamId] || 0) + 1;
+      teamTotalFramesMap[m.awayTeamId] = (teamTotalFramesMap[m.awayTeamId] || 0) + totalMatchFrames;
+    }
   });
 
-  // Fetch player roster with their assigned teams
+  // 2. Fetch base rosters
   const basePlayers = await db
     .select({
       id: players.id,
@@ -60,15 +71,17 @@ export default async function PublicPlayersPage({ searchParams }: PageProps) {
     .leftJoin(teams, eq(players.teamId, teams.id))
     .where(selectedDivisionId ? eq(teams.divisionId, selectedDivisionId) : undefined);
 
-  // Initialize statistics ledger object mapped exactly to PlayerStatRow interface
+  // Initialize data matrix structure
   const statsMap = basePlayers.reduce((acc, p) => {
     acc[p.id] = {
       id: p.id,
       name: p.name,
       imageUrl: p.imageUrl,
       teamName: p.teamName || "Free Agent",
-      matchPlay: p.teamId ? (teamMatchCountMap[p.teamId] || 0) : 0, // 🎯 CHANGED: Assigned to total matches of their team
-      framePlay: 0, // 🎯 ADDED: Tracking frame play metric
+      maxTeamMatches: p.teamId ? (teamMatchCountMap[p.teamId] || 0) : 0,
+      maxTeamFrames: p.teamId ? (teamTotalFramesMap[p.teamId] || 0) : 0,
+      matchPlayGames: new Set<number>(), // Tracks unique match appearance IDs for attendance calculations
+      framePlay: 0,
       singlePlay: 0,
       singleWin: 0,
       singleLost: 0,
@@ -85,7 +98,7 @@ export default async function PublicPlayersPage({ searchParams }: PageProps) {
     return acc;
   }, {} as Record<number, any>);
 
-  // Calculate stats from game logs if matches exist
+  // 3. Accumulate scores and unique appearances
   if (completedMatchIds.length > 0) {
     const gamesPlayed = await db
       .select()
@@ -98,23 +111,23 @@ export default async function PublicPlayersPage({ searchParams }: PageProps) {
       const p1Score = Number(game.player1Score || 0);
       const p2Score = Number(game.player2Score || 0);
 
-      // --- Singles Bracket Processing ---
       if (game.gameType === "single") {
         if (p1Id && statsMap[p1Id]) {
           statsMap[p1Id].singlePlay += 1;
-          statsMap[p1Id].framePlay += 1; // 🎯 ADDED: Plus 1 frame played
+          statsMap[p1Id].framePlay += 1;
+          statsMap[p1Id].matchPlayGames.add(game.matchId);
           if (p1Score > p2Score) statsMap[p1Id].singleWin += 1;
           else if (p1Score < p2Score) statsMap[p1Id].singleLost += 1;
         }
         if (p2Id && statsMap[p2Id]) {
           statsMap[p2Id].singlePlay += 1;
-          statsMap[p2Id].framePlay += 1; // 🎯 ADDED: Plus 1 frame played
+          statsMap[p2Id].framePlay += 1;
+          statsMap[p2Id].matchPlayGames.add(game.matchId);
           if (p2Score > p1Score) statsMap[p2Id].singleWin += 1;
           else if (p2Score < p1Score) statsMap[p2Id].singleLost += 1;
         }
       }
 
-      // --- Doubles Roster Processing ---
       if (game.gameType === "double") {
         const partners = [
           { main: p1Id, won: p1Score > p2Score, lost: p1Score < p2Score },
@@ -126,7 +139,8 @@ export default async function PublicPlayersPage({ searchParams }: PageProps) {
         partners.forEach(({ main, won, lost }) => {
           if (main && statsMap[main]) {
             statsMap[main].doublePlay += 1;
-            statsMap[main].framePlay += 1; // 🎯 ADDED: Plus 1 frame played
+            statsMap[main].framePlay += 1;
+            statsMap[main].matchPlayGames.add(game.matchId);
             if (won) statsMap[main].doubleWin += 1;
             if (lost) statsMap[main].doubleLost += 1;
           }
@@ -135,7 +149,7 @@ export default async function PublicPlayersPage({ searchParams }: PageProps) {
     });
   }
 
-  // Build calculations and dynamic ratios
+  // 4. Turn metric maps into processed ratios
   const calculatedPlayers = Object.values(statsMap).map((p: any) => {
     const totalPlay = p.singlePlay + p.doublePlay;
     const totalWin = p.singleWin + p.doubleWin;
@@ -143,6 +157,7 @@ export default async function PublicPlayersPage({ searchParams }: PageProps) {
 
     return {
       ...p,
+      matchPlay: p.matchPlayGames.size, // 🎯 CHANGED: Match Play is count of distinct match appearances
       totalPlay,
       totalWin,
       totalLost,
