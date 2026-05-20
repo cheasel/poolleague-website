@@ -11,9 +11,9 @@ interface PlayerStatRow {
   imageUrl: string | null;
   teamName: string;
   matchPlay: number;
-  maxTeamMatches: number; // 🎯 Total team matches context
+  maxTeamMatches: number;
   framePlay: number;
-  maxTeamFrames: number;  // 🎯 Total team frames context
+  maxTeamFrames: number;
   singlePlay: number;
   singleWin: number;
   singleLost: number;
@@ -41,6 +41,8 @@ interface PlayerStatsClientProps {
   selectedDivisionId?: number;
 }
 
+type SortOption = "winrate" | "totalwin";
+
 export default function PlayerStatsClient({ 
   initialPlayers, 
   seasons, 
@@ -53,8 +55,13 @@ export default function PlayerStatsClient({
   const searchParams = useSearchParams();
 
   const [pageSize, setPageSize] = useState<number>(25);
+  const [sortBy, setSortBy] = useState<SortOption>("winrate"); // 🎯 ADDED: Sort option tracking state
+
+  // Filter States
   const [enableFrameFilter, setEnableFrameFilter] = useState<boolean>(false);
   const [minFramePercentage, setMinFramePercentage] = useState<number>(30);
+  const [enableAttendanceFilter, setEnableAttendanceFilter] = useState<boolean>(false); // 🎯 ADDED
+  const [minAttendancePercentage, setMinAttendancePercentage] = useState<number>(30); // 🎯 ADDED
 
   const handleFilterChange = (key: 'seasonId' | 'divisionId', value: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -68,22 +75,47 @@ export default function PlayerStatsClient({
     return Math.max(...initialPlayers.map(p => p.framePlay));
   }, [initialPlayers]);
 
+  const maxMatchesPlayed = useMemo(() => {
+    if (initialPlayers.length === 0) return 0;
+    return Math.max(...initialPlayers.map(p => p.matchPlay));
+  }, [initialPlayers]);
+
   const processedPlayers = useMemo(() => {
     let result = [...initialPlayers];
+
+    // Apply Frame Play Attendance Filter (Kept behind scene logic)
     if (enableFrameFilter && maxFramesPlayed > 0) {
       result = result.filter((player) => {
         const frameAttendancePct = (player.framePlay / maxFramesPlayed) * 100;
         return frameAttendancePct >= minFramePercentage;
       });
     }
+
+    // Apply Match Play Attendance Filter 🎯 ADDED
+    if (enableAttendanceFilter && maxMatchesPlayed > 0) {
+      result = result.filter((player) => {
+        const matchAttendancePct = (player.matchPlay / maxMatchesPlayed) * 100;
+        return matchAttendancePct >= minAttendancePercentage;
+      });
+    }
+
+    // Process Sorting 🎯 ADDED
+    result.sort((a, b) => {
+      if (sortBy === "totalwin") {
+        return b.totalWin - a.totalWin;
+      } else {
+        return parseFloat(b.totalPct) - parseFloat(a.totalPct);
+      }
+    });
+
     return result.slice(0, pageSize);
-  }, [initialPlayers, pageSize, enableFrameFilter, minFramePercentage, maxFramesPlayed]);
+  }, [initialPlayers, pageSize, enableFrameFilter, minFramePercentage, maxFramesPlayed, enableAttendanceFilter, minAttendancePercentage, maxMatchesPlayed, sortBy]);
 
   return (
     <div className="space-y-6">
       {/* FILTER PANEL */}
-      <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 flex flex-col md:flex-row gap-4 items-center justify-between">
-        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+      <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 flex flex-col xl:flex-row gap-4 items-center justify-between">
+        <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
           <select
             value={selectedSeasonId || ""}
             onChange={(e) => handleFilterChange('seasonId', e.target.value)}
@@ -110,36 +142,78 @@ export default function PlayerStatsClient({
             <option value={50}>Top 50 Performers</option>
             <option value={100}>All Active Players</option>
           </select>
+
+          {/* Sorting Controller Dropdown 🎯 ADDED */}
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as SortOption)}
+            className="p-2.5 bg-indigo-50 border border-indigo-100 rounded-xl font-bold text-xs text-indigo-900 outline-none cursor-pointer"
+          >
+            <option value="winrate">Sort by Win Rate %</option>
+            <option value="totalwin">Sort by Total Wins</option>
+          </select>
         </div>
 
-        {/* Frame Attendance Filter Component */}
-        <div className="bg-slate-50/60 px-4 py-2 rounded-xl border border-slate-200/60 flex items-center justify-between gap-4 w-full md:w-auto">
-          <div className="flex items-center gap-2.5">
-            <input
-              type="checkbox"
-              id="frameFilterToggle"
-              checked={enableFrameFilter}
-              onChange={(e) => setEnableFrameFilter(e.target.checked)}
-              className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-0 accent-indigo-600 cursor-pointer"
-            />
-            <label htmlFor="frameFilterToggle" className="text-[11px] font-bold text-slate-600 uppercase tracking-tight cursor-pointer select-none">
-              Filter Low Frame Play
-            </label>
+        {/* Filters Compound Deck */}
+        <div className="flex flex-wrap gap-4 w-full xl:w-auto">
+          {/* Frame Attendance Filter Controller */}
+          <div className="bg-slate-50/60 px-4 py-2 rounded-xl border border-slate-200/60 flex items-center justify-between gap-4 flex-1 sm:flex-initial">
+            <div className="flex items-center gap-2.5">
+              <input
+                type="checkbox"
+                id="frameFilterToggle"
+                checked={enableFrameFilter}
+                onChange={(e) => setEnableFrameFilter(e.target.checked)}
+                className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-0 accent-indigo-600 cursor-pointer"
+              />
+              <label htmlFor="frameFilterToggle" className="text-[11px] font-bold text-slate-600 uppercase tracking-tight cursor-pointer select-none">
+                Filter Frame Play
+              </label>
+            </div>
+            <div className="flex items-center gap-1">
+              <input
+                type="number"
+                min={0}
+                max={100}
+                disabled={!enableFrameFilter}
+                value={minFramePercentage}
+                onChange={(e) => setMinFramePercentage(Math.min(100, Math.max(0, Number(e.target.value))))}
+                className={`w-12 p-1 text-center font-bold text-xs border rounded-lg outline-none ${
+                  enableFrameFilter ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'
+                }`}
+              />
+              <span className="text-[11px] font-bold text-slate-400">%</span>
+            </div>
           </div>
 
-          <div className="flex items-center gap-1">
-            <input
-              type="number"
-              min={0}
-              max={100}
-              disabled={!enableFrameFilter}
-              value={minFramePercentage}
-              onChange={(e) => setMinFramePercentage(Math.min(100, Math.max(0, Number(e.target.value))))}
-              className={`w-12 p-1 text-center font-bold text-xs border rounded-lg outline-none ${
-                enableFrameFilter ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'
-              }`}
-            />
-            <span className="text-[11px] font-bold text-slate-400">%</span>
+          {/* Match Attendance Filter Controller 🎯 ADDED */}
+          <div className="bg-slate-50/60 px-4 py-2 rounded-xl border border-slate-200/60 flex items-center justify-between gap-4 flex-1 sm:flex-initial">
+            <div className="flex items-center gap-2.5">
+              <input
+                type="checkbox"
+                id="attendanceFilterToggle"
+                checked={enableAttendanceFilter}
+                onChange={(e) => setEnableAttendanceFilter(e.target.checked)}
+                className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-0 accent-indigo-600 cursor-pointer"
+              />
+              <label htmlFor="attendanceFilterToggle" className="text-[11px] font-bold text-slate-600 uppercase tracking-tight cursor-pointer select-none">
+                Filter Attendance
+              </label>
+            </div>
+            <div className="flex items-center gap-1">
+              <input
+                type="number"
+                min={0}
+                max={100}
+                disabled={!enableAttendanceFilter}
+                value={minAttendancePercentage}
+                onChange={(e) => setMinAttendancePercentage(Math.min(100, Math.max(0, Number(e.target.value))))}
+                className={`w-12 p-1 text-center font-bold text-xs border rounded-lg outline-none ${
+                  enableAttendanceFilter ? 'bg-white border-slate-200 text-slate-900' : 'bg-slate-100 border-slate-200 text-slate-400 cursor-not-allowed'
+                }`}
+              />
+              <span className="text-[11px] font-bold text-slate-400">%</span>
+            </div>
           </div>
         </div>
       </div>
@@ -150,7 +224,7 @@ export default function PlayerStatsClient({
           <table className="w-full text-left border-collapse text-xs">
             <thead>
               <tr className="bg-slate-50/70 text-slate-400 text-[10px] font-bold uppercase tracking-widest border-b border-slate-200/60">
-                <th className="px-4 py-3" colSpan={4}>
+                <th className="px-4 py-3" colSpan={3}> {/* 🎯 CHANGED: Reverted back to 3 since frame column is hidden */}
                   <span className="inline-flex items-center gap-1.5"><Users className="w-3.5 h-3.5 text-slate-400" /> Identity Profile</span>
                 </th>
                 <th className="px-4 py-3 text-center border-x border-slate-200/60 bg-slate-50/40" colSpan={4}>
@@ -167,7 +241,7 @@ export default function PlayerStatsClient({
                 <th className="px-4 py-4 sticky left-0 bg-slate-50 z-10 border-r border-slate-200/60">Competitor</th>
                 <th className="px-4 py-4 text-slate-500">Club Squad</th>
                 <th className="px-4 py-4 text-center bg-amber-500/10 text-amber-800 border-r border-slate-200/60">Match Play</th>
-                <th className="px-4 py-4 text-center bg-blue-500/10 text-blue-800 border-r border-slate-200/60">Frame Play</th>
+                {/* 🎯 REMOVED: Frame Play Header Column Reference */}
 
                 {/* Singles */}
                 <th className="px-3 py-4 text-center bg-slate-50/40">Played</th>
@@ -209,14 +283,10 @@ export default function PlayerStatsClient({
                   <td className="px-4 py-3.5 text-slate-500 font-semibold uppercase tracking-tight whitespace-nowrap text-[11px]">
                     {p.teamName}
                   </td>
-                  {/* 🎯 CHANGED: Formatted to show attendance / total matches */}
                   <td className="px-4 py-3.5 text-center font-bold text-slate-900 bg-amber-500/[0.04] border-r border-slate-200/60 tabular-nums">
                     {p.matchPlay} <span className="text-[10px] text-slate-400 font-normal">/ {p.maxTeamMatches}</span>
                   </td>
-                  {/* 🎯 CHANGED: Formatted to show frame play / total frames */}
-                  <td className="px-4 py-3.5 text-center font-bold text-slate-900 bg-blue-500/[0.04] border-r border-slate-200/60 tabular-nums">
-                    {p.framePlay} <span className="text-[10px] text-slate-400 font-normal">/ {p.maxTeamFrames}</span>
-                  </td>
+                  {/* 🎯 REMOVED: Frame Play Row Data Cell Reference */}
 
                   {/* Singles */}
                   <td className="px-3 py-3.5 text-center bg-slate-50/[0.15] font-mono tabular-nums">{p.singlePlay}</td>

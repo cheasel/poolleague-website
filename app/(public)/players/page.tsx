@@ -21,7 +21,6 @@ export default async function PublicPlayersPage({ searchParams }: PageProps) {
   const selectedSeasonId = params.seasonId ? Number(params.seasonId) : (allSeasons[0]?.id || null);
   const selectedDivisionId = params.divisionId ? Number(params.divisionId) : (allDivisions[0]?.id || null);
 
-  // 1. Fetch completed fixtures
   const completedMatches = await db
     .select({
       id: matches.id,
@@ -41,7 +40,6 @@ export default async function PublicPlayersPage({ searchParams }: PageProps) {
 
   const completedMatchIds = completedMatches.map((m) => m.id);
 
-  // Map total match counts and absolute frames per team schedule
   const teamMatchCountMap: Record<number, number> = {};
   const teamTotalFramesMap: Record<number, number> = {};
 
@@ -58,7 +56,6 @@ export default async function PublicPlayersPage({ searchParams }: PageProps) {
     }
   });
 
-  // 2. Fetch base rosters
   const basePlayers = await db
     .select({
       id: players.id,
@@ -71,7 +68,6 @@ export default async function PublicPlayersPage({ searchParams }: PageProps) {
     .leftJoin(teams, eq(players.teamId, teams.id))
     .where(selectedDivisionId ? eq(teams.divisionId, selectedDivisionId) : undefined);
 
-  // Initialize data matrix structure
   const statsMap = basePlayers.reduce((acc, p) => {
     acc[p.id] = {
       id: p.id,
@@ -80,7 +76,7 @@ export default async function PublicPlayersPage({ searchParams }: PageProps) {
       teamName: p.teamName || "Free Agent",
       maxTeamMatches: p.teamId ? (teamMatchCountMap[p.teamId] || 0) : 0,
       maxTeamFrames: p.teamId ? (teamTotalFramesMap[p.teamId] || 0) : 0,
-      matchPlayGames: new Set<number>(), // Tracks unique match appearance IDs for attendance calculations
+      matchPlayGames: new Set<number>(),
       framePlay: 0,
       singlePlay: 0,
       singleWin: 0,
@@ -98,7 +94,6 @@ export default async function PublicPlayersPage({ searchParams }: PageProps) {
     return acc;
   }, {} as Record<number, any>);
 
-  // 3. Accumulate scores and unique appearances
   if (completedMatchIds.length > 0) {
     const gamesPlayed = await db
       .select()
@@ -149,7 +144,6 @@ export default async function PublicPlayersPage({ searchParams }: PageProps) {
     });
   }
 
-  // 4. Turn metric maps into processed ratios
   const calculatedPlayers = Object.values(statsMap).map((p: any) => {
     const totalPlay = p.singlePlay + p.doublePlay;
     const totalWin = p.singleWin + p.doubleWin;
@@ -157,7 +151,7 @@ export default async function PublicPlayersPage({ searchParams }: PageProps) {
 
     return {
       ...p,
-      matchPlay: p.matchPlayGames.size, // 🎯 CHANGED: Match Play is count of distinct match appearances
+      matchPlay: p.matchPlayGames.size,
       totalPlay,
       totalWin,
       totalLost,
