@@ -1,283 +1,170 @@
-"use client";
+'use client';
 
-import React, { useTransition } from "react";
-import { Plus, ArrowUpDown, AlertCircle } from "lucide-react";
+import { useState } from 'react';
+import { Calendar, CheckSquare, Plus, Search, Eye } from 'lucide-react';
+import Link from 'next/link';
 
-interface Player {
+// Placeholder mock types mapping symmetrically to your postgres schema strings
+interface AdminMatchRow {
   id: number;
-  name: string;
-  teamId: number | null;
+  date: string;
+  status: 'scheduled' | 'live' | 'completed' | 'cancelled';
+  weekNumber: number;
+  homeTeamName: string;
+  awayTeamName: string;
+  homeScore: number | null;
+  awayScore: number | null;
 }
 
-interface MatchDashboardProps {
-  activeMatchId: number | null;
-  sortParam: "asc" | "desc";
-  allMatches: any[];
-  rawTeams: any[];
-  availableHomePlayers: Player[];
-  availableAwayPlayers: Player[];
-  currentMatchGames: any[];
-  allPlayersRaw: Player[];
-  addFrameAction: (formData: FormData) => Promise<void>;
-  finalizeMatchAction: (formData: FormData) => Promise<void>;
-}
+export default function AdminMatchesPage() {
+  // 🎯 STEP 1: Introduce split tab routing state
+  const [activeTab, setActiveTab] = useState<'fixtures' | 'results'>('fixtures');
+  const [searchQuery, setSearchQuery] = useState('');
 
-export default function MatchDashboard({
-  activeMatchId,
-  sortParam,
-  allMatches,
-  rawTeams,
-  availableHomePlayers,
-  availableAwayPlayers,
-  currentMatchGames,
-  allPlayersRaw,
-  addFrameAction,
-  finalizeMatchAction,
-}: MatchDashboardProps) {
-  const [isPending, startTransition] = useTransition();
+  // Sample mockup container matching the exact database schemas
+  const [allMatches] = useState<AdminMatchRow[]>([
+    { id: 101, date: '2026-05-28', status: 'scheduled', weekNumber: 5, homeTeamName: 'Breakers Click', awayTeamName: 'Chalk Wizards', homeScore: null, awayScore: null },
+    { id: 102, date: '2026-05-28', status: 'live', weekNumber: 5, homeTeamName: 'Pocket Rockets', awayTeamName: 'Cue Masters', homeScore: 3, awayScore: 2 },
+    { id: 100, date: '2026-05-14', status: 'completed', weekNumber: 4, homeTeamName: 'Chalk Wizards', awayTeamName: 'Pocket Rockets', homeScore: 7, awayScore: 5 },
+  ]);
 
-  const getTeamName = (id: number | null) => rawTeams.find((t) => t.id === id)?.name || "Unknown Squad";
+  // 🎯 STEP 2: Handle data filtering pipelines surgically
+  const filteredMatches = allMatches.filter((match) => {
+    const matchesSearch = 
+      match.homeTeamName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      match.awayTeamName.toLowerCase().includes(searchQuery.toLowerCase());
 
-  const getPlayerDisplay = (id1: number | null, id2: number | null) => {
-    const p1 = allPlayersRaw.find((p) => p.id === id1)?.name;
-    const p2 = allPlayersRaw.find((p) => p.id === id2)?.name;
-    if (p1 && p2) return `${p1} & ${p2}`;
-    return p1 || "Vacant Slot";
-  };
+    if (!matchesSearch) return false;
 
-  const activeMatch = allMatches.find((m) => m.id === activeMatchId);
-  const nextSortParam = sortParam === "asc" ? "desc" : "asc";
+    if (activeTab === 'fixtures') {
+      return match.status !== 'completed'; // Scheduled or live matches
+    } else {
+      return match.status === 'completed'; // Score entries
+    }
+  });
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto px-4">
-      <header className="border-b border-slate-200/60 pb-5">
-        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600 block mb-1">Live Match Logistics</span>
-        <h1 className="text-3xl font-black text-slate-950 uppercase tracking-tighter italic">
-          Scorecard <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600">Dispatch</span>
-        </h1>
-      </header>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        {/* TIMELINE LEDGER */}
-        <div className="lg:col-span-5 space-y-3 max-h-[70vh] overflow-y-auto pr-2">
-          <div className="flex justify-between items-center px-1 mb-1">
-            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Scheduled Fixtures Ledger</span>
-            <a 
-              href={`/admin/matches?sort=${nextSortParam}${activeMatchId ? `&selectedMatch=${activeMatchId}` : ""}`}
-              className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-lg transition-colors"
-            >
-              <ArrowUpDown className="w-3 h-3" /> Date: {sortParam === "asc" ? "Oldest" : "Newest"}
-            </a>
+    <div className="min-h-screen bg-slate-950 p-6 text-slate-100">
+      <div className="max-w-6xl mx-auto space-y-6">
+        
+        {/* TOP LEVEL HEADER MANAGEMENT ACTIONS */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-900 pb-5">
+          <div>
+            <h1 className="text-2xl font-black uppercase tracking-tight text-white italic">
+              League Match <span className="text-indigo-400">Control</span>
+            </h1>
+            <p className="text-xs text-slate-500 font-medium mt-0.5">
+              Schedule future matches or update historic scoreboard parameters.
+            </p>
           </div>
           
-          {allMatches.map((m) => {
-            const isSelected = m.id === activeMatchId;
-            return (
-              <a
-                key={m.id}
-                href={`/admin/matches?selectedMatch=${m.id}&sort=${sortParam}`}
-                className={`block p-4 rounded-2xl border transition-all ${
-                  isSelected ? "bg-slate-950 border-slate-950 text-white" : "bg-white border-slate-200 text-slate-800"
-                }`}
-              >
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-500">
-                    {m.status}
-                  </span>
-                  <span className="text-[10px] font-bold text-slate-400">
-                    {m.date ? new Date(m.date).toLocaleDateString() : "TBD"}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center font-black text-xs uppercase tracking-tight">
-                  <span>{getTeamName(m.homeTeamId)}</span>
-                  <span className="font-mono px-2 bg-slate-100 text-slate-950 rounded">
-                    {m.homeScore ?? 0} : {m.awayScore ?? 0}
-                  </span>
-                  <span>{getTeamName(m.awayTeamId)}</span>
-                </div>
-              </a>
-            );
-          })}
+          <Link
+            href="/admin/matches/new"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-black text-xs uppercase tracking-wider transition-all shadow-lg shadow-indigo-950/40"
+          >
+            <Plus className="w-4 h-4" /> Schedule New Match
+          </Link>
         </div>
 
-        {/* INTERACTIVE SCORECARD SHEET */}
-        <div className="lg:col-span-7">
-          {activeMatch ? (
-            <div className="bg-white border border-slate-200 rounded-[2rem] p-6 space-y-6 shadow-sm">
-              <div className="border-b border-slate-100 pb-4 flex justify-between items-center">
-                <div>
-                  <h2 className="text-base font-black uppercase text-slate-900">
-                    {getTeamName(activeMatch.homeTeamId)} <span className="text-slate-300 font-mono">vs</span> {getTeamName(activeMatch.awayTeamId)}
-                  </h2>
-                </div>
-                {activeMatch.status !== "completed" && finalizeMatchAction && (
-                    /* ✅ UPGRADED: Explicit onSubmit mapping using useTransition to guarantee delivery */
-                    <form 
-                        onSubmit={(e) => {
-                        e.preventDefault();
-                        if (confirm("Are you sure you want to lock this match? This will finalize standings and distribute league points!")) {
-                            const formData = new FormData(e.currentTarget);
-                            startTransition(async () => {
-                            await finalizeMatchAction(formData);
-                            });
-                        }
-                        }}
-                    >
-                        <input type="hidden" name="matchId" value={activeMatch.id} />
-                        <button 
-                        type="submit" 
-                        disabled={isPending}
-                        className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-black text-[9px] uppercase tracking-widest py-2 px-4 rounded-xl transition-all cursor-pointer"
-                        >
-                        {isPending ? "Locking Scores..." : "Lock Final Scores"}
-                        </button>
-                    </form>
-                )}
-              </div>
+        {/* 🎯 SPLIT TABS SWITCHER PANEL AND SEARCH FILTER MATRIX */}
+        <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-slate-900/40 border border-slate-900 p-2 rounded-2xl">
+          
+          {/* Tabs Group */}
+          <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl w-full sm:w-auto border border-slate-900/60">
+            <button
+              onClick={() => setActiveTab('fixtures')}
+              className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${
+                activeTab === 'fixtures'
+                  ? 'bg-slate-900 text-indigo-400 border border-slate-800'
+                  : 'text-slate-500 hover:text-slate-300'
+              }`}
+            >
+              <Calendar className="w-3.5 h-3.5" /> Upcoming Fixtures
+            </button>
+            
+            <button
+              onClick={() => setActiveTab('results')}
+              className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all ${
+                activeTab === 'results'
+                  ? 'bg-slate-900 text-indigo-400 border border-slate-800'
+                  : 'text-slate-500 hover:text-slate-300'
+              }`}
+            >
+              <CheckSquare className="w-3.5 h-3.5" /> Past Results
+            </button>
+          </div>
 
-              {/* Played Frames History */}
-              <div className="space-y-2">
-                <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 block px-1">Played Frame History</span>
-                {currentMatchGames.map((game) => (
-                  <div key={game.id} className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 flex items-center justify-between text-xs font-bold">
-                    <span className="text-slate-400 font-mono">F{game.gameOrder}</span>
-                    <div className="flex-1 px-4 grid grid-cols-3 items-center text-center">
-                      <span className="text-left font-black text-slate-950">{getPlayerDisplay(game.player1Id, game.player1PartnerId)}</span>
-                      <span className="font-mono bg-white border border-slate-200 px-2 rounded font-black">
-                        {game.player1Score} — {game.player2Score}
-                      </span>
-                      <span className="text-right font-black text-slate-950">{getPlayerDisplay(game.player2Id, game.player2PartnerId)}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+          {/* Quick Search Utility input */}
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-600" />
+            <input
+              type="text"
+              placeholder="Search team arrays..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-slate-950 text-slate-200 border border-slate-900 rounded-xl pl-9 pr-4 py-2 text-xs font-bold focus:outline-none focus:border-slate-800 placeholder-slate-600"
+            />
+          </div>
+        </div>
 
-              {/* Live Input Form */}
-              {activeMatch.status !== "completed" ? (
-                <div className="bg-slate-50 border border-slate-200 p-5 rounded-2xl space-y-4">
-                  <div className="flex items-center gap-2 pb-2 border-b border-slate-200/60">
-                    <Plus className="w-4 h-4 text-indigo-600" />
-                    <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Append Scoreboard Frame</h3>
-                  </div>
-
-                  <form action={(fd) => startTransition(async () => { await addFrameAction(fd); })} className="space-y-4 group">
-                    <input type="hidden" name="matchId" value={activeMatch.id} />
-                    
-                    <div className="grid grid-cols-2 gap-2">
-                      <label className="flex items-center justify-center gap-2 p-3 bg-white border border-slate-200 rounded-xl font-bold text-xs uppercase cursor-pointer has-[:checked]:border-indigo-600 has-[:checked]:bg-indigo-50/30">
-                        <input type="radio" name="gameType" value="single" defaultChecked className="peer accent-indigo-600" />
-                        Singles Frame
-                      </label>
-                      <label className="flex items-center justify-center gap-2 p-3 bg-white border border-slate-200 rounded-xl font-bold text-xs uppercase cursor-pointer has-[:checked]:border-indigo-600 has-[:checked]:bg-indigo-50/30">
-                        <input type="radio" name="gameType" value="double" id="doublesTrigger" className="peer accent-indigo-600" />
-                        Doubles Frame
-                      </label>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      {/* HOME SIDE */}
-                      <div className="space-y-3 border-r border-slate-200 pr-2">
-                        <span className="text-[9px] font-black uppercase tracking-widest text-indigo-600 block">Home Team Side</span>
-                        <select 
-                          name="player1Id" 
-                          id="homePlayerSelect" 
-                          required 
-                          className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-xs uppercase"
-                          onChange={(e) => {
-                            const partner = document.getElementById("homePartnerSelect") as HTMLSelectElement;
-                            if (e.target.value && e.target.value === partner?.value) {
-                              alert("A player cannot be partnered with themselves!");
-                              e.target.value = "";
-                            }
-                          }}
-                        >
-                          <option value="">Select Home Player...</option>
-                          {availableHomePlayers.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                        </select>
-                        
-                        <div className="transition-all duration-300 opacity-0 max-h-0 overflow-hidden group-has-[#doublesTrigger:checked]:opacity-100 group-has-[#doublesTrigger:checked]:max-h-24">
-                          <select 
-                            name="player1PartnerId" 
-                            id="homePartnerSelect" 
-                            className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-xs uppercase"
-                            onChange={(e) => {
-                              const primary = document.getElementById("homePlayerSelect") as HTMLSelectElement;
-                              if (e.target.value && e.target.value === primary?.value) {
-                                alert("A player cannot be partnered with themselves!");
-                                e.target.value = "";
-                              }
-                            }}
-                          >
-                            <option value="">Select Home Partner...</option>
-                            {availableHomePlayers.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                          </select>
-                        </div>
-                        <div>
-                          <input type="number" name="player1Score" placeholder="0" min="0" className="w-full p-3 bg-white border border-slate-200 rounded-xl text-center font-mono font-black" />
-                        </div>
-                      </div>
-
-                      {/* AWAY SIDE */}
-                      <div className="space-y-3 pl-2">
-                        <span className="text-[9px] font-black uppercase tracking-widest text-violet-600 block">Away Team Side</span>
-                        <select 
-                          name="player2Id" 
-                          id="awayPlayerSelect" 
-                          required 
-                          className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-xs uppercase"
-                          onChange={(e) => {
-                            const partner = document.getElementById("awayPartnerSelect") as HTMLSelectElement;
-                            if (e.target.value && e.target.value === partner?.value) {
-                              alert("A player cannot be partnered with themselves!");
-                              e.target.value = "";
-                            }
-                          }}
-                        >
-                          <option value="">Select Away Player...</option>
-                          {availableAwayPlayers.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                        </select>
-                        
-                        <div className="transition-all duration-300 opacity-0 max-h-0 overflow-hidden group-has-[#doublesTrigger:checked]:opacity-100 group-has-[#doublesTrigger:checked]:max-h-24">
-                          <select 
-                            name="player2PartnerId" 
-                            id="awayPartnerSelect" 
-                            className="w-full p-3 bg-white border border-slate-200 rounded-xl font-bold text-xs uppercase"
-                            onChange={(e) => {
-                              const primary = document.getElementById("awayPlayerSelect") as HTMLSelectElement;
-                              if (e.target.value && e.target.value === primary?.value) {
-                                alert("A player cannot be partnered with themselves!");
-                                e.target.value = "";
-                              }
-                            }}
-                          >
-                            <option value="">Select Away Partner...</option>
-                            {availableAwayPlayers.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                          </select>
-                        </div>
-                        <div>
-                          <input type="number" name="player2Score" placeholder="0" min="0" className="w-full p-3 bg-white border border-slate-200 rounded-xl text-center font-mono font-black" />
-                        </div>
-                      </div>
-                    </div>
-
-                    <button type="submit" disabled={isPending} className="w-full bg-indigo-600 text-white font-black uppercase tracking-widest text-[10px] py-3.5 rounded-xl disabled:opacity-50">
-                      {isPending ? "Submitting Frame..." : "Submit Frame Result"}
-                    </button>
-                  </form>
-                </div>
-              ) : (
-                <div className="bg-emerald-50 text-emerald-800 p-4 rounded-xl text-xs font-bold uppercase">
-                  This match has been locked and authorized. Final league standings points have been distributed.
-                </div>
-              )}
+        {/* DATA LEDGER GRID */}
+        <div className="bg-slate-900/20 border border-slate-900 rounded-2xl overflow-hidden shadow-xl">
+          {filteredMatches.length === 0 ? (
+            <div className="p-12 text-center text-slate-500 text-xs font-bold uppercase tracking-wider border border-dashed border-slate-900 m-4 rounded-xl">
+              No target match matrices found matching criteria.
             </div>
           ) : (
-            <div className="bg-white border border-slate-200 rounded-[2rem] p-12 text-center text-slate-400 font-bold text-xs uppercase border-dashed">
-              <AlertCircle className="w-6 h-6 text-slate-300 mb-2 stroke-[1.5]" />
-              Select a scheduled fixture to open its interactive verification scorecard.
+            <div className="divide-y divide-slate-900">
+              {filteredMatches.map((match) => (
+                <div 
+                  key={match.id} 
+                  className="p-4 sm:px-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-900/20 transition-colors group"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="bg-slate-950 border border-slate-900 px-2.5 py-1.5 rounded-lg text-center font-mono shrink-0">
+                      <span className="text-[9px] text-slate-500 uppercase font-black block tracking-tighter">Week</span>
+                      <span className="text-xs font-black text-slate-300 tracking-tight">{match.weekNumber}</span>
+                    </div>
+                    
+                    <div>
+                      <div className="flex items-center gap-3 text-sm font-black uppercase tracking-tight text-slate-100">
+                        <span className="truncate max-w-[140px] sm:max-w-xs">{match.homeTeamName}</span>
+                        <span className="text-slate-600 font-medium lowercase font-sans text-xs">vs</span>
+                        <span className="truncate max-w-[140px] sm:max-w-xs">{match.awayTeamName}</span>
+                      </div>
+                      <span className="text-[10px] font-mono text-slate-500 mt-0.5 block">{match.date}</span>
+                    </div>
+                  </div>
+
+                  {/* Right side alignment: status indicators and action paths */}
+                  <div className="flex items-center justify-between sm:justify-end gap-6 border-t border-slate-900/50 sm:border-0 pt-3 sm:pt-0">
+                    {/* Scores display row condition */}
+                    {match.status === 'completed' || match.status === 'live' ? (
+                      <div className="bg-slate-950 font-mono font-black border border-slate-900 text-indigo-400 text-xs px-3 py-1 rounded-lg tracking-widest shadow-inner">
+                        {match.homeScore} - {match.awayScore}
+                        {match.status === 'live' && (
+                          <span className="ml-2 text-[9px] text-emerald-400 bg-emerald-950/50 px-1 rounded animate-pulse font-sans uppercase">Live</span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-[9px] bg-slate-900 border border-slate-800 text-slate-400 px-2 py-1 rounded font-black uppercase tracking-wider">
+                        {match.status}
+                      </span>
+                    )}
+
+                    <Link
+                      href={`/admin/matches/${match.id}`}
+                      className="px-3 py-2 bg-slate-900 border border-slate-800 text-slate-300 rounded-xl font-bold text-xs uppercase tracking-wide hover:bg-slate-800 hover:text-white transition-all flex items-center gap-1.5 shadow-md"
+                    >
+                      <Eye className="w-3.5 h-3.5 text-slate-400" /> Manage
+                    </Link>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
+
       </div>
     </div>
   );
