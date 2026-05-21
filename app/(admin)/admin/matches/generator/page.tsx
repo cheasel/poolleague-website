@@ -18,7 +18,6 @@ export default async function MatchScheduleGeneratorPage() {
 
     const divisionId = Number(formData.get("divisionId"));
     const startDateStr = formData.get("startDate") as string;
-    const matchesPerWeek = Number(formData.get("matchesPerWeek") || 1);
 
     if (!divisionId || !startDateStr) return;
 
@@ -31,7 +30,6 @@ export default async function MatchScheduleGeneratorPage() {
     if (divisionTeams.length < 2) return;
 
     // 2. Prepare teams array for the Circle Method Algorithm
-    // If odd, push a dummy team representing a 'BYE' week
     const list = [...divisionTeams];
     if (list.length % 2 !== 0) {
       list.push({ id: -1, name: "BYE" }); 
@@ -47,10 +45,15 @@ export default async function MatchScheduleGeneratorPage() {
       date: Date;
     }> = [];
 
-    let currentMatchDate = new Date(startDateStr);
+    // Base calendar anchor timestamp
+    const baseTimelineMs = new Date(startDateStr).getTime();
 
     // 3. Circle Rotation Round-Robin Algorithm Execution
     for (let round = 0; round < roundsCount; round++) {
+      // Calculate isolated date for this round safely without reference leaks
+      // Adds exactly (round * 7) days worth of milliseconds to the anchor date
+      const roundDate = new Date(baseTimelineMs + round * 7 * 24 * 60 * 60 * 1000);
+
       for (let matchIdx = 0; matchIdx < matchesPerRound; matchIdx++) {
         const homeIdx = (round + matchIdx) % (numTeams - 1);
         let awayIdx = (numTeams - 1 - matchIdx + round) % (numTeams - 1);
@@ -73,36 +76,33 @@ export default async function MatchScheduleGeneratorPage() {
         generatedFixtures.push({
           homeTeamId: finalHome,
           awayTeamId: finalAway,
-          date: new Date(currentMatchDate),
+          date: roundDate,
         });
       }
-
-      // Step forward by exactly 7 days for the next set of league games
-      currentMatchDate.setDate(currentMatchDate.getDate() + 7);
     }
 
-    // 4. FIXED: Explicitly map the divisionId and cast the status literal enum
+    // 4. Plant fixtures into your database schema using explicit property keys
     if (generatedFixtures.length > 0) {
-        await db.insert(matches).values(
-          generatedFixtures.map((fix) => ({
-            homeTeamId: fix.homeTeamId,
-            awayTeamId: fix.awayTeamId,
-            divisionId: divisionId, // <-- ADDED: Bind match rows to their selected division bracket
-            matchDate: fix.date,
-            status: "scheduled" as const, // <-- FIXED: Cast to exact literal const type so it's not a generic string
-            homeTeamScoreTotal: 0,
-            awayTeamScoreTotal: 0,
-          }))
-        );
-      }
+      await db.insert(matches).values(
+        generatedFixtures.map((fix) => ({
+          homeTeamId: fix.homeTeamId,
+          awayTeamId: fix.awayTeamId,
+          divisionId: divisionId, 
+          date: fix.date, // 🎯 FIXED: Key aligned to matches.date schema
+          status: "scheduled" as const, // 🎯 FIXED: Strict enum casting
+          homeScore: 0, // 🎯 FIXED: Key aligned to matches.homeScore schema
+          awayScore: 0, // 🎯 FIXED: Key aligned to matches.awayScore schema
+        }))
+      );
+    }
 
-    // Clear caches and redirect cleanly back to the dashboard index view
+    // Clear caches and redirect cleanly back to the division dashboard
     revalidatePath("/admin/matches");
     redirect(`/admin/matches?division=${divisionId}`);
   }
 
   return (
-    <div className="space-y-8 max-w-3xl mx-auto pb-12">
+    <div className="space-y-8 max-w-3xl mx-auto pb-12 px-4 pt-4">
       <header>
         <Link href="/admin/matches" className="inline-flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-indigo-600 transition-all">
           <ArrowLeft className="w-4 h-4" /> Cancel and Back to Fixtures

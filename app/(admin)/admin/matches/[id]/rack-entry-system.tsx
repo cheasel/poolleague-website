@@ -116,7 +116,7 @@ export default function RackEntrySystem({
                   className="w-full p-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="">Home Partner</option>
-                  {homePlayers.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  {homePlayers.map((p) => <option key={p.id} value={String(p.id)}>{p.name}</option>)}
                 </select>
               )}
             </div>
@@ -144,7 +144,7 @@ export default function RackEntrySystem({
                 className="w-full p-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-indigo-500"
               >
                 <option value="">Away Player</option>
-                {awayPlayers.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                {awayPlayers.map((p) => <option key={p.id} value={String(p.id)}>{p.name}</option>)}
               </select>
               {rack.type === 'double' && (
                 <select 

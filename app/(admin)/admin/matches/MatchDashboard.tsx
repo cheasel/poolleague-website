@@ -191,7 +191,7 @@ export default function MatchDashboard({
                       )}
 
                       <Link
-                        href={`/admin/matches?selectedMatch=${match.id}`}
+                        href={`/admin/matches/${match.id}`}
                         className="px-3 py-2 bg-slate-900 border border-slate-800 text-slate-300 rounded-xl font-bold text-xs uppercase tracking-wide hover:bg-slate-800 hover:text-white transition-all flex items-center gap-1.5 shadow-md"
                       >
                         <Eye className="w-3.5 h-3.5 text-slate-400" /> Manage
