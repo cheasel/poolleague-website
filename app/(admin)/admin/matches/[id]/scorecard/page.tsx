@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import RackEntrySystem from "../rack-entry-system";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -130,6 +131,8 @@ export default async function MatchScorecardPage({ params }: PageProps) {
     revalidatePath("/standings");
     revalidatePath(`/admin/matches/${matchId}`);
     revalidatePath(`/admin/matches/${matchId}/scorecard`);
+
+    redirect(`/admin/matches/${matchId}`);
   }
 
   return (
