@@ -72,7 +72,7 @@ async function getTitleRaceStandings(divisionId: number, seasonId: number) {
       id: t.id,
       name: t.name,
       matchPlay: t.matchPlay,
-      points: (t.wins * 2) + (t.draws * 1), // 🎯 Match points pulling from authentic standings logic
+      points: (t.wins * 2) + (t.draws * 1),
     }))
     .sort((a, b) => b.points - a.points);
 }
@@ -81,12 +81,14 @@ export default async function TitleRace({ divisionId, seasonId }: TitleRaceProps
   const standings = await getTitleRaceStandings(divisionId, seasonId);
 
   return (
-    <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden w-full">
+    // 🎯 CHANGED: Replaced white container configurations with translucent dark container panel
+    <div className="bg-slate-900/40 rounded-3xl border border-slate-900 shadow-xl overflow-hidden w-full">
       {/* Header Context */}
-      <div className="p-5 border-b border-slate-100 bg-slate-50/50">
-        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600 block mb-0.5">Live Apex</span>
-        <h2 className="text-lg font-black text-slate-950 uppercase tracking-tighter italic">
-          Title <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600">Race</span>
+      {/* 🎯 CHANGED: Converted header element backgrounds and updated text metrics */}
+      <div className="p-5 border-b border-slate-800/80 bg-slate-900/20">
+        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400 block mb-0.5">Live Apex</span>
+        <h2 className="text-lg font-black text-white uppercase tracking-tighter italic">
+          Title <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Race</span>
         </h2>
       </div>
 
@@ -94,26 +96,31 @@ export default async function TitleRace({ divisionId, seasonId }: TitleRaceProps
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse text-xs">
           <thead>
-            <tr className="bg-slate-50 text-slate-500 font-bold uppercase text-[9px] tracking-wider border-b border-slate-100">
+            {/* 🎯 CHANGED: Adjusted header text contrast and horizontal border color settings */}
+            <tr className="bg-slate-950/40 text-slate-500 font-bold uppercase text-[9px] tracking-wider border-b border-slate-800/60">
               <th className="px-4 py-3 text-center w-12">Rank</th>
               <th className="px-4 py-3">Team Name</th>
               <th className="px-4 py-3 text-center w-16">MP</th>
-              <th className="px-5 py-3 text-center w-20 bg-indigo-50/50 text-indigo-600 font-black">Points</th>
+              <th className="px-5 py-3 text-center w-20 bg-indigo-950/30 text-indigo-400 font-black">Points</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 font-medium text-slate-600">
-            {standings.slice(0, 5).map((team, index) => ( // Top 5 shown for home widget view sleekness
-              <tr key={team.id} className="hover:bg-slate-50/30 transition-colors group">
-                <td className="px-4 py-3.5 text-center font-mono font-bold text-slate-400">
+          {/* 🎯 CHANGED: Swapped text color properties for light typography values across row nodes */}
+          <tbody className="divide-y divide-slate-800/60 font-medium text-slate-300">
+            {standings.slice(0, 5).map((team, index) => (
+              // 🎯 CHANGED: Set hover highlight rules for the dark arena schema
+              <tr key={team.id} className="hover:bg-slate-900/40 transition-colors group">
+                <td className="px-4 py-3.5 text-center font-mono font-bold text-slate-600">
                   {index + 1}
                 </td>
-                <td className="px-4 py-3.5 font-black text-slate-900 uppercase tracking-tight text-[12px] truncate max-w-[140px]">
+                {/* 🎯 CHANGED: Boosted team name clarity to pure text-slate-100 */}
+                <td className="px-4 py-3.5 font-black text-slate-100 uppercase tracking-tight text-[12px] truncate max-w-[140px]">
                   {team.name}
                 </td>
-                <td className="px-4 py-3.5 text-center font-mono tabular-nums text-slate-500">
+                <td className="px-4 py-3.5 text-center font-mono tabular-nums text-slate-400">
                   {team.matchPlay}
                 </td>
-                <td className="px-5 py-3.5 text-center bg-indigo-50/[0.15] text-indigo-600 font-mono font-black text-sm group-hover:bg-indigo-50/40 transition-colors">
+                {/* 🎯 CHANGED: Upgraded points container to high-visibility glassmorphic indigo badge state */}
+                <td className="px-5 py-3.5 text-center bg-indigo-950/20 text-indigo-400 font-mono font-black text-sm group-hover:bg-indigo-900/30 transition-colors border-l border-slate-900">
                   {team.points}
                 </td>
               </tr>
