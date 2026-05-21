@@ -1,8 +1,8 @@
 import TitleRace from "@/components/TitleRace";
 import { db } from "@/src/db";
 import { seasons, divisions, matches, teams } from "@/src/db/schema";
-import { desc, eq, and, sql } from "drizzle-orm";
-import { Trophy, CalendarDays, Users, ArrowRight, Zap, Target, Star } from "lucide-react";
+import { desc, eq, and, sql, asc } from "drizzle-orm";
+import { Trophy, CalendarDays, Users, ArrowRight, Zap, Target, Star, Flame } from "lucide-react";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -33,8 +33,58 @@ async function getRecentResults(seasonId: number, divisionId: number) {
   return rawMatches;
 }
 
+// 🎯 ADDED: Fetch and compute consecutive win streaks
+async function getTopFormStreaks(seasonId: number, divisionId: number) {
+  const allCompleted = await db
+    .select({
+      homeTeamId: matches.homeTeamId,
+      awayTeamId: matches.awayTeamId,
+      homeScore: matches.homeScore,
+      awayScore: matches.awayScore,
+      homeTeamName: sql<string>`home_teams.name`,
+      awayTeamName: sql<string>`away_teams.name`,
+    })
+    .from(matches)
+    .leftJoin(sql`teams as home_teams`, eq(matches.homeTeamId, sql`home_teams.id`))
+    .leftJoin(sql`teams as away_teams`, eq(matches.awayTeamId, sql`away_teams.id`))
+    .where(
+      and(
+        eq(matches.status, "completed"),
+        eq(matches.seasonId, seasonId),
+        eq(matches.divisionId, divisionId)
+      )
+    )
+    .orderBy(asc(matches.date));
+
+  const streaks: Record<string, { name: string; current: number }> = {};
+
+  allCompleted.forEach((m) => {
+    if (!m.homeTeamId || !m.awayTeamId) return;
+
+    if (!streaks[m.homeTeamId]) streaks[m.homeTeamId] = { name: m.homeTeamName, current: 0 };
+    if (!streaks[m.awayTeamId]) streaks[m.awayTeamId] = { name: m.awayTeamName, current: 0 };
+
+    const hScore = m.homeScore ?? 0;
+    const aScore = m.awayScore ?? 0;
+
+    if (hScore > aScore) {
+      streaks[m.homeTeamId].current += 1;
+      streaks[m.awayTeamId].current = 0;
+    } else if (aScore > hScore) {
+      streaks[m.awayTeamId].current += 1;
+      streaks[m.homeTeamId].current = 0;
+    } else {
+      // Draw resets a winning streak
+      streaks[m.homeTeamId].current = 0;
+      streaks[m.awayTeamId].current = 0;
+    }
+  });
+
+  return Object.values(streaks)
+    .sort((a, b) => b.current - a.current);
+}
+
 export default async function PublicHomePage() {
-  // 1. Fetch operational contexts dynamically
   const currentSeasons = await db.select().from(seasons).orderBy(desc(seasons.startDate)).limit(1);
   const activeSeasonId = currentSeasons[0]?.id || 1;
   const activeSeasonName = currentSeasons[0]?.name || "Current Season";
@@ -43,6 +93,11 @@ export default async function PublicHomePage() {
   const activeDivisionId = currentDivisions[0]?.id || 1;
 
   const recentResults = await getRecentResults(activeSeasonId, activeDivisionId);
+  const sortedStreaks = await getTopFormStreaks(activeSeasonId, activeDivisionId); // 🎯 ADDED
+
+  // Select hot streak leaders or fallbacks safely
+  const leader1 = sortedStreaks[0]?.current > 0 ? sortedStreaks[0] : null;
+  const leader2 = sortedStreaks[1]?.current > 0 ? sortedStreaks[1] : null;
 
   return (
     <div className="min-h-screen bg-slate-50/60 pb-16">
@@ -92,18 +147,26 @@ export default async function PublicHomePage() {
               <span className="text-sm font-black text-slate-900 uppercase tracking-tight block mt-0.5">{activeSeasonName}</span>
             </div>
           </div>
+          
+          {/* 🎯 CHANGED: Replaced "Current Rule" with Streak Leader 1 */}
           <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4">
-            <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl border border-indigo-100"><Target className="w-4 h-4" /></div>
+            <div className="p-3 bg-orange-50 text-orange-600 rounded-xl border border-orange-100"><Flame className="w-4 h-4 fill-orange-500" /></div>
             <div>
-              <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px] block">Current Rule</span>
-              <span className="text-sm font-black text-indigo-600 uppercase tracking-tight block mt-0.5">2 PTS Win / 1 PTS Draw</span>
+              <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px] block">Form Leader</span>
+              <span className="text-sm font-black text-orange-600 uppercase tracking-tight block mt-0.5 truncate max-w-[160px]">
+                {leader1 ? `${leader1.name} (${leader1.current} W)` : "No Active Streak"}
+              </span>
             </div>
           </div>
+
+          {/* 🎯 CHANGED: Replaced "Active Division" with Streak Leader 2 */}
           <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4">
-            <div className="p-3 bg-slate-50 text-slate-600 rounded-xl border border-slate-100"><Users className="w-4 h-4" /></div>
+            <div className="p-3 bg-rose-50 text-rose-600 rounded-xl border border-rose-100"><Flame className="w-4 h-4" /></div>
             <div>
-              <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px] block">Active Division</span>
-              <span className="text-sm font-black text-slate-900 uppercase tracking-tight block mt-0.5">Division 1 Elite</span>
+              <span className="text-slate-400 font-bold uppercase tracking-wider text-[9px] block">On Fire</span>
+              <span className="text-sm font-black text-slate-900 uppercase tracking-tight block mt-0.5 truncate max-w-[160px]">
+                {leader2 ? `${leader2.name} (${leader2.current} W)` : "No Secondary Streak"}
+              </span>
             </div>
           </div>
         </div>
