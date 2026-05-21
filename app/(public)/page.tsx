@@ -1,8 +1,8 @@
 import TitleRace from "@/components/TitleRace";
 import { db } from "@/src/db";
-import { seasons, divisions, matches, teams } from "@/src/db/schema";
+import { seasons, divisions, matches, teams, matchGames, players } from "@/src/db/schema";
 import { desc, eq, and, sql, asc } from "drizzle-orm";
-import { Trophy, CalendarDays, ArrowRight, Zap, Star, Flame } from "lucide-react";
+import { Trophy, CalendarDays, ArrowRight, Zap, Star, Flame, Award, Medal } from "lucide-react";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -81,6 +81,58 @@ async function getTopFormStreaks(seasonId: number, divisionId: number) {
   return Object.values(streaks).sort((a, b) => b.current - a.current);
 }
 
+// 🎯 ADDED: Aggregates game/frame level data inside the active season/division context
+async function getTopPlayerStats(seasonId: number, divisionId: number) {
+  const games = await db
+    .select({
+      player1Id: matchGames.player1Id,
+      player2Id: matchGames.player2Id,
+      p1Score: matchGames.player1Score,
+      p2Score: matchGames.player2Score,
+      p1Name: sql<string>`p1.name`,
+      p2Name: sql<string>`p2.name`,
+      p1Image: sql<string | null>`p1.image_url`,
+      p2Image: sql<string | null>`p2.image_url`,
+      teamName: sql<string>`t.name`,
+    })
+    .from(matchGames)
+    .innerJoin(matches, eq(matchGames.matchId, matches.id))
+    .leftJoin(players, eq(matchGames.player1Id, players.id))
+    .leftJoin(sql`players as p1`, eq(matchGames.player1Id, sql`p1.id`))
+    .leftJoin(sql`players as p2`, eq(matchGames.player2Id, sql`p2.id`))
+    .leftJoin(teams, eq(players.teamId, teams.id))
+    .leftJoin(sql`teams as t`, eq(sql`p1.team_id`, sql`t.id`))
+    .where(
+      and(
+        eq(matches.status, "completed"),
+        eq(matches.seasonId, seasonId),
+        eq(matches.divisionId, divisionId)
+      )
+    );
+
+  const stats: Record<number, { name: string; team: string; wins: number; image: string | null }> = {};
+
+  games.forEach((g) => {
+    const p1Id = g.player1Id;
+    const p2Id = g.player2Id;
+    const s1 = g.p1Score ?? 0;
+    const s2 = g.p2Score ?? 0;
+
+    if (p1Id && g.p1Name) {
+      if (!stats[p1Id]) stats[p1Id] = { name: g.p1Name, team: g.teamName || "Independent", wins: 0, image: g.p1Image };
+      if (s1 > s2) stats[p1Id].wins += 1;
+    }
+    if (p2Id && g.p2Name) {
+      if (!stats[p2Id]) stats[p2Id] = { name: g.p2Name, team: g.teamName || "Independent", wins: 0, image: g.p2Image };
+      if (s2 > s1) stats[p2Id].wins += 1;
+    }
+  });
+
+  return Object.values(stats)
+    .sort((a, b) => b.wins - a.wins)
+    .slice(0, 3);
+}
+
 export default async function PublicHomePage() {
   const currentSeasons = await db.select().from(seasons).orderBy(desc(seasons.startDate)).limit(1);
   const activeSeasonId = currentSeasons[0]?.id || 1;
@@ -91,17 +143,15 @@ export default async function PublicHomePage() {
 
   const recentResults = await getRecentResults(activeSeasonId, activeDivisionId);
   const sortedStreaks = await getTopFormStreaks(activeSeasonId, activeDivisionId);
+  const topPlayers = await getTopPlayerStats(activeSeasonId, activeDivisionId); // 🎯 ADDED
 
   const leader1 = sortedStreaks[0]?.current > 0 ? sortedStreaks[0] : null;
-  const leader2 = sortedStreaks[1]?.current > 0 ? sortedStreaks[1] : null;
 
   return (
-    // 🎯 CHANGED: Replaced light slate background with dark arena canvas configurations
     <div className="min-h-screen bg-slate-950 pb-16 text-slate-100">
       
       {/* HERO DASHBOARD BRANDING HEADER */}
       <div className="relative overflow-hidden bg-slate-950 border-b border-slate-900/60">
-        {/* Subtle geometric grid backdrop mesh */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#0f172a_1px,transparent_1px),linear-gradient(to_bottom,#0f172a_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-60 pointer-events-none" />
         
         <div className="max-w-6xl mx-auto px-4 py-16 sm:py-24 relative z-10 space-y-6">
@@ -137,9 +187,11 @@ export default async function PublicHomePage() {
         </div>
       </div>
 
-      {/* METRICS ROW CARDS STRIP - Glassmorphic / Premium Dark Styling */}
+      {/* METRICS ROW CARDS STRIP */}
       <div className="max-w-6xl mx-auto px-4 -mt-6 relative z-20">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
+          
+          {/* Card 1: Active Season */}
           <div className="bg-slate-900/80 backdrop-blur-md p-5 rounded-2xl border border-slate-800 shadow-xl flex items-center gap-4">
             <div className="p-3 bg-amber-950/60 text-amber-400 rounded-xl border border-amber-900/50 shadow-inner"><Star className="w-4 h-4 fill-amber-400" /></div>
             <div>
@@ -148,6 +200,7 @@ export default async function PublicHomePage() {
             </div>
           </div>
           
+          {/* Card 2: Team Form Leader */}
           <div className="bg-slate-900/80 backdrop-blur-md p-5 rounded-2xl border border-slate-800 shadow-xl flex items-center gap-4 transition-all hover:border-orange-900/60 group">
             <div className="p-3 bg-orange-950/60 text-orange-400 rounded-xl border border-orange-900/50 shadow-inner group-hover:scale-105 transition-transform"><Flame className="w-4 h-4 fill-orange-500" /></div>
             <div>
@@ -158,15 +211,41 @@ export default async function PublicHomePage() {
             </div>
           </div>
 
-          <div className="bg-slate-900/80 backdrop-blur-md p-5 rounded-2xl border border-slate-800 shadow-xl flex items-center gap-4 transition-all hover:border-pink-900/60 group">
-            <div className="p-3 bg-pink-950/60 text-pink-400 rounded-xl border border-pink-900/50 shadow-inner group-hover:scale-105 transition-transform"><Flame className="w-4 h-4" /></div>
-            <div>
-              <span className="text-slate-500 font-bold uppercase tracking-wider text-[9px] block">On Fire</span>
-              <span className="text-sm font-black text-slate-100 uppercase tracking-tight block mt-0.5 truncate max-w-[160px]">
-                {leader2 ? `${leader2.name} (${leader2.current} W)` : "No Secondary Streak"}
-              </span>
+          {/* 🎯 CHANGED: Card 3 is now a high-density player list compatible with displaying multi-rank metrics */}
+          <div className="bg-slate-900/80 backdrop-blur-md p-4 rounded-2xl border border-slate-800 shadow-xl flex flex-col justify-center min-h-[82px] transition-all hover:border-indigo-900/60">
+            <div className="flex items-center gap-1.5 mb-2 px-1 border-b border-slate-800/50 pb-1">
+              <Award className="w-3 h-3 text-indigo-400" />
+              <span className="text-slate-500 font-bold uppercase tracking-wider text-[9px]">Frame MVP Leaders</span>
             </div>
+            
+            {topPlayers.length === 0 ? (
+              <span className="text-[11px] font-bold text-slate-500 uppercase px-1">No Frame Matches Parsed</span>
+            ) : (
+              <div className="space-y-1.5">
+                {topPlayers.map((player, index) => (
+                  <div key={player.name} className="flex items-center justify-between text-xs px-1 group/row">
+                    <div className="flex items-center gap-2 truncate max-w-[180px]">
+                      <span className={`font-mono text-[10px] font-black w-3.5 h-3.5 flex items-center justify-center rounded-md ${
+                        index === 0 ? 'bg-indigo-900/40 text-indigo-400 border border-indigo-800/50' : 'text-slate-600'
+                      }`}>
+                        {index + 1}
+                      </span>
+                      <span className="font-black text-slate-200 uppercase tracking-tight truncate group-hover/row:text-white transition-colors">
+                        {player.name}
+                      </span>
+                      <span className="text-[9px] text-slate-500 font-semibold truncate uppercase tracking-tighter">
+                        {player.team}
+                      </span>
+                    </div>
+                    <span className="font-mono font-black bg-slate-950 border border-slate-800 text-indigo-400 px-1.5 py-0.5 rounded text-[10px] tabular-nums">
+                      {player.wins} W
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
+
         </div>
       </div>
 
@@ -212,7 +291,6 @@ export default async function PublicHomePage() {
           </div>
 
           {/* SIDEBAR BLOCK: TITLE RACE ACTION WIDGET */}
-          {/* Note: Ensure internal components within TitleRace match dark themes or let them render cleanly inside your layouts container */}
           <div className="w-full bg-slate-900/20 border border-slate-900 rounded-3xl p-1 shadow-lg">
             <TitleRace 
               divisionId={activeDivisionId} 
