@@ -14,7 +14,8 @@ import {
   LogOut,
   ChevronRight,
   FolderTree,
-  History
+  History,
+  ExternalLink
 } from "lucide-react";
 
 interface AdminLayoutProps {
@@ -49,83 +50,95 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           key={item.href}
           href={item.href}
           onClick={() => closeMobile && setIsMobileOpen(false)}
-          className={`flex items-center justify-between px-4 py-3 rounded-2xl font-black text-xs uppercase tracking-wider transition-all duration-200 group ${
+          className={`flex items-center justify-between px-3.5 py-3 rounded-2xl font-black text-xs uppercase tracking-wide transition-all duration-200 group min-w-0 ${
             isActive 
               ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20 translate-x-1" 
               : "text-zinc-500 hover:bg-zinc-900 hover:text-zinc-100"
           }`}
         >
-          <div className="flex items-center gap-3">
-            <Icon className={`w-4 h-4 transition-transform group-hover:scale-110 ${isActive ? "text-white" : "text-zinc-600 group-hover:text-zinc-400"}`} />
-            <span>{item.label}</span>
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Icon className={`w-4 h-4 shrink-0 transition-transform group-hover:scale-110 ${isActive ? "text-white" : "text-zinc-600 group-hover:text-zinc-400"}`} />
+            <span className="truncate">{item.label}</span>
           </div>
-          {isActive && <ChevronRight className="w-3.5 h-3.5 text-white stroke-[3] animate-pulse" />}
+          {isActive && <ChevronRight className="w-3.5 h-3.5 text-white stroke-[3] shrink-0 ml-1" />}
         </Link>
       );
     });
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex text-slate-200 antialiased selection:bg-indigo-600 selection:text-white">
+    <div className="min-h-screen bg-zinc-950 flex text-zinc-200 antialiased selection:bg-indigo-600 selection:text-white">
       
       {/* =========================================================================
-         1. DESKTOP SIDEBAR RAIL (Premium Dark Arena Aesthetic)
+         1. DESKTOP SIDEBAR RAIL
          ========================================================================= */}
-      <aside className="hidden lg:flex flex-col w-72 bg-slate-900 p-6 border-r border-slate-800/80 shrink-0 sticky top-0 h-screen justify-between z-20">
-        <div className="space-y-8 overflow-y-auto scrollbar-none">
+      <aside className="hidden lg:flex flex-col w-72 bg-zinc-900 p-5 border-r border-zinc-800/80 shrink-0 sticky top-0 h-screen justify-between z-20 overflow-x-hidden select-none">
+        <div className="space-y-7 overflow-y-auto overflow-x-hidden scrollbar-none min-w-0 flex-1">
           
           {/* Competitive Arena Logo Header */}
-          <div className="flex items-center gap-3 px-2 py-1">
-            <div className="w-10 h-10 rounded-xl bg-indigo-600/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-inner">
+          <div className="flex items-center gap-3 px-1.5 py-1 min-w-0">
+            <div className="w-10 h-10 rounded-xl bg-indigo-600/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-inner shrink-0">
               <Sparkles className="w-5 h-5 stroke-[2.5]" />
             </div>
-            <div>
-              <h2 className="text-base font-black text-white uppercase tracking-tighter italic leading-none">PoolLeague</h2>
-              <span className="text-[9px] font-black uppercase tracking-widest text-indigo-400 mt-1 block">Arena Matrix v1.6</span>
+            <div className="min-w-0">
+              <h2 className="text-base font-black text-white uppercase tracking-tighter italic leading-none truncate">PoolLeague</h2>
+              <span className="text-[9px] font-black uppercase tracking-wider text-indigo-400 mt-1 block truncate">Arena Matrix v1.6</span>
             </div>
           </div>
 
           {/* Group A: League Infrastructure Settings */}
-          <nav className="space-y-1.5">
-            <span className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-600 block mb-3 px-4">
+          <nav className="space-y-1 min-w-0">
+            <span className="text-[10px] font-black uppercase tracking-wider text-zinc-600 block mb-2.5 px-3.5 truncate">
               Infrastructure
             </span>
             {renderNavList(structuralItems)}
           </nav>
 
           {/* Group B: Active Operations Settings */}
-          <nav className="space-y-1.5">
-            <span className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-600 block mb-3 px-4">
+          <nav className="space-y-1 min-w-0">
+            <span className="text-[10px] font-black uppercase tracking-wider text-zinc-600 block mb-2.5 px-3.5 truncate">
               Core Operations
             </span>
             {renderNavList(operationalItems)}
           </nav>
         </div>
 
-        {/* User Identity Context Footer */}
-        <div className="border-t border-slate-800/60 pt-4 flex items-center justify-between mt-4">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-slate-800 border border-slate-700/50 flex items-center justify-center text-xs font-black text-white uppercase shadow-md">
-              OP
-            </div>
-            <div>
-              <div className="text-xs font-black text-white leading-none">Operations Principal</div>
-              <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mt-1 block">League Director</span>
-            </div>
-          </div>
-          <button 
-            title="Sign Out Session"
-            className="w-9 h-9 rounded-xl hover:bg-red-950/30 hover:text-red-400 flex items-center justify-center transition-colors text-slate-500 border border-transparent hover:border-red-900/30"
+        {/* Footer Configuration Section */}
+        <div className="space-y-3 pt-4 border-t border-zinc-800/60 mt-4 shrink-0 min-w-0">
+          {/* Public Site Return Link */}
+          <Link 
+            href="/"
+            className="flex items-center justify-center gap-2 w-full p-3 bg-zinc-950 hover:bg-zinc-800/80 border border-zinc-800 rounded-xl text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-white transition-all shadow-inner"
           >
-            <LogOut className="w-4 h-4" />
-          </button>
+            <span>View Public Site</span>
+            <ExternalLink className="w-3 h-3 text-zinc-500 shrink-0" />
+          </Link>
+
+          {/* User Identity Context Footer */}
+          <div className="flex items-center justify-between min-w-0 gap-2">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 rounded-xl bg-zinc-800 border border-zinc-700/50 flex items-center justify-center text-xs font-black text-white uppercase shadow-md shrink-0">
+                OP
+              </div>
+              <div className="min-w-0">
+                <div className="text-xs font-black text-white leading-none truncate">Operations Principal</div>
+                <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider mt-1 block truncate">League Director</span>
+              </div>
+            </div>
+            <button 
+              title="Sign Out Session"
+              className="w-9 h-9 rounded-xl hover:bg-red-950/30 hover:text-red-400 flex items-center justify-center transition-colors text-zinc-500 shrink-0"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </aside>
 
       {/* =========================================================================
          2. MOBILE FLOATING ACTION HEADER BAR
          ========================================================================= */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-slate-900 border-b border-slate-800 px-4 flex items-center justify-between text-white z-30 shadow-md">
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-zinc-900 border-b border-zinc-800 px-4 flex items-center justify-between text-white z-30 shadow-md">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-indigo-600/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
             <Sparkles className="w-4 h-4 stroke-[2.5]" />
@@ -134,7 +147,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         </div>
         <button
           onClick={() => setIsMobileOpen(!isMobileOpen)}
-          className="w-10 h-10 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-all outline-none"
+          className="w-10 h-10 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition-all outline-none"
         >
           {isMobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
@@ -145,32 +158,43 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
          ========================================================================= */}
       {isMobileOpen && (
         <div className="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40">
-          <div className="w-72 bg-slate-900 h-full p-6 flex flex-col justify-between border-r border-slate-800 animate-in slide-in-from-left duration-200">
-            <div className="space-y-6 overflow-y-auto">
+          <div className="w-72 bg-zinc-900 h-full p-5 flex flex-col justify-between border-r border-zinc-800 animate-in slide-in-from-left duration-200">
+            <div className="space-y-6 overflow-y-auto min-w-0">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-indigo-600/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-sm">
+                <div className="w-9 h-9 rounded-xl bg-indigo-600/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-sm shrink-0">
                   <Sparkles className="w-5 h-5 stroke-[2.5]" />
                 </div>
                 <div>
                   <h2 className="text-sm font-black text-white uppercase tracking-tighter italic">PoolLeague</h2>
-                  <span className="text-[9px] font-bold uppercase tracking-widest text-indigo-400">Mobile Hub</span>
+                  <span className="text-[9px] font-bold uppercase tracking-wide text-indigo-400">Mobile Hub</span>
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <span className="text-[10px] font-black uppercase tracking-widest text-slate-600 block mb-2 px-4">Infrastructure</span>
+              <div className="space-y-1">
+                <span className="text-[10px] font-black uppercase tracking-wide text-zinc-600 block mb-2 px-3.5">Infrastructure</span>
                 {renderNavList(structuralItems, true)}
               </div>
 
-              <div className="space-y-1.5">
-                <span className="text-[10px] font-black uppercase tracking-widest text-slate-600 block mb-2 px-4">Core Operations</span>
+              <div className="space-y-1">
+                <span className="text-[10px] font-black uppercase tracking-wide text-zinc-600 block mb-2 px-3.5">Core Operations</span>
                 {renderNavList(operationalItems, true)}
               </div>
             </div>
 
-            <div className="border-t border-slate-800 pt-4 flex items-center justify-between text-slate-500 mt-4">
-              <span className="text-[10px] font-black uppercase tracking-wider">Director Operations</span>
-              <LogOut className="w-4 h-4 text-slate-600" />
+            <div className="space-y-3 pt-4 border-t border-zinc-800 mt-4">
+              <Link 
+                href="/"
+                onClick={() => setIsMobileOpen(false)}
+                className="flex items-center justify-center gap-2 w-full p-3 bg-zinc-950 border border-zinc-800 rounded-xl text-[10px] font-black uppercase tracking-widest text-zinc-400"
+              >
+                <span>View Public Site</span>
+                <ExternalLink className="w-3 h-3 text-zinc-500" />
+              </Link>
+              
+              <div className="flex items-center justify-between text-zinc-500">
+                <span className="text-[10px] font-black uppercase tracking-wider">Director Operations</span>
+                <LogOut className="w-4 h-4 text-zinc-600" />
+              </div>
             </div>
           </div>
         </div>
