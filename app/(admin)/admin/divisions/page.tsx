@@ -76,17 +76,17 @@ export default async function AdminDivisionsPage() {
   }
 
   return (
-    <div className="space-y-8 max-w-5xl mx-auto">
+    <div className="space-y-10 max-w-5xl mx-auto text-slate-200">
       
       {/* HEADER ROW */}
-      <header className="border-b border-slate-200/60 pb-5">
-        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600 block mb-1">
+      <header className="border-b border-slate-900 pb-8">
+        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400 block mb-1">
           Infrastructure Engine
         </span>
-        <h1 className="text-3xl font-black text-slate-950 uppercase tracking-tighter italic">
-          Division <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-violet-600">Tiers</span>
+        <h1 className="text-4xl font-black text-white uppercase tracking-tighter italic leading-none">
+          Division <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-500">Tiers</span>
         </h1>
-        <p className="text-slate-500 font-medium text-xs mt-0.5">
+        <p className="text-slate-500 font-medium text-xs mt-1">
           Configure competitive matrix bounds, tier rankings, and modify structural assets instantly.
         </p>
       </header>
@@ -95,26 +95,26 @@ export default async function AdminDivisionsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
         {/* LEFT COLUMN: ACTIVE DIVISIONS LIST */}
-        <div className="lg:col-span-7 space-y-3">
-          <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 block px-1">
+        <div className="lg:col-span-7 space-y-4">
+          <span className="text-[9px] font-black uppercase tracking-widest text-slate-600 block px-1">
             Active Structural Strata ({divisionStats.length})
           </span>
 
           {divisionStats.map((div) => (
             <div 
               key={div.id} 
-              className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm flex items-center justify-between group hover:border-slate-300 transition-all"
+              className="bg-slate-900/40 border border-slate-900 p-5 rounded-2xl shadow-xl flex items-center justify-between group hover:border-slate-800 transition-all"
             >
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-xl bg-slate-950 text-white flex items-center justify-center text-xs font-black tracking-tight border border-slate-900 shadow-sm">
+              <div className="flex items-center gap-5">
+                <div className="w-11 h-11 rounded-xl bg-slate-950 text-white flex items-center justify-center text-xs font-black tracking-tight border border-slate-800 shadow-inner group-hover:border-indigo-500/30 transition-colors">
                   T{div.tier}
                 </div>
                 <div>
-                  <h3 className="font-black text-slate-950 text-sm tracking-tight group-hover:text-indigo-600 transition-colors">
+                  <h3 className="font-black text-white text-sm tracking-tight group-hover:text-indigo-400 transition-colors">
                     {div.name}
                   </h3>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1.5 mt-0.5">
-                    <Shield className="w-3 h-3 text-slate-300" /> {div.teamCount} Squads Allocated
+                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest flex items-center gap-1.5 mt-0.5">
+                    <Shield className="w-3 h-3 text-slate-700" /> {div.teamCount} Squads Allocated
                   </p>
                 </div>
               </div>
@@ -125,7 +125,7 @@ export default async function AdminDivisionsPage() {
                 <button
                   type="submit"
                   title={`Drop ${div.name}`}
-                  className="w-9 h-9 rounded-xl hover:bg-red-50 text-slate-400 hover:text-red-600 flex items-center justify-center border border-transparent hover:border-red-200/60 transition-all outline-none"
+                  className="w-9 h-9 rounded-xl bg-slate-950 border border-slate-800 text-slate-600 hover:text-rose-500 hover:border-rose-900/40 transition-all outline-none"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -134,46 +134,46 @@ export default async function AdminDivisionsPage() {
           ))}
 
           {divisionStats.length === 0 && (
-            <div className="bg-white border border-slate-200 rounded-2xl py-12 text-center text-slate-400 font-bold text-xs uppercase tracking-wider">
+            <div className="bg-slate-900/40 border border-slate-900 rounded-2xl py-12 text-center text-slate-700 font-black text-xs uppercase tracking-[0.2em] italic">
               No division levels mapped inside the schema yet.
             </div>
           )}
         </div>
 
         {/* RIGHT COLUMN: QUICK GENERATION FACTORY */}
-        <div className="lg:col-span-5 bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm sticky top-6">
-          <div className="flex items-center gap-2 pb-4 border-b border-slate-100 mb-5">
-            <FolderTree className="w-4 h-4 text-indigo-600" />
-            <h3 className="text-xs font-black uppercase tracking-widest text-slate-400">Initialize New Tier</h3>
+        <div className="lg:col-span-5 bg-slate-900/40 p-6 rounded-[2.5rem] border border-slate-900 shadow-2xl sticky top-6">
+          <div className="flex items-center gap-2 pb-4 border-b border-slate-800 mb-6">
+            <FolderTree className="w-4 h-4 text-indigo-400" />
+            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500">Initialize New Tier</h3>
           </div>
 
-          <form action={createDivisionAction} className="space-y-4">
+          <form action={createDivisionAction} className="space-y-5">
             <div className="space-y-1.5">
-              <label className="text-[9px] font-black uppercase tracking-wider text-slate-400 ml-1">Division Designation</label>
+              <label className="text-[9px] font-black uppercase tracking-wider text-slate-600 ml-1">Division Designation</label>
               <input
                 type="text"
                 name="divisionName"
                 placeholder="e.g. Championship Division"
                 required
-                className="w-full p-3.5 bg-slate-50 border border-slate-200/60 rounded-xl font-bold text-xs uppercase text-slate-800 outline-none focus:bg-white focus:ring-2 focus:ring-indigo-600"
+                className="w-full p-3.5 bg-slate-950 border border-slate-800 rounded-xl font-bold text-xs uppercase text-white outline-none focus:border-indigo-500 transition-all shadow-inner placeholder:text-slate-800"
               />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[9px] font-black uppercase tracking-wider text-slate-400 ml-1">Tier Priority Level Weight</label>
+              <label className="text-[9px] font-black uppercase tracking-wider text-slate-600 ml-1">Tier Priority Level Weight</label>
               <input
                 type="number"
                 name="tierLevel"
                 placeholder="e.g. 1"
                 min="1"
                 required
-                className="w-full p-3.5 bg-slate-50 border border-slate-200/60 rounded-xl font-bold text-xs text-slate-800 outline-none focus:bg-white focus:ring-2 focus:ring-indigo-600"
+                className="w-full p-3.5 bg-slate-950 border border-slate-800 rounded-xl font-bold text-xs text-white outline-none focus:border-indigo-500 transition-all shadow-inner"
               />
             </div>
 
             <button 
               type="submit" 
-              className="w-full mt-2 inline-flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase tracking-widest text-[10px] py-4 px-4 rounded-xl transition-all shadow-md shadow-indigo-100"
+              className="w-full mt-2 inline-flex items-center justify-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-widest text-[10px] py-4 px-4 rounded-xl transition-all shadow-lg shadow-indigo-900/20"
             >
               <Plus className="w-4 h-4 stroke-[2.5]" /> Launch Division Layer
             </button>

@@ -66,12 +66,12 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex text-zinc-200 antialiased selection:bg-indigo-600 selection:text-white">
+    <div className="min-h-screen bg-slate-950 flex text-slate-200 antialiased selection:bg-indigo-600 selection:text-white">
       
       {/* =========================================================================
          1. DESKTOP SIDEBAR RAIL (Premium Dark Arena Aesthetic)
          ========================================================================= */}
-      <aside className="hidden lg:flex flex-col w-72 bg-zinc-900 p-6 border-r border-zinc-800/80 shrink-0 sticky top-0 h-screen justify-between z-20">
+      <aside className="hidden lg:flex flex-col w-72 bg-slate-900 p-6 border-r border-slate-800/80 shrink-0 sticky top-0 h-screen justify-between z-20">
         <div className="space-y-8 overflow-y-auto scrollbar-none">
           
           {/* Competitive Arena Logo Header */}
@@ -87,7 +87,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
           {/* Group A: League Infrastructure Settings */}
           <nav className="space-y-1.5">
-            <span className="text-[10px] font-black uppercase tracking-[0.15em] text-zinc-600 block mb-3 px-4">
+            <span className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-600 block mb-3 px-4">
               Infrastructure
             </span>
             {renderNavList(structuralItems)}
@@ -95,7 +95,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
           {/* Group B: Active Operations Settings */}
           <nav className="space-y-1.5">
-            <span className="text-[10px] font-black uppercase tracking-[0.15em] text-zinc-600 block mb-3 px-4">
+            <span className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-600 block mb-3 px-4">
               Core Operations
             </span>
             {renderNavList(operationalItems)}
@@ -103,19 +103,19 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         </div>
 
         {/* User Identity Context Footer */}
-        <div className="border-t border-zinc-800/60 pt-4 flex items-center justify-between mt-4">
+        <div className="border-t border-slate-800/60 pt-4 flex items-center justify-between mt-4">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-zinc-800 border border-zinc-700/50 flex items-center justify-center text-xs font-black text-white uppercase shadow-md">
+            <div className="w-9 h-9 rounded-xl bg-slate-800 border border-slate-700/50 flex items-center justify-center text-xs font-black text-white uppercase shadow-md">
               OP
             </div>
             <div>
               <div className="text-xs font-black text-white leading-none">Operations Principal</div>
-              <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider mt-1 block">League Director</span>
+              <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mt-1 block">League Director</span>
             </div>
           </div>
           <button 
             title="Sign Out Session"
-            className="w-9 h-9 rounded-xl hover:bg-red-950/30 hover:text-red-400 flex items-center justify-center transition-colors text-zinc-500 border border-transparent hover:border-red-900/30"
+            className="w-9 h-9 rounded-xl hover:bg-red-950/30 hover:text-red-400 flex items-center justify-center transition-colors text-slate-500 border border-transparent hover:border-red-900/30"
           >
             <LogOut className="w-4 h-4" />
           </button>
@@ -125,7 +125,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       {/* =========================================================================
          2. MOBILE FLOATING ACTION HEADER BAR
          ========================================================================= */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-zinc-900 border-b border-zinc-800 px-4 flex items-center justify-between text-white z-30 shadow-md">
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-slate-900 border-b border-slate-800 px-4 flex items-center justify-between text-white z-30 shadow-md">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-indigo-600/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
             <Sparkles className="w-4 h-4 stroke-[2.5]" />
@@ -134,7 +134,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         </div>
         <button
           onClick={() => setIsMobileOpen(!isMobileOpen)}
-          className="w-10 h-10 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-center text-zinc-400 hover:text-white transition-all outline-none"
+          className="w-10 h-10 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-all outline-none"
         >
           {isMobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
@@ -145,7 +145,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
          ========================================================================= */}
       {isMobileOpen && (
         <div className="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40">
-          <div className="w-72 bg-zinc-900 h-full p-6 flex flex-col justify-between border-r border-zinc-800 animate-in slide-in-from-left duration-200">
+          <div className="w-72 bg-slate-900 h-full p-6 flex flex-col justify-between border-r border-slate-800 animate-in slide-in-from-left duration-200">
             <div className="space-y-6 overflow-y-auto">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-indigo-600/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-sm">
@@ -158,19 +158,19 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               </div>
 
               <div className="space-y-1.5">
-                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-600 block mb-2 px-4">Infrastructure</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-600 block mb-2 px-4">Infrastructure</span>
                 {renderNavList(structuralItems, true)}
               </div>
 
               <div className="space-y-1.5">
-                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-600 block mb-2 px-4">Core Operations</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-600 block mb-2 px-4">Core Operations</span>
                 {renderNavList(operationalItems, true)}
               </div>
             </div>
 
-            <div className="border-t border-zinc-800 pt-4 flex items-center justify-between text-zinc-500 mt-4">
+            <div className="border-t border-slate-800 pt-4 flex items-center justify-between text-slate-500 mt-4">
               <span className="text-[10px] font-black uppercase tracking-wider">Director Operations</span>
-              <LogOut className="w-4 h-4 text-zinc-600" />
+              <LogOut className="w-4 h-4 text-slate-600" />
             </div>
           </div>
         </div>

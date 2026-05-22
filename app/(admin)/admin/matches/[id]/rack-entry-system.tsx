@@ -75,24 +75,25 @@ export default function RackEntrySystem({
       <input type="hidden" name="racksJson" value={JSON.stringify(racks)} />
 
       {/* Score Header */}
-      <div className="bg-slate-900 rounded-[2rem] p-8 text-white flex justify-between items-center shadow-2xl border-b-4 border-indigo-500">
-        <div className="text-center flex-1">
-          <div className="text-7xl font-black tabular-nums">{homeScore}</div>
-          <div className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-2">Home Total</div>
+      <div className="bg-slate-900/40 backdrop-blur-md rounded-[2rem] p-8 text-white flex justify-between items-center shadow-2xl border border-slate-800 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/5 to-transparent pointer-events-none" />
+        <div className="text-center flex-1 relative z-10">
+          <div className="text-7xl font-black tabular-nums text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">{homeScore}</div>
+          <div className="text-[10px] text-slate-500 font-black uppercase tracking-[0.3em] mt-3">Home Arena</div>
         </div>
-        <div className="px-6 text-slate-700 font-black italic text-2xl">VS</div>
-        <div className="text-center flex-1">
-          <div className="text-7xl font-black tabular-nums">{awayScore}</div>
-          <div className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.3em] mt-2">Away Total</div>
+        <div className="px-6 text-slate-800 font-black italic text-2xl relative z-10">VS</div>
+        <div className="text-center flex-1 relative z-10">
+          <div className="text-7xl font-black tabular-nums text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">{awayScore}</div>
+          <div className="text-[10px] text-slate-500 font-black uppercase tracking-[0.3em] mt-3">Away Squad</div>
         </div>
       </div>
 
       <div className="space-y-4">
         {racks.map((rack, idx) => (
-          <div key={idx} className="bg-white border border-slate-200 rounded-3xl p-5 flex flex-col md:flex-row items-center gap-6 shadow-sm hover:border-indigo-300 transition-all group">
-            <div className="flex items-center gap-3">
-              <span className="text-slate-300 font-black text-sm">#{idx + 1}</span>
-              <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-md ${rack.type === 'double' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'}`}>
+          <div key={idx} className="bg-slate-900/40 border border-slate-900 rounded-3xl p-5 flex flex-col lg:flex-row items-center gap-6 shadow-xl hover:border-slate-800 transition-all group relative">
+            <div className="flex items-center gap-4 shrink-0">
+              <span className="text-slate-700 font-black font-mono italic text-sm">#{idx + 1}</span>
+              <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-lg tracking-widest border ${rack.type === 'double' ? 'bg-purple-950/30 text-purple-400 border-purple-900/40' : 'bg-indigo-950/30 text-indigo-400 border-indigo-900/40'}`}>
                 {rack.type}
               </span>
             </div>
@@ -103,7 +104,7 @@ export default function RackEntrySystem({
                 required
                 value={rack.homePlayer1Id} 
                 onChange={(e) => updateRack(idx, 'homePlayer1Id', e.target.value)}
-                className="w-full p-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs font-black uppercase text-white outline-none focus:border-indigo-500 transition-all shadow-inner"
               >
                 <option value="">Home Player</option>
                 {homePlayers.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -113,7 +114,7 @@ export default function RackEntrySystem({
                   required
                   value={rack.homePlayer2Id} 
                   onChange={(e) => updateRack(idx, 'homePlayer2Id', e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs font-black uppercase text-white outline-none focus:border-indigo-500 transition-all shadow-inner"
                 >
                   <option value="">Home Partner</option>
                   {homePlayers.map((p) => <option key={p.id} value={String(p.id)}>{p.name}</option>)}
@@ -122,16 +123,16 @@ export default function RackEntrySystem({
             </div>
 
             {/* Win Toggles */}
-            <div className="flex bg-slate-100 p-1.5 rounded-2xl shadow-inner">
+            <div className="flex bg-slate-950 p-1.5 rounded-[1.25rem] shadow-inner border border-slate-900/60">
               <button 
                 type="button" 
                 onClick={() => updateRack(idx, 'winner', 'home')}
-                className={`px-5 py-2.5 rounded-xl text-[10px] font-black transition-all ${rack.winner === 'home' ? 'bg-white text-indigo-600 shadow-md scale-105' : 'text-slate-400'}`}
+                className={`px-5 py-2.5 rounded-xl text-[9px] font-black tracking-widest transition-all ${rack.winner === 'home' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-600 hover:text-slate-400'}`}
               >HOME WIN</button>
               <button 
                 type="button" 
                 onClick={() => updateRack(idx, 'winner', 'away')}
-                className={`px-5 py-2.5 rounded-xl text-[10px] font-black transition-all ${rack.winner === 'away' ? 'bg-white text-indigo-600 shadow-md scale-105' : 'text-slate-400'}`}
+                className={`px-5 py-2.5 rounded-xl text-[9px] font-black tracking-widest transition-all ${rack.winner === 'away' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-600 hover:text-slate-400'}`}
               >AWAY WIN</button>
             </div>
 
@@ -141,7 +142,7 @@ export default function RackEntrySystem({
                 required
                 value={rack.awayPlayer1Id} 
                 onChange={(e) => updateRack(idx, 'awayPlayer1Id', e.target.value)}
-                className="w-full p-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs font-black uppercase text-white outline-none focus:border-indigo-500 transition-all shadow-inner"
               >
                 <option value="">Away Player</option>
                 {awayPlayers.map((p) => <option key={p.id} value={String(p.id)}>{p.name}</option>)}
@@ -151,7 +152,7 @@ export default function RackEntrySystem({
                   required
                   value={rack.awayPlayer2Id} 
                   onChange={(e) => updateRack(idx, 'awayPlayer2Id', e.target.value)}
-                  className="w-full p-2.5 bg-slate-50 border border-slate-100 rounded-xl text-sm font-semibold outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs font-black uppercase text-white outline-none focus:border-indigo-500 transition-all shadow-inner"
                 >
                   <option value="">Away Partner</option>
                   {awayPlayers.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -162,26 +163,26 @@ export default function RackEntrySystem({
             <button 
               type="button" 
               onClick={() => removeRack(idx)}
-              className="text-slate-300 hover:text-red-500 transition-colors p-2"
+              className="text-slate-700 hover:text-rose-500 transition-colors p-2 outline-none"
             >
-              ✕
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
             </button>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <button 
           type="button" 
           onClick={() => addRack('single')}
-          className="py-4 border-2 border-dashed border-slate-200 rounded-[1.5rem] text-slate-400 font-bold hover:bg-indigo-50 hover:border-indigo-300 hover:text-indigo-600 transition-all uppercase text-[10px] tracking-widest"
+          className="py-5 border-2 border-dashed border-slate-800 rounded-[1.5rem] text-slate-600 font-black hover:bg-indigo-950/20 hover:border-indigo-900/50 hover:text-indigo-400 transition-all uppercase text-[10px] tracking-[0.2em]"
         >
           + Add Singles Frame
         </button>
         <button 
           type="button" 
           onClick={() => addRack('double')}
-          className="py-4 border-2 border-dashed border-slate-200 rounded-[1.5rem] text-slate-400 font-bold hover:bg-purple-50 hover:border-purple-300 hover:text-purple-600 transition-all uppercase text-[10px] tracking-widest"
+          className="py-5 border-2 border-dashed border-slate-800 rounded-[1.5rem] text-slate-600 font-black hover:bg-purple-950/20 hover:border-purple-900/50 hover:text-purple-400 transition-all uppercase text-[10px] tracking-[0.2em]"
         >
           + Add Doubles Frame
         </button>
@@ -190,7 +191,7 @@ export default function RackEntrySystem({
       <button 
         type="submit" 
         disabled={racks.length === 0 || racks.some((r) => r.winner === null)}
-        className="w-full bg-indigo-600 text-white py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.2em] hover:bg-indigo-700 disabled:opacity-30 disabled:cursor-not-allowed shadow-2xl shadow-indigo-200 transition-all active:scale-[0.98]"
+        className="w-full bg-indigo-600 text-white py-6 rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] hover:bg-indigo-500 disabled:opacity-20 disabled:cursor-not-allowed shadow-2xl shadow-indigo-900/20 transition-all active:scale-[0.98] border border-indigo-500/50"
       >
         Submit Final Match Report
       </button>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Trophy, Shield, Columns, LayoutList, Home, Plane, Award } from "lucide-react";
 
@@ -60,7 +61,7 @@ export default function StandingsClient({
     <div className="space-y-6">
       
       {/* SELECTION CONTROL PANEL */}
-      <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200/80 flex flex-col md:flex-row gap-4 items-center justify-between">
+      <div className="bg-slate-900/80 backdrop-blur-md rounded-2xl p-4 shadow-xl border border-slate-800 flex flex-col md:flex-row gap-4 items-center justify-between">
         <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
           
           {/* Season Select Menu */}
@@ -68,7 +69,7 @@ export default function StandingsClient({
             <select
               value={selectedSeasonId || ""}
               onChange={(e) => handleParamChange('seasonId', e.target.value)}
-              className="w-full p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl font-bold text-xs text-slate-800 transition-colors outline-none cursor-pointer"
+              className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl font-bold text-xs text-slate-200 transition-colors outline-none cursor-pointer hover:border-slate-700"
             >
               {seasons.map((s) => (
                 <option key={s.id} value={s.id}>{s.name}</option>
@@ -81,7 +82,7 @@ export default function StandingsClient({
             <select
               value={selectedDivisionId || ""}
               onChange={(e) => handleParamChange('divisionId', e.target.value)}
-              className="w-full p-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-xl font-bold text-xs text-slate-800 transition-colors outline-none cursor-pointer"
+              className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl font-bold text-xs text-slate-200 transition-colors outline-none cursor-pointer hover:border-slate-700"
             >
               {divisions.map((d) => (
                 <option key={d.id} value={d.id}>{d.name}</option>
@@ -91,11 +92,11 @@ export default function StandingsClient({
         </div>
 
         {/* VIEW CONTROLLER TABS */}
-        <div className="bg-slate-100 p-1 rounded-xl flex items-center w-full md:w-auto border border-slate-200/40">
+        <div className="bg-slate-950 p-1 rounded-xl flex items-center w-full md:w-auto border border-slate-800/60">
           <button
             onClick={() => setViewMode('simple')}
             className={`flex-1 md:flex-none px-5 py-2 rounded-lg font-black text-xs uppercase tracking-tight transition-all flex items-center justify-center gap-2 ${
-              viewMode === 'simple' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+              viewMode === 'simple' ? 'bg-slate-900 text-indigo-400 shadow-lg' : 'text-slate-500 hover:text-slate-300'
             }`}
           >
             <LayoutList className="w-3.5 h-3.5" /> Simple View
@@ -103,7 +104,7 @@ export default function StandingsClient({
           <button
             onClick={() => setViewMode('advanced')}
             className={`flex-1 md:flex-none px-5 py-2 rounded-lg font-black text-xs uppercase tracking-tight transition-all flex items-center justify-center gap-2 ${
-              viewMode === 'advanced' ? 'bg-white text-indigo-600 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+              viewMode === 'advanced' ? 'bg-slate-900 text-indigo-400 shadow-lg' : 'text-slate-500 hover:text-slate-300'
             }`}
           >
             <Columns className="w-3.5 h-3.5" /> Advanced Matrix
@@ -112,7 +113,7 @@ export default function StandingsClient({
       </div>
 
       {/* CORE STATS RENDER BOARD */}
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-slate-900/40 border border-slate-900 rounded-3xl shadow-2xl overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             
@@ -120,34 +121,34 @@ export default function StandingsClient({
             {viewMode === 'simple' && (
               <>
                 <thead>
-                  <tr className="bg-slate-50 text-slate-700 font-bold uppercase text-[10px] tracking-wider border-b border-slate-200">
+                  <tr className="bg-slate-900/60 text-slate-400 font-bold uppercase text-[10px] tracking-wider border-b border-slate-800">
                     <th className="px-6 py-4 w-16 text-center">Pos</th>
                     <th className="px-6 py-4">Squad Club</th>
                     <th className="px-4 py-4 text-center">Played</th>
-                    <th className="px-4 py-4 text-center text-emerald-600">Won</th>
-                    <th className="px-4 py-4 text-center text-slate-400">Drawn</th>
-                    <th className="px-4 py-4 text-center text-rose-500">Lost</th>
+                    <th className="px-4 py-4 text-center text-emerald-400">Won</th>
+                    <th className="px-4 py-4 text-center text-slate-500">Drawn</th>
+                    <th className="px-4 py-4 text-center text-rose-400">Lost</th>
                     <th className="px-4 py-4 text-center">Frames +/-</th>
-                    <th className="px-6 py-4 text-center bg-indigo-600 text-white font-black w-24">Points</th>
+                    <th className="px-6 py-4 text-center bg-indigo-600/20 text-indigo-400 font-black w-24 border-l border-slate-800">Points</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-150 font-medium text-slate-600">
+                <tbody className="divide-y divide-slate-800/60 font-medium text-slate-300">
                   {standings.map((row, index) => (
-                    <tr key={row.id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="px-6 py-4 text-center font-mono font-bold text-slate-400 text-[11px]">
+                    <tr key={row.id} className="hover:bg-slate-900/40 transition-colors group">
+                      <td className="px-6 py-4 text-center font-mono font-bold text-slate-500 text-[11px]">
                         {index + 1}
                       </td>
-                      <td className="px-6 py-4 font-black text-slate-900 text-[13px] uppercase tracking-tight">
-                        {row.name}
+                      <td className="px-6 py-4 font-black text-white text-[13px] uppercase tracking-tight group-hover:text-indigo-400 transition-colors">
+                        <Link href={`/teams/${row.id}`}>{row.name}</Link>
                       </td>
                       <td className="px-4 py-4 text-center font-mono tabular-nums">{row.overallPlayed}</td>
-                      <td className="px-4 py-4 text-center font-bold text-emerald-600 font-mono tabular-nums">{row.overallWins}</td>
-                      <td className="px-4 py-4 text-center text-slate-400 font-mono tabular-nums">{row.overallDraws}</td>
-                      <td className="px-4 py-4 text-center text-rose-400 font-mono tabular-nums">{row.overallLosses}</td>
-                      <td className="px-4 py-4 text-center font-mono tabular-nums font-semibold">
-                        {row.overallFramesWon}-{row.overallFramesLost} ({row.frameDifference > 0 ? `+${row.frameDifference}` : row.frameDifference})
+                      <td className="px-4 py-4 text-center font-bold text-emerald-400 font-mono tabular-nums">{row.overallWins}</td>
+                      <td className="px-4 py-4 text-center text-slate-500 font-mono tabular-nums">{row.overallDraws}</td>
+                      <td className="px-4 py-4 text-center text-rose-400/80 font-mono tabular-nums">{row.overallLosses}</td>
+                      <td className="px-4 py-4 text-center font-mono tabular-nums font-semibold text-slate-400">
+                        {row.overallFramesWon}-{row.overallFramesLost} <span className="text-[10px] ml-1">({row.frameDifference > 0 ? `+${row.frameDifference}` : row.frameDifference})</span>
                       </td>
-                      <td className="px-6 py-4 text-center bg-indigo-50/30 text-indigo-600 font-black font-mono text-sm shadow-inner">
+                      <td className="px-6 py-4 text-center bg-indigo-950/30 text-indigo-400 font-black font-mono text-sm border-l border-slate-800">
                         {row.overallPoints}
                       </td>
                     </tr>
@@ -160,68 +161,70 @@ export default function StandingsClient({
             {viewMode === 'advanced' && (
               <>
                 <thead>
-                  <tr className="bg-slate-50/70 text-slate-400 text-[9px] font-bold uppercase tracking-widest border-b border-slate-200/60">
+                  <tr className="bg-slate-900/60 text-slate-500 text-[9px] font-black uppercase tracking-widest border-b border-slate-800">
                     <th className="px-4 py-2" colSpan={2}></th>
-                    <th className="px-4 py-2 text-center border-x border-slate-200/60 bg-slate-50/40" colSpan={4}>
-                      <span className="inline-flex items-center gap-1.5"><Home className="w-3 h-3 text-amber-600" /> Home Context</span>
+                    <th className="px-4 py-2 text-center border-x border-slate-800 bg-slate-950/40" colSpan={4}>
+                      <span className="inline-flex items-center gap-1.5"><Home className="w-3 h-3 text-amber-500" /> Home Context</span>
                     </th>
-                    <th className="px-4 py-2 text-center border-r border-slate-200/60 bg-slate-50/20" colSpan={4}>
-                      <span className="inline-flex items-center gap-1.5"><Plane className="w-3 h-3 text-indigo-500" /> Away Context</span>
+                    <th className="px-4 py-2 text-center border-r border-slate-800 bg-slate-950/20" colSpan={4}>
+                      <span className="inline-flex items-center gap-1.5"><Plane className="w-3 h-3 text-indigo-400" /> Away Context</span>
                     </th>
-                    <th className="px-4 py-2 text-center bg-indigo-50/40 text-indigo-950" colSpan={5}>
-                      <span className="inline-flex items-center gap-1.5"><Award className="w-3.5 h-3.5 text-indigo-600" /> Aggregate Totals</span>
+                    <th className="px-4 py-2 text-center bg-indigo-950/40 text-indigo-400" colSpan={5}>
+                      <span className="inline-flex items-center gap-1.5"><Award className="w-3.5 h-3.5 text-indigo-400" /> Aggregate Totals</span>
                     </th>
                   </tr>
-                  <tr className="bg-slate-50 text-slate-700 font-bold uppercase text-[9px] tracking-wider border-b border-slate-200">
+                  <tr className="bg-slate-900/80 text-slate-400 font-bold uppercase text-[9px] tracking-wider border-b border-slate-800">
                     <th className="px-4 py-3.5 text-center w-12">Rank</th>
-                    <th className="px-4 py-3.5 border-r border-slate-200/60">Squad Club</th>
+                    <th className="px-4 py-3.5 border-r border-slate-800">Squad Club</th>
                     
                     {/* Home Segment */}
                     <th className="px-2.5 py-3.5 text-center">P</th>
-                    <th className="px-2.5 py-3.5 text-center text-emerald-600">W</th>
-                    <th className="px-2.5 py-3.5 text-center text-slate-400">D</th>
-                    <th className="px-2.5 py-3.5 text-center border-r border-slate-200/60 text-rose-400">L</th>
+                    <th className="px-2.5 py-3.5 text-center text-emerald-400">W</th>
+                    <th className="px-2.5 py-3.5 text-center text-slate-500">D</th>
+                    <th className="px-2.5 py-3.5 text-center border-r border-slate-800 text-rose-400">L</th>
 
                     {/* Away Segment */}
                     <th className="px-2.5 py-3.5 text-center">P</th>
-                    <th className="px-2.5 py-3.5 text-center text-emerald-600">W</th>
-                    <th className="px-2.5 py-3.5 text-center text-slate-400">D</th>
-                    <th className="px-2.5 py-3.5 text-center border-r border-slate-200/60 text-rose-400">L</th>
+                    <th className="px-2.5 py-3.5 text-center text-emerald-400">W</th>
+                    <th className="px-2.5 py-3.5 text-center text-slate-500">D</th>
+                    <th className="px-2.5 py-3.5 text-center border-r border-slate-800 text-rose-400">L</th>
 
                     {/* Global Segment */}
-                    <th className="px-2.5 py-3.5 text-center bg-indigo-50/10">Played</th>
-                    <th className="px-2.5 py-3.5 text-center bg-indigo-50/10 text-emerald-600 font-black">W</th>
-                    <th className="px-2.5 py-3.5 text-center bg-indigo-50/10 text-rose-400 font-black">L</th>
-                    <th className="px-3 py-3.5 text-center bg-indigo-50/20 font-bold">Frames</th>
-                    <th className="px-4 py-3.5 text-center bg-indigo-600 text-white font-black">PTS</th>
+                    <th className="px-2.5 py-3.5 text-center bg-indigo-950/10">Played</th>
+                    <th className="px-2.5 py-3.5 text-center bg-indigo-950/10 text-emerald-400 font-black">W</th>
+                    <th className="px-2.5 py-3.5 text-center bg-indigo-950/10 text-rose-400 font-black">L</th>
+                    <th className="px-3 py-3.5 text-center bg-indigo-950/20 font-bold border-l border-slate-800">Frames</th>
+                    <th className="px-4 py-3.5 text-center bg-indigo-600/40 text-white font-black border-l border-slate-800">PTS</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-150 font-medium text-slate-600 text-[11px]">
+                <tbody className="divide-y divide-slate-800/60 font-medium text-slate-400 text-[11px]">
                   {standings.map((row, index) => (
-                    <tr key={row.id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="px-4 py-3 text-center font-mono font-bold text-slate-400 border-r border-slate-100">{index + 1}</td>
-                      <td className="px-4 py-3 font-black text-slate-900 uppercase border-r border-slate-200/60 tracking-tight text-[12px]">{row.name}</td>
+                    <tr key={row.id} className="hover:bg-slate-900/40 transition-colors group">
+                      <td className="px-4 py-3 text-center font-mono font-bold text-slate-600 border-r border-slate-900">{index + 1}</td>
+                      <td className="px-4 py-3 font-black text-white uppercase border-r border-slate-800 tracking-tight text-[12px] group-hover:text-indigo-400 transition-colors">
+                        <Link href={`/teams/${row.id}`}>{row.name}</Link>
+                      </td>
                       
                       {/* Home */}
                       <td className="px-2.5 py-3 text-center font-mono text-slate-500">{row.home.played}</td>
-                      <td className="px-2.5 py-3 text-center font-bold text-emerald-600 font-mono">{row.home.wins}</td>
-                      <td className="px-2.5 py-3 text-center text-slate-400 font-mono">{row.home.draws}</td>
-                      <td className="px-2.5 py-3 text-center text-rose-400 font-mono border-r border-slate-200/60">{row.home.losses}</td>
+                      <td className="px-2.5 py-3 text-center font-bold text-emerald-400/80 font-mono">{row.home.wins}</td>
+                      <td className="px-2.5 py-3 text-center text-slate-600 font-mono">{row.home.draws}</td>
+                      <td className="px-2.5 py-3 text-center text-rose-400/60 font-mono border-r border-slate-800">{row.home.losses}</td>
 
                       {/* Away */}
                       <td className="px-2.5 py-3 text-center font-mono text-slate-500">{row.away.played}</td>
-                      <td className="px-2.5 py-3 text-center font-bold text-emerald-600 font-mono">{row.away.wins}</td>
-                      <td className="px-2.5 py-3 text-center text-slate-400 font-mono">{row.away.draws}</td>
-                      <td className="px-2.5 py-3 text-center text-rose-400 font-mono border-r border-slate-200/60">{row.away.losses}</td>
+                      <td className="px-2.5 py-3 text-center font-bold text-emerald-400/80 font-mono">{row.away.wins}</td>
+                      <td className="px-2.5 py-3 text-center text-slate-600 font-mono">{row.away.draws}</td>
+                      <td className="px-2.5 py-3 text-center text-rose-400/60 font-mono border-r border-slate-800">{row.away.losses}</td>
 
                       {/* Aggregate */}
-                      <td className="px-2.5 py-3 text-center font-mono bg-indigo-50/[0.05] text-slate-500">{row.overallPlayed}</td>
-                      <td className="px-2.5 py-3 text-center font-extrabold text-emerald-600 bg-indigo-50/[0.05] font-mono">{row.overallWins}</td>
-                      <td className="px-2.5 py-3 text-center font-extrabold text-rose-400 bg-indigo-50/[0.05] font-mono">{row.overallLosses}</td>
-                      <td className="px-3 py-3 text-center font-mono bg-indigo-50/[0.1] font-semibold tabular-nums text-slate-700">
+                      <td className="px-2.5 py-3 text-center font-mono bg-indigo-950/[0.05] text-slate-500">{row.overallPlayed}</td>
+                      <td className="px-2.5 py-3 text-center font-extrabold text-emerald-400/90 bg-indigo-950/[0.05] font-mono">{row.overallWins}</td>
+                      <td className="px-2.5 py-3 text-center font-extrabold text-rose-400/70 bg-indigo-950/[0.05] font-mono">{row.overallLosses}</td>
+                      <td className="px-3 py-3 text-center font-mono bg-indigo-950/[0.1] font-semibold tabular-nums text-slate-400 border-l border-slate-800">
                         {row.overallFramesWon}:{row.overallFramesLost}
                       </td>
-                      <td className="px-4 py-3 text-center bg-indigo-600 text-white font-black font-mono text-xs shadow-sm italic">
+                      <td className="px-4 py-3 text-center bg-indigo-950 text-indigo-400 font-black font-mono text-xs shadow-inner border-l border-slate-800 italic">
                         {row.overallPoints}
                       </td>
                     </tr>

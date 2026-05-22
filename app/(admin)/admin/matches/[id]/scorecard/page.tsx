@@ -136,32 +136,33 @@ export default async function MatchScorecardPage({ params }: PageProps) {
   }
 
   return (
-    <div className="space-y-8 pb-16 max-w-5xl mx-auto px-4 pt-4 text-slate-900">
+    <div className="space-y-8 pb-16 max-w-5xl mx-auto px-4 pt-4 text-slate-200">
       <header className="flex items-center justify-between">
-        <Link href={`/admin/matches/${matchId}`} className="inline-flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-indigo-600 transition-all">
+        <Link href={`/admin/matches/${matchId}`} className="inline-flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-indigo-400 transition-all">
           <ArrowLeft className="w-4 h-4" /> Return to Match Details
         </Link>
-        <span className="text-[10px] bg-slate-100 border border-slate-200 text-slate-500 font-bold px-3 py-1 rounded-full uppercase">
+        <span className="text-[10px] bg-slate-900 border border-slate-800 text-slate-500 font-black px-4 py-1.5 rounded-xl uppercase tracking-[0.2em] shadow-inner">
           Scorecard Matrix #{matchId}
         </span>
       </header>
 
-      <section className="bg-slate-950 rounded-[2.5rem] p-8 text-white shadow-xl relative overflow-hidden text-center">
-        <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+      <section className="bg-slate-900/40 backdrop-blur-md rounded-[2.5rem] p-8 text-white shadow-2xl border border-slate-900 relative overflow-hidden text-center">
+        <div className="absolute inset-0 bg-indigo-500/5 blur-3xl pointer-events-none"></div>
+        <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
           <div className="text-center md:text-right">
-            <span className="text-[8px] font-mono tracking-widest text-slate-500 block uppercase">HOME</span>
-            <span className="text-lg font-black uppercase text-white">{match.homeTeamName || "Home Club"}</span>
+            <span className="text-[8px] font-black tracking-[0.3em] text-slate-600 block uppercase mb-1.5">Home Arena</span>
+            <span className="text-lg md:text-xl font-black uppercase text-white tracking-tight">{match.homeTeamName || "Home Club"}</span>
           </div>
-          <div className="bg-slate-900 px-4 py-2 border border-slate-800 rounded-2xl w-max mx-auto">
-            <span className="text-xl font-mono tracking-wider font-black text-indigo-400">
-              {match.homeTeamScoreTotal ?? 0} - {match.awayTeamScoreTotal ?? 0}
+          <div className="bg-slate-950 px-6 py-3 border border-slate-800 rounded-2xl w-max mx-auto shadow-2xl">
+            <span className="text-2xl font-mono tracking-[0.2em] font-black text-indigo-400 drop-shadow-[0_0_10px_rgba(129,140,248,0.3)]">
+              {match.homeTeamScoreTotal ?? 0} <span className="text-slate-800 text-xl font-normal mx-0.5">:</span> {match.awayTeamScoreTotal ?? 0}
             </span>
           </div>
           <div className="text-center md:text-left">
-            <span className="text-[8px] font-mono tracking-widest text-slate-500 block uppercase">AWAY</span>
-            <span className="text-lg font-black uppercase text-white">{awayTeamName}</span>
+            <span className="text-[8px] font-black tracking-[0.3em] text-slate-600 block uppercase mb-1.5">Away Squad</span>
+            <span className="text-lg md:text-xl font-black uppercase text-white tracking-tight">{awayTeamName}</span>
           </div>
-          </div>
+        </div>
       </section>
 
       {/* Render the core interactive UI client component layer */}

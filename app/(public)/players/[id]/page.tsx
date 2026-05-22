@@ -79,18 +79,33 @@ export default async function PlayerProfilePage({ params }: PageProps) {
   });
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-12">
-      <div className="max-w-5xl mx-auto space-y-8">
-        <header>
-          <Link href="/players" className="inline-flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-indigo-600 transition-all">
-            <ArrowLeft className="w-4 h-4" /> Back to Analytics Leaderboard
+    <div className="min-h-screen bg-slate-950 pb-16 text-slate-100">
+      
+      {/* HERO SECTION */}
+      <div className="relative overflow-hidden bg-slate-950 border-b border-slate-900/60">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#0f172a_1px,transparent_1px),linear-gradient(to_bottom,#0f172a_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-60 pointer-events-none" />
+        
+        <div className="max-w-6xl mx-auto px-4 py-8 relative z-10 space-y-6">
+          <Link href="/players" className="inline-flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-indigo-400 transition-all">
+            <ArrowLeft className="w-4 h-4" /> Return to Analytics Leaderboard
           </Link>
-        </header>
+          
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400 block mb-1">Competitor Profile</span>
+              <h1 className="text-3xl font-black text-white uppercase tracking-tighter italic">
+                Player <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-500">Insights</span>
+              </h1>
+            </div>
+          </div>
+        </div>
+      </div>
 
+      <div className="max-w-5xl mx-auto px-4 py-10">
         <PlayerProfileClient
           playerId={playerId}
           playerName={player.name}
-          imageUrl={player.imageUrl} // <-- FORWARD DIRECTLY DOWN
+          imageUrl={player.imageUrl}
           teamName={player.teamName || "Unassigned Agent"}
           games={rawGames as any} 
           seasons={allSeasons}

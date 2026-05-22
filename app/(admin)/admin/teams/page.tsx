@@ -62,32 +62,33 @@ export default async function AdminTeamsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6 md:p-12">
-      <div className="max-w-4xl mx-auto">
-        <header className="mb-10">
-          <h1 className="text-4xl font-black text-slate-900 uppercase tracking-tighter italic">Team Management</h1>
-          <p className="text-slate-500 font-medium">Register new teams and assign them to active divisions.</p>
+    <div className="min-h-screen bg-slate-950 p-6 md:p-12 text-slate-200">
+      <div className="max-w-4xl mx-auto space-y-10">
+        <header className="border-b border-slate-900 pb-8">
+          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400 block mb-1">Database Operations</span>
+          <h1 className="text-4xl font-black text-white uppercase tracking-tighter italic">Team <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-500">Management</span></h1>
+          <p className="text-slate-500 font-medium text-xs mt-1">Register new teams and assign them to active divisions.</p>
         </header>
 
         {/* Add Team Form */}
-        <div className="bg-white rounded-[2.5rem] p-8 shadow-xl border border-slate-200 mb-10">
-          <form action={addTeam} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+        <div className="bg-slate-900/40 rounded-[2.5rem] p-8 shadow-2xl border border-slate-900">
+          <form action={addTeam} className="grid grid-cols-1 md:grid-cols-12 gap-6 items-end">
             <div className="md:col-span-5 space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Team Name</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-600 ml-2">Team Name</label>
               <input 
                 name="name" 
                 placeholder="Enter Team Name..." 
                 required 
-                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-900"
+                className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-indigo-500 outline-none font-bold text-white placeholder:text-slate-800 transition-all shadow-inner"
               />
             </div>
 
             <div className="md:col-span-4 space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Assign Division</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-600 ml-2">Assign Division</label>
               <select 
                 name="divisionId" 
                 required 
-                className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-900 appearance-none"
+                className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-indigo-500 outline-none font-bold text-white appearance-none transition-all shadow-inner"
               >
                 <option value="">Select Division</option>
                 {allDivisions.map((div) => (
@@ -99,7 +100,7 @@ export default async function AdminTeamsPage() {
             </div>
 
             <div className="md:col-span-3">
-              <button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white p-4 rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-100 active:scale-95">
+              <button className="w-full bg-indigo-600 hover:bg-indigo-500 text-white p-4 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-900/20 active:scale-95">
                 <Plus className="w-4 h-4" /> Register Team
               </button>
             </div>
@@ -107,41 +108,42 @@ export default async function AdminTeamsPage() {
         </div>
 
         {/* Teams List */}
-        <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
-          <div className="px-8 py-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
-            <h2 className="font-black text-slate-900 uppercase tracking-tight">Active Rosters</h2>
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{allTeams.length} Total Teams</span>
+        <div className="bg-slate-900/40 rounded-[2.5rem] border border-slate-900 shadow-2xl overflow-hidden">
+          <div className="px-8 py-6 border-b border-slate-800 bg-slate-900/60 flex justify-between items-center">
+            <h2 className="font-black text-white uppercase tracking-tight text-sm">Active Rosters</h2>
+            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{allTeams.length} Total Teams</span>
           </div>
           
-          <div className="divide-y divide-slate-50">
+          <div className="divide-y divide-slate-800/60">
             {allTeams.map((team) => (
-              <div key={team.id} className="p-6 md:px-8 flex justify-between items-center hover:bg-slate-50/80 transition-colors group">
+              <div key={team.id} className="p-6 md:px-8 flex justify-between items-center hover:bg-slate-900/40 transition-colors group">
                 <div className="flex items-center gap-6">
-                  <div className="bg-slate-100 p-3 rounded-xl group-hover:bg-white transition-colors">
-                    <Users className="w-5 h-5 text-slate-400 group-hover:text-indigo-600" />
+                  <div className="bg-slate-950 p-3 rounded-xl border border-slate-900 group-hover:border-indigo-500/30 transition-colors shadow-inner">
+                    <Users className="w-5 h-5 text-slate-700 group-hover:text-indigo-400" />
                   </div>
                   <div>
-                    <h3 className="font-black text-slate-900 uppercase tracking-tight">{team.name}</h3>
+                    <h3 className="font-black text-white uppercase tracking-tight group-hover:text-indigo-400 transition-colors">{team.name}</h3>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{team.seasonName}</span>
-                      <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
-                      <span className="text-[10px] font-black text-indigo-500 uppercase tracking-widest">{team.divisionName}</span>
+                      <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{team.seasonName}</span>
+                      <span className="w-1 h-1 bg-slate-800 rounded-full"></span>
+                      <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest bg-indigo-950/30 px-2 py-0.5 rounded-md border border-indigo-900/30 shadow-sm">
+                        {team.divisionName}
+                      </span>
                     </div>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {/* NEW EDIT BUTTON */}
                   <Link 
                     href={`/admin/teams/${team.id}`}
-                    className="p-2 text-slate-300 hover:text-indigo-600 transition-colors"
+                    className="p-2 text-slate-600 hover:text-indigo-400 transition-colors"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
                   </Link>
 
                   <form action={deleteTeam}>
                     <input type="hidden" name="id" value={team.id} />
-                    <button className="p-2 text-slate-200 hover:text-red-500 transition-colors">
+                    <button className="p-2 text-slate-800 hover:text-red-500 transition-colors">
                       <Trash2 className="w-5 h-5" />
                     </button>
                   </form>
@@ -150,8 +152,8 @@ export default async function AdminTeamsPage() {
             ))}
 
             {allTeams.length === 0 && (
-              <div className="p-20 text-center text-slate-300 font-bold uppercase tracking-widest italic">
-                No teams registered. Start by adding one above.
+              <div className="p-20 text-center text-slate-800 font-black uppercase tracking-[0.2em] italic text-xs">
+                No teams registered inside the system ledger.
               </div>
             )}
           </div>

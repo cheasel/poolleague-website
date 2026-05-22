@@ -97,70 +97,70 @@ export default function PlayerProfileClient({
   return (
     <div className="space-y-8">
       {/* Jumbotron Hero Card Container */}
-      <div className="bg-slate-900 rounded-[2.5rem] p-8 md:p-12 text-white shadow-2xl relative overflow-hidden">
+      <div className="bg-slate-900/40 backdrop-blur-md rounded-[2.5rem] p-8 md:p-12 text-white shadow-2xl border border-slate-900 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-full bg-indigo-600/10 blur-[100px] rounded-full"></div>
         
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 relative z-10">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
             
             {/* LARGE HEADER HERO PHOTO */}
-            <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl overflow-hidden border-2 border-indigo-500/30 bg-slate-800 shrink-0 shadow-xl flex items-center justify-center">
+            <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl overflow-hidden border-2 border-indigo-500/30 bg-slate-950 shrink-0 shadow-xl flex items-center justify-center">
               {imageUrl ? (
                 <img src={imageUrl} alt={playerName} className="w-full h-full object-cover" />
               ) : (
-                <div className="text-3xl font-black text-slate-500 uppercase">{playerName.charAt(0)}</div>
+                <div className="text-3xl font-black text-slate-700 uppercase">{playerName.charAt(0)}</div>
               )}
             </div>
 
-            <div>
+            <div className="space-y-4">
               <div className="flex flex-wrap items-center gap-4 mb-2">
                 <span className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-400">{teamName}</span>
                 <select
                   value={selectedSeasonId}
                   onChange={(e) => setSelectedSeasonId(e.target.value)}
-                  className="bg-slate-800 border border-slate-700 text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl outline-none"
+                  className="bg-slate-950 border border-slate-800 text-slate-300 text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl outline-none hover:border-slate-700 transition-colors"
                 >
                   <option value="all">All Seasons Combined</option>
                   {seasons.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
               </div>
-              <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tighter italic leading-none mb-4">{playerName}</h1>
+              <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tighter italic leading-none">{playerName}</h1>
               <div className="flex items-center gap-2 mt-4">
                 {stats.formArray.map((f, idx) => (
-                  <span key={idx} className={`w-6 h-6 rounded-lg text-[10px] font-black flex items-center justify-center ${f === 'W' ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}`}>{f}</span>
+                  <span key={idx} className={`w-7 h-7 rounded-lg text-[10px] font-black flex items-center justify-center ${f === 'W' ? 'bg-indigo-600 text-white shadow-lg' : 'bg-slate-950 text-slate-500 border border-slate-800'}`}>{f}</span>
                 ))}
               </div>
             </div>
           </div>
 
-          <div className="bg-slate-800/80 backdrop-blur border border-slate-700/50 rounded-3xl p-6 text-center w-full md:w-auto min-w-[180px]">
-            <div className="text-5xl font-black tracking-tight text-indigo-400 tabular-nums">{stats.winPct}%</div>
-            <div className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400 mt-2">Frame Win Rate</div>
+          <div className="bg-slate-950/80 backdrop-blur border border-slate-800 rounded-3xl p-6 text-center w-full md:w-auto min-w-[180px] shadow-2xl">
+            <div className="text-5xl font-black tracking-tight text-indigo-400 tabular-nums drop-shadow-[0_0_15px_rgba(129,140,248,0.3)]">{stats.winPct}%</div>
+            <div className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 mt-2">Frame Win Rate</div>
           </div>
         </div>
       </div>
 
       {/* Cards Matrix Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
-          <div className="flex items-center gap-3 mb-4 text-slate-400"><Trophy className="w-4 h-4 text-amber-500" /><h3 className="text-[10px] font-black uppercase tracking-widest">Singles</h3></div>
-          <div className="text-2xl font-black text-slate-900 tabular-nums">{stats.singlesWins}W - {stats.singlesLosses}L</div>
+        <div className="bg-slate-900/40 p-6 rounded-[2rem] border border-slate-900 shadow-xl">
+          <div className="flex items-center gap-3 mb-4 text-slate-500"><Trophy className="w-4 h-4 text-amber-500" /><h3 className="text-[10px] font-black uppercase tracking-widest">Singles Record</h3></div>
+          <div className="text-2xl font-black text-white tabular-nums">{stats.singlesWins}W - {stats.singlesLosses}L</div>
         </div>
-        <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
-          <div className="flex items-center gap-3 mb-4 text-slate-400"><Users className="w-4 h-4 text-purple-500" /><h3 className="text-[10px] font-black uppercase tracking-widest">Doubles</h3></div>
-          <div className="text-2xl font-black text-slate-900 tabular-nums">{stats.doublesWins}W - {stats.doublesLosses}L</div>
+        <div className="bg-slate-900/40 p-6 rounded-[2rem] border border-slate-900 shadow-xl">
+          <div className="flex items-center gap-3 mb-4 text-slate-500"><Users className="w-4 h-4 text-indigo-400" /><h3 className="text-[10px] font-black uppercase tracking-widest">Doubles Record</h3></div>
+          <div className="text-2xl font-black text-white tabular-nums">{stats.doublesWins}W - {stats.doublesLosses}L</div>
         </div>
-        <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
-          <div className="flex items-center gap-3 mb-4 text-slate-400"><TrendingUp className="w-4 h-4 text-indigo-500" /><h3 className="text-[10px] font-black uppercase tracking-widest">Chemistry Partner</h3></div>
-          <div className="text-sm font-black text-slate-900 uppercase truncate tracking-tight">{stats.bestPartner}</div>
+        <div className="bg-slate-900/40 p-6 rounded-[2rem] border border-slate-900 shadow-xl">
+          <div className="flex items-center gap-3 mb-4 text-slate-500"><TrendingUp className="w-4 h-4 text-pink-400" /><h3 className="text-[10px] font-black uppercase tracking-widest">Prime Partner</h3></div>
+          <div className="text-sm font-black text-white uppercase truncate tracking-tight">{stats.bestPartner}</div>
         </div>
       </div>
 
       {/* Ledger */}
-      <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-6 md:px-8 border-b border-slate-100 bg-slate-50/50">
-          <h2 className="font-black text-slate-900 uppercase tracking-tight text-lg flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-slate-400" /> 
+      <div className="bg-slate-900/40 border border-slate-900 rounded-[2.5rem] shadow-2xl overflow-hidden">
+        <div className="p-6 md:px-8 border-b border-slate-800 bg-slate-900/60">
+          <h2 className="font-black text-white uppercase tracking-tight text-lg flex items-center gap-2">
+            <Calendar className="w-5 h-5 text-indigo-400" /> 
             {filteredGames.length > 0 && filteredGames[0].divisionName ? (
               <span>{filteredGames[0].divisionName} Records</span>
             ) : (
@@ -169,7 +169,7 @@ export default function PlayerProfileClient({
           </h2>
         </div>
 
-        <div className="divide-y divide-slate-100">
+        <div className="divide-y divide-slate-800/60">
           {filteredGames.map((game) => {
             const isHome = game.player1Id === playerId || game.player1PartnerId === playerId;
             const isWin = isHome ? (game.player1Score! > game.player2Score!) : (game.player2Score! > game.player1Score!);
@@ -183,17 +183,17 @@ export default function PlayerProfileClient({
             }
 
             return (
-              <div key={game.id} className="p-6 md:px-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/50 transition-colors">
+              <div key={game.id} className="p-6 md:px-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-900/40 transition-colors group">
                 <div className="flex items-center gap-6">
-                  <span className={`text-xs font-black px-3 py-1.5 rounded-xl border tabular-nums min-w-[60px] text-center ${isWin ? 'bg-green-50 text-green-600 border-green-100' : 'bg-red-50 text-red-500 border-red-100'}`}>{isWin ? 'WIN' : 'LOSS'}</span>
+                  <span className={`text-[10px] font-black px-3 py-1.5 rounded-xl border tabular-nums min-w-[70px] text-center tracking-widest ${isWin ? 'bg-indigo-600 text-white border-transparent shadow-lg shadow-indigo-900/20' : 'bg-slate-950 text-slate-500 border-slate-800'}`}>{isWin ? 'VICTORY' : 'DEFEAT'}</span>
                   <div>
-                    <div className="font-black text-slate-900 uppercase text-sm flex items-center gap-1.5 flex-wrap"><User className="w-3.5 h-3.5 text-slate-400" /><span>vs {opponentNames.join(" & ") || "Vacant"}</span></div>
-                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">{isHome ? game.awayTeamName : game.homeTeamName} • {game.matchDate ? new Date(game.matchDate).toLocaleDateString('en-GB') : "TBD"}</div>
+                    <div className="font-black text-white uppercase text-sm flex items-center gap-1.5 flex-wrap group-hover:text-indigo-400 transition-colors"><User className="w-3.5 h-3.5 text-slate-600" /><span>vs {opponentNames.join(" & ") || "Vacant"}</span></div>
+                    <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-0.5">{isHome ? game.awayTeamName : game.homeTeamName} • {game.matchDate ? new Date(game.matchDate).toLocaleDateString('en-GB') : "TBD"}</div>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 self-end sm:self-center">
-                  <span className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">{game.seasonName}</span>
-                  <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-md tracking-wider ${game.gameType === 'double' ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'}`}>{game.gameType}</span>
+                  <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">{game.seasonName}</span>
+                  <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-lg tracking-widest border ${game.gameType === 'double' ? 'bg-purple-950/30 text-purple-400 border-purple-900/40' : 'bg-indigo-950/30 text-indigo-400 border-indigo-900/40'}`}>{game.gameType}</span>
                 </div>
               </div>
             );

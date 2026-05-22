@@ -73,7 +73,7 @@ export default async function AdminDashboardPage() {
   return (
     <div className="space-y-10 pb-12">
       {/* Command Center Jumbotron Header Banner */}
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-slate-900 text-white p-8 md:p-12 rounded-[2.5rem] shadow-xl relative overflow-hidden">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 bg-slate-900 border border-slate-800 text-white p-8 md:p-12 rounded-[2.5rem] shadow-2xl relative overflow-hidden">
         <div className="absolute top-0 right-0 w-80 h-full bg-indigo-600/10 blur-[120px] rounded-full"></div>
         <div className="relative z-10 space-y-2">
           <span className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-400">System Dashboard</span>
@@ -84,7 +84,7 @@ export default async function AdminDashboardPage() {
         </div>
 
         {/* Operational Status Ticker Segment */}
-        <div className="bg-slate-800/80 border border-slate-700/50 rounded-2xl p-4 flex items-center gap-4 min-w-[240px] relative z-10">
+        <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-4 flex items-center gap-4 min-w-[240px] relative z-10">
           <div className="bg-green-500/10 p-2.5 rounded-xl border border-green-500/20 animate-pulse">
             <Activity className="w-4 h-4 text-green-400" />
           </div>
@@ -99,14 +99,14 @@ export default async function AdminDashboardPage() {
 
       {/* Relational System Action Items Alert Ledger */}
       {((scheduledMatches?.count || 0) > 0 || (unassignedPlayers?.count || 0) > 0) && (
-        <div className="bg-rose-50 border border-rose-100 rounded-3xl p-6 flex flex-col md:flex-row md:items-center gap-6 justify-between shadow-sm">
+        <div className="bg-rose-950/20 border border-rose-900/40 rounded-3xl p-6 flex flex-col md:flex-row md:items-center gap-6 justify-between shadow-xl">
           <div className="flex items-center gap-4">
-            <div className="bg-rose-100 p-3 rounded-xl border border-rose-200">
-              <ShieldAlert className="w-5 h-5 text-rose-600" />
+            <div className="bg-rose-950/40 p-3 rounded-xl border border-rose-900/50">
+              <ShieldAlert className="w-5 h-5 text-rose-500" />
             </div>
             <div>
-              <h3 className="font-black text-rose-900 uppercase text-xs tracking-tight">Data Action Items Remaining</h3>
-              <p className="text-rose-600/80 text-[11px] font-medium mt-0.5">
+              <h3 className="font-black text-rose-200 uppercase text-xs tracking-tight">Data Action Items Remaining</h3>
+              <p className="text-rose-500/60 text-[11px] font-medium mt-0.5">
                 System health metrics detect active elements requiring operational entry closures.
               </p>
             </div>
@@ -114,12 +114,12 @@ export default async function AdminDashboardPage() {
           
           <div className="flex flex-wrap gap-3">
             {(scheduledMatches?.count || 0) > 0 && (
-              <span className="bg-white px-4 py-2 rounded-xl border border-rose-200 text-[10px] font-black uppercase text-rose-700 shadow-sm tabular-nums">
+              <span className="bg-slate-950 px-4 py-2 rounded-xl border border-rose-900/40 text-[10px] font-black uppercase text-rose-400 shadow-inner tabular-nums">
                 Scheduled Fixtures: {scheduledMatches.count}
               </span>
             )}
             {(unassignedPlayers?.count || 0) > 0 && (
-              <span className="bg-white px-4 py-2 rounded-xl border border-rose-200 text-[10px] font-black uppercase text-rose-700 shadow-sm tabular-nums">
+              <span className="bg-slate-950 px-4 py-2 rounded-xl border border-rose-900/40 text-[10px] font-black uppercase text-rose-400 shadow-inner tabular-nums">
                 Unassigned Players: {unassignedPlayers.count}
               </span>
             )}
@@ -134,29 +134,29 @@ export default async function AdminDashboardPage() {
           return (
             <div 
               key={card.title} 
-              className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm hover:shadow-md transition-shadow p-8 flex flex-col justify-between group"
+              className="bg-slate-900/40 rounded-[2.5rem] border border-slate-900 shadow-xl hover:border-slate-800 transition-all p-8 flex flex-col justify-between group"
             >
               <div className="space-y-6">
                 <div className="flex justify-between items-center">
-                  <div className={`p-4 rounded-2xl border ${card.color}`}>
+                  <div className={`p-4 rounded-2xl border ${card.color.replace('bg-', 'bg-opacity-10 bg-').replace('border-', 'border-opacity-20 border-')}`}>
                     <IconComponent className="w-6 h-6" />
                   </div>
                   <div className="text-right">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Total Count</span>
-                    <span className="text-3xl font-black text-slate-900 tabular-nums leading-none">{card.count}</span>
+                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest block">Total Count</span>
+                    <span className="text-3xl font-black text-white tabular-nums leading-none">{card.count}</span>
                   </div>
                 </div>
 
                 <div className="space-y-1">
-                  <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight">{card.title}</h2>
+                  <h2 className="text-xl font-black text-white uppercase tracking-tight">{card.title}</h2>
                   <p className="text-slate-500 text-xs leading-relaxed font-medium">{card.description}</p>
                 </div>
               </div>
 
-              <div className="mt-8 pt-4 border-t border-slate-100 flex items-center justify-between">
+              <div className="mt-8 pt-4 border-t border-slate-900 flex items-center justify-between">
                 <Link 
                   href={card.href} 
-                  className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-700 transition-colors group/link"
+                  className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-indigo-400 hover:text-indigo-300 transition-colors group/link"
                 >
                   Configure Management <ArrowRight className="w-3.5 h-3.5 group-hover/link:translate-x-1 transition-transform" />
                 </Link>
