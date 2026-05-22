@@ -45,6 +45,7 @@ export default async function AdminDashboardPage() {
         homeVenueId: null,
         setsWon: 0,
         setsLost: 0,
+        logoUrl: null,
         createdAt: new Date(),
       }); 
     }

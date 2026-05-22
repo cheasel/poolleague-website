@@ -8,6 +8,13 @@
       "when": 1779177740113,
       "tag": "0000_sharp_argent",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1779456572761,
+      "tag": "0001_curious_psylocke",
+      "breakpoints": true
     }
   ]
 }

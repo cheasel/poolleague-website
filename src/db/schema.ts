@@ -39,6 +39,8 @@ export const teams = pgTable("teams", {
   points: integer("points").default(0).notNull(),
   setsWon: integer("sets_won").default(0).notNull(),
   setsLost: integer("sets_lost").default(0).notNull(),
+
+  logoUrl: text("logo_url"),
   
   createdAt: timestamp("created_at").defaultNow(),
 });
