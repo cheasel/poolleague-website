@@ -102,45 +102,45 @@ export default async function MatchScheduleGeneratorPage() {
   }
 
   return (
-    <div className="space-y-8 max-w-3xl mx-auto pb-12 px-4 pt-4">
+    <div className="space-y-10 max-w-3xl mx-auto pb-16 px-4 pt-4 text-slate-200">
       <header>
-        <Link href="/admin/matches" className="inline-flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-indigo-600 transition-all">
+        <Link href="/admin/matches" className="inline-flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-indigo-400 transition-all">
           <ArrowLeft className="w-4 h-4" /> Cancel and Back to Fixtures
         </Link>
       </header>
 
-      <section className="bg-white p-8 md:p-10 rounded-[2.5rem] shadow-xl border border-slate-200 space-y-6 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-50 rounded-full blur-3xl -z-10" />
+      <section className="bg-slate-900/40 backdrop-blur-md p-8 md:p-10 rounded-[2.5rem] shadow-2xl border border-slate-900 space-y-8 relative overflow-hidden group hover:border-slate-800 transition-all">
+        <div className="absolute top-0 right-0 w-80 h-full bg-indigo-600/5 blur-[100px] rounded-full pointer-events-none"></div>
         
-        <div>
-          <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 mb-4 shadow-sm">
-            <Sparkles className="w-5 h-5 stroke-[2.5]" />
+        <div className="relative z-10">
+          <div className="w-12 h-12 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-center text-indigo-400 mb-6 shadow-inner">
+            <Sparkles className="w-6 h-6 stroke-[2.5]" />
           </div>
-          <h1 className="text-3xl font-black text-slate-900 uppercase tracking-tighter italic">Schedule Engine</h1>
-          <p className="text-slate-500 font-medium text-xs mt-1">
+          <h1 className="text-3xl md:text-4xl font-black text-white uppercase tracking-tighter italic leading-none">Schedule <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-500">Engine</span></h1>
+          <p className="text-slate-500 font-medium text-xs mt-2 max-w-xl leading-relaxed">
             Generate a full round-robin tournament calendar. The algorithm perfectly balances home/away rotations and handles odd-numbered splits automatically.
           </p>
         </div>
 
         {/* Warning Callout Card */}
-        <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex gap-3 text-amber-800">
-          <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
-          <div className="text-xs font-semibold uppercase tracking-wide space-y-1">
-            <p className="font-black">Operational Notice</p>
-            <p className="text-amber-700 normal-case font-medium">
-              Executing this schedule generation inserts all match rows immediately. It will not delete or overwrite any existing match fixtures already logged in the system.
+        <div className="p-5 bg-amber-950/20 border border-amber-900/40 rounded-2xl flex gap-4 text-amber-500 relative z-10 shadow-inner">
+          <AlertTriangle className="w-6 h-6 shrink-0 mt-0.5 opacity-80" />
+          <div className="text-[10px] font-black uppercase tracking-widest space-y-1.5">
+            <p className="text-amber-400">Operational Notice</p>
+            <p className="text-amber-500/60 normal-case font-bold leading-relaxed">
+              Executing this schedule generation inserts all match rows immediately into the production ledger. It will not overwrite any existing match fixtures already logged in the system.
             </p>
           </div>
         </div>
 
         {/* Configurations Setup Form Panel */}
-        <form action={generateLeagueSchedule} className="space-y-5 pt-2">
-          <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Target League Division</label>
+        <form action={generateLeagueSchedule} className="space-y-6 pt-4 relative z-10">
+          <div className="space-y-2.5">
+            <label className="text-[10px] font-black uppercase tracking-widest text-slate-600 ml-2">Target League Division</label>
             <select 
               name="divisionId" 
               required
-              className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-slate-800 text-xs uppercase tracking-wider appearance-none"
+              className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-indigo-500 outline-none font-bold text-white text-xs uppercase tracking-[0.1em] appearance-none transition-all shadow-inner"
             >
               <option value="">Select Division to Balance...</option>
               {allDivisions.map(d => (
@@ -149,17 +149,17 @@ export default async function MatchScheduleGeneratorPage() {
             </select>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-2">Season Opening Date (Week 1)</label>
+          <div className="space-y-2.5">
+            <label className="text-[10px] font-black uppercase tracking-widest text-slate-600 ml-2">Season Opening Date (Week 1)</label>
             <input 
               type="date"
               name="startDate"
               required
-              className="w-full p-4 bg-slate-50 border border-slate-100 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none font-bold text-xs text-slate-700"
+              className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-indigo-500 outline-none font-bold text-white text-xs uppercase tracking-widest transition-all shadow-inner"
             />
           </div>
 
-          <button type="submit" className="w-full bg-slate-900 hover:bg-slate-800 text-white font-black uppercase tracking-widest text-xs p-4 rounded-2xl transition-all shadow-md mt-4">
+          <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-[0.2em] text-[10px] p-5 rounded-[1.5rem] transition-all shadow-lg shadow-indigo-900/20 mt-6 active:scale-[0.98]">
             Execute Matrix Generation
           </button>
         </form>
