@@ -41,7 +41,7 @@ export default async function AdminDashboardPage() {
       count: seasonCount?.count || 0,
       href: "/admin/seasons",
       icon: Trophy,
-      color: "text-amber-500 bg-amber-50 border-amber-100",
+      color: "text-amber-400 bg-amber-950/30 border-amber-900/40",
       description: "Manage timelines, archive historic sessions, and declare champions."
     },
     {
@@ -49,7 +49,7 @@ export default async function AdminDashboardPage() {
       count: divisionCount?.count || 0,
       href: "/admin/divisions",
       icon: Layers,
-      color: "text-blue-500 bg-blue-50 border-blue-100",
+      color: "text-indigo-400 bg-indigo-950/30 border-indigo-900/40",
       description: "Establish league tiers, define tier order ranks, and structure brackets."
     },
     {
@@ -57,7 +57,7 @@ export default async function AdminDashboardPage() {
       count: teamCount?.count || 0,
       href: "/admin/teams",
       icon: Users,
-      color: "text-emerald-500 bg-emerald-50 border-emerald-100",
+      color: "text-emerald-400 bg-emerald-950/30 border-emerald-900/40",
       description: "Roster league clubs, assign brackets, and review aggregate points."
     },
     {
@@ -65,7 +65,7 @@ export default async function AdminDashboardPage() {
       count: playerCount?.count || 0,
       href: "/admin/players",
       icon: UserSquare2,
-      color: "text-indigo-500 bg-indigo-50 border-indigo-100",
+      color: "text-purple-400 bg-purple-950/30 border-purple-900/40",
       description: "Register players, execute team assignments, and clear flags."
     },
   ];
@@ -138,7 +138,7 @@ export default async function AdminDashboardPage() {
             >
               <div className="space-y-6">
                 <div className="flex justify-between items-center">
-                  <div className={`p-4 rounded-2xl border ${card.color.replace('bg-', 'bg-opacity-10 bg-').replace('border-', 'border-opacity-20 border-')}`}>
+                  <div className={`p-4 rounded-2xl border ${card.color}`}>
                     <IconComponent className="w-6 h-6" />
                   </div>
                   <div className="text-right">
