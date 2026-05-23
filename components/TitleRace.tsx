@@ -1,3 +1,5 @@
+'use client'
+
 import { db } from "@/src/db";
 import { teams, matches } from "@/src/db/schema";
 import { eq, and } from "drizzle-orm";
