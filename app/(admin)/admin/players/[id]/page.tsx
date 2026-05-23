@@ -1,167 +1,160 @@
 import { db } from "@/src/db";
-import { players, teams, divisions } from "@/src/db/schema";
-import { eq, asc } from "drizzle-orm";
+import { players, teams } from "@/src/db/schema";
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { supabaseStorage } from "@/src/lib/supabase-storage"; // 🎯 Import our storage helper
-import Link from "next/link";
-import Image from "next/image";
-import { Save, ArrowLeft, UserCircle2, Camera } from "lucide-react";
+import { supabaseAdmin } from "@/src/lib/supabase-storage"; 
+import EditPlayerForm from "./EditPlayerForm";
 
 export const dynamic = "force-dynamic";
 
 interface PageProps {
-  params: Promise<{
-    id: string;
-  }>;
+  params: Promise<{ id: string }>;
 }
 
 export default async function EditPlayerPage({ params }: PageProps) {
-  const { id } = await params;
-  const playerId = Number(id);
+  const resolvedParams = await params;
+  const playerId = Number(resolvedParams.id);
 
-  const [player] = await db.select().from(players).where(eq(players.id, playerId));
-  const allTeams = await db.select().from(teams).orderBy(asc(teams.name));
-  const allDivisions = await db.select().from(divisions);
+  // 1. Fetch current player profile data
+  const [player] = await db
+    .select()
+    .from(players)
+    .where(eq(players.id, playerId))
+    .limit(1);
 
   if (!player) {
-    return <div className="p-20 text-center font-black uppercase text-slate-400">Player not found.</div>;
+    redirect("/admin/players");
   }
 
-  const divMap = new Map(allDivisions.map(d => [d.id, d.name]));
+  // 2. Fetch teams list for selection dropdown options
+  const activeTeams = await db.select().from(teams);
 
-  // --- SERVER ACTION ---
-  async function updatePlayer(formData: FormData) {
+  // --- SERVER ACTION: PROCESS UPDATE, CLEAN OLD IMAGE, AND UPLOAD ---
+  async function updatePlayer(prevState: any, formData: FormData) {
     "use server";
-    const name = formData.get("name") as string;
-    const avatarFile = formData.get("avatarFile") as File;
-    const teamIdVal = formData.get("teamId");
-    const teamId = teamIdVal ? Number(teamIdVal) : null;
 
-    let publicAvatarUrl = player.imageUrl; // Default back to the current database link if unchanged
+    const targetPlayerId = Number(formData.get("playerId"));
+    const updatedName = (formData.get("name") as string)?.trim();
+    const teamIdInput = formData.get("teamId");
+    const targetTeamId = teamIdInput ? Number(teamIdInput) : null;
 
-    // Run the upload code only if a brand new file is provided
-    if (avatarFile && avatarFile.size > 0) {
-      const fileExtension = avatarFile.name.split('.').pop();
-      const fileName = `player-${playerId}-${Date.now()}.${fileExtension}`;
+    // Capture incoming image assets from the client form data stream
+    const playerImageFile = formData.get("playerImageFile") as File | null;
+    let finalImageUrl = formData.get("existingImageUrl") as string | null;
 
-      const { data, error } = await supabaseStorage.storage
-        .from("player-avatars")
-        .upload(fileName, avatarFile, {
-          cacheControl: "3600",
-          upsert: true,
-        });
-
-      if (!error && data) {
-        const { data: linkData } = supabaseStorage.storage
-          .from("player-avatars")
-          .getPublicUrl(data.path);
-          
-        publicAvatarUrl = linkData.publicUrl;
-      } else if (error) {
-        console.error("Supabase Avatar Upload Error:", error.message);
-      }
+    if (!updatedName) {
+      return { error: "Registered profile name cannot be left blank." };
     }
 
-    await db.update(players)
-      .set({ 
-        name, 
-        teamId: teamId || null, 
-        imageUrl: publicAvatarUrl 
-      })
-      .where(eq(players.id, playerId));
+    try {
+      // 🔍 STEP A: SUPABASE NODE CONNECTION TESTS
+      console.log("\n--- Checking Supabase Node Connection ---");
+      const { data: buckets, error: testError } = await supabaseAdmin.storage.listBuckets();
+      
+      if (testError) {
+        console.error("❌ Supabase connection failed:", testError.message);
+        return { error: `Authentication failed: ${testError.message}` };
+      }
 
+      // 💾 STEP B: BINARY STREAM UPLOAD & CLEANUP PIPELINE
+      if (playerImageFile && playerImageFile.size > 0 && playerImageFile.name !== "undefined") {
+        const bucketName = "player-avatars"; 
+
+        // 🗑️ NEW: PURGE OLD IMAGE FROM SUPABASE IF IT EXISTS
+        if (finalImageUrl && finalImageUrl.includes(bucketName)) {
+          try {
+            // Extract the path after "/player-avatars/"
+            // URL: .../public/player-avatars/avatars/player_42_177953.jpg -> Path: avatars/player_42_177953.jpg
+            const pathParts = finalImageUrl.split(`${bucketName}/`);
+            if (pathParts.length > 1) {
+              const oldFilePath = pathParts[1];
+              console.log(`🗑️ Cleaning ghost data: Removing old file "${oldFilePath}" from Supabase...`);
+              
+              const { error: removeError } = await supabaseAdmin.storage
+                .from(bucketName)
+                .remove([oldFilePath]);
+
+              if (removeError) {
+                console.warn("⚠️ Non-blocking removal notice:", removeError.message);
+              } else {
+                console.log("✅ Successfully deleted old file from storage bucket.");
+              }
+            }
+          } catch (cleanupErr) {
+            console.error("⚠️ Failed to parse or delete old image path:", cleanupErr);
+          }
+        }
+        
+        // Transform incoming binary representation into standard node data blocks
+        const arrayBuffer = await playerImageFile.arrayBuffer();
+        const fileBuffer = Buffer.from(arrayBuffer);
+        
+        // Extract original file type format and generate a clean target path structure
+        const fileExtension = playerImageFile.name.split('.').pop() || 'jpg';
+        const filePath = `avatars/player_${targetPlayerId}_${Date.now()}.${fileExtension}`;
+
+        console.log(`🚀 Executing fresh upload to path: "${filePath}"`);
+
+        const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+          .from(bucketName)
+          .upload(filePath, fileBuffer, {
+            contentType: playerImageFile.type,
+            upsert: true,
+          });
+
+        if (uploadError) {
+          console.error("❌ Supabase storage explicitly rejected stream payload:", uploadError);
+          return { error: `Bucket Upload Blocked: ${uploadError.message}` };
+        }
+
+        // Fetch public accessibility address link configurations
+        const { data: urlData } = supabaseAdmin.storage.from(bucketName).getPublicUrl(filePath);
+        finalImageUrl = urlData.publicUrl;
+        console.log("🔗 Generated Public Asset Anchor URL:", finalImageUrl);
+      } else {
+        console.log("⚠️ No updated target image file provided. Retaining fallback URL asset state.");
+      }
+
+      // 3. Sync changes into database schema infrastructure
+      await db
+        .update(players)
+        .set({
+          name: updatedName,
+          teamId: targetTeamId,
+          imageUrl: finalImageUrl, 
+        })
+        .where(eq(players.id, targetPlayerId));
+
+      console.log("💾 Database synchronization sequence updated cleanly.");
+
+    } catch (err) {
+      console.error("Unhandled Mutation Core Exception: ", err);
+      return { error: "Database transaction processing error encountered." };
+    }
+
+    // Bust client cache layers and return to directory root
     revalidatePath("/admin/players");
-    revalidatePath(`/players/${playerId}`); 
-    revalidatePath("/players"); 
+    revalidatePath(`/admin/players/${targetPlayerId}`);
     redirect("/admin/players");
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-10 pb-16 px-4 text-slate-200">
-      <header className="flex items-center justify-between">
-        <Link href="/admin/players" className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-indigo-400 transition-colors">
-          <ArrowLeft className="w-4 h-4" /> Back to Competitor Registry
-        </Link>
-        <div className="bg-slate-900 border border-slate-800 text-slate-400 px-5 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-inner">
-          Entry ID: {playerId}
-        </div>
+    <div className="max-w-3xl mx-auto space-y-8 pb-24 px-4 text-zinc-200 antialiased">
+      <header className="border-b border-zinc-800/60 pb-6">
+        <h1 className="text-3xl font-black text-white uppercase tracking-tighter italic">
+          Edit Player <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-indigo-200">Profile</span>
+        </h1>
+        <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mt-1">
+          Update registered athlete identification and league alignment metrics
+        </p>
       </header>
 
-      <div className="bg-slate-900/40 backdrop-blur-md rounded-[2.5rem] p-10 shadow-2xl border border-slate-900 relative overflow-hidden group hover:border-slate-800 transition-all">
-        <div className="absolute top-0 right-0 w-64 h-full bg-indigo-500/5 blur-[100px] rounded-full pointer-events-none"></div>
-        
-        <div className="flex items-center gap-5 mb-12 relative z-10">
-          <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 text-indigo-400 shadow-inner">
-            <UserCircle2 className="w-7 h-7" />
-          </div>
-          <h1 className="text-3xl md:text-4xl font-black text-white uppercase tracking-tighter italic leading-none">Update <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-500">Competitor</span></h1>
-        </div>
-
-        {/* 🎯 FIXED: Form now includes encType for files */}
-        <form action={updatePlayer} encType="multipart/form-data" className="space-y-8 relative z-10">
-          
-          {/* Current Profile Picture Preview Element */}
-          {player.imageUrl && (
-            <div className="flex items-center gap-4 p-4 bg-slate-950 rounded-2xl border border-slate-800/60">
-              <div className="relative w-12 h-12 rounded-full overflow-hidden bg-slate-900 border border-slate-800">
-                <Image src={player.imageUrl} alt="Player avatar" fill className="object-cover" />
-              </div>
-              <div>
-                <div className="text-[10px] font-black uppercase tracking-wider text-slate-500">Current Avatar Frame</div>
-                <div className="text-xs font-bold text-indigo-400">Stored inside Cloud Matrix Storage</div>
-              </div>
-            </div>
-          )}
-
-          <div className="space-y-2.5">
-            <label className="text-[10px] font-black uppercase tracking-widest text-slate-600 ml-2">Full Player Name</label>
-            <input 
-              name="name" 
-              defaultValue={player.name} 
-              required 
-              className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-indigo-500 outline-none font-bold text-white transition-all shadow-inner placeholder:text-slate-800"
-            />
-          </div>
-
-          {/* 🎯 NEW: Replaced Text Link Input with a File Upload input */}
-          <div className="space-y-2.5">
-            <label className="text-[10px] font-black uppercase tracking-widest text-slate-600 ml-2">Competitor Identity Photo</label>
-            <div className="relative flex items-center bg-slate-950 border border-slate-800 rounded-2xl p-2.5 group">
-              <input 
-                type="file"
-                name="avatarFile" 
-                accept="image/png, image/jpeg, image/webp" 
-                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
-              />
-              <div className="flex items-center gap-3 px-2 py-1 text-slate-400">
-                <Camera className="w-4 h-4 text-indigo-400" />
-                <span className="text-xs font-bold">Upload new profile avatar file...</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-2.5">
-            <label className="text-[10px] font-black uppercase tracking-widest text-slate-600 ml-2">Team Assignment</label>
-            <select 
-              name="teamId" 
-              defaultValue={player.teamId || ""} 
-              className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-indigo-500 outline-none font-bold text-white appearance-none transition-all shadow-inner"
-            >
-              <option value="">No Team (Free Agent)</option>
-              {allTeams.map(t => (
-                <option key={t.id} value={t.id}>
-                  {t.name} ({t.divisionId ? divMap.get(t.divisionId) : "No Bracket"})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <button className="w-full bg-indigo-600 hover:bg-indigo-500 text-white p-5 rounded-[1.5rem] font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 transition-all shadow-lg shadow-indigo-900/20 active:scale-95">
-            <Save className="w-4 h-4 stroke-[2.5]" /> Save Competitor Profile
-          </button>
-        </form>
-      </div>
+      <EditPlayerForm 
+        player={player} 
+        teamsList={activeTeams} 
+        updatePlayerAction={updatePlayer} 
+      />
     </div>
   );
 }

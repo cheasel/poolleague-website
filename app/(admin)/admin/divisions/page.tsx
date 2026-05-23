@@ -2,7 +2,8 @@ import { db } from "@/src/db";
 import { divisions, teams } from "@/src/db/schema";
 import { eq, asc, count } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { Trophy, Plus, FolderTree, Shield, Trash2 } from "lucide-react";
+import { Trophy, Plus, FolderTree, Shield, Trash2, Edit2 } from "lucide-react";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -100,36 +101,33 @@ export default async function AdminDivisionsPage() {
             Active Structural Strata ({divisionStats.length})
           </span>
 
-          {divisionStats.map((div) => (
+          {allDivisions.map((division) => (
             <div 
-              key={div.id} 
-              className="bg-slate-900/40 border border-slate-900 p-5 rounded-2xl shadow-xl flex items-center justify-between group hover:border-slate-800 transition-all"
+              key={division.id} 
+              className="flex items-center justify-between p-5 bg-zinc-900/40 backdrop-blur-md border border-zinc-850 rounded-2xl hover:border-zinc-800 transition-all group"
             >
-              <div className="flex items-center gap-5">
-                <div className="w-11 h-11 rounded-xl bg-slate-950 text-white flex items-center justify-center text-xs font-black tracking-tight border border-slate-800 shadow-inner group-hover:border-indigo-500/30 transition-colors">
-                  T{div.tier}
+              <div className="flex items-center gap-4 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-center text-zinc-500 group-hover:text-indigo-400 transition-colors shrink-0">
+                  <FolderTree className="w-4 h-4" />
                 </div>
-                <div>
-                  <h3 className="font-black text-white text-sm tracking-tight group-hover:text-indigo-400 transition-colors">
-                    {div.name}
+                <div className="min-w-0">
+                  <h3 className="text-sm font-black text-white uppercase tracking-tight truncate">
+                    {division.name}
                   </h3>
-                  <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest flex items-center gap-1.5 mt-0.5">
-                    <Shield className="w-3 h-3 text-slate-700" /> {div.teamCount} Squads Allocated
-                  </p>
+                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mt-0.5">
+                    Tier {division.tier} • {division.seasonId || "No Linked Season"}
+                  </span>
                 </div>
               </div>
 
-              {/* INJECTED: SECURE DELETE INLINE FORM CONTAINER */}
-              <form action={deleteDivisionAction} className="opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                <input type="hidden" name="divisionId" value={div.id} />
-                <button
-                  type="submit"
-                  title={`Drop ${div.name}`}
-                  className="w-9 h-9 rounded-xl bg-slate-950 border border-slate-800 text-slate-600 hover:text-rose-500 hover:border-rose-900/40 transition-all outline-none"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </form>
+              {/* 🎯 EDIT LINK BUTTON */}
+              <Link
+                href={`/admin/divisions/${division.id}`}
+                className="flex items-center gap-2 px-4 py-2.5 bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 rounded-xl text-[10px] font-black uppercase tracking-wider text-zinc-400 hover:text-white transition-all shadow-sm shrink-0"
+              >
+                <Edit2 className="w-3 h-3 text-indigo-400" />
+                <span>Configure Tier</span>
+              </Link>
             </div>
           ))}
 

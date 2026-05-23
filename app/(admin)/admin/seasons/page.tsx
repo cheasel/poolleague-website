@@ -2,7 +2,8 @@ import { db } from "@/src/db";
 import { seasons } from "@/src/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { History, Plus, CalendarDays, Trash2, ToggleLeft } from "lucide-react";
+import { History, Plus, Calendar, Trash2, ToggleLeft,Edit2 } from "lucide-react";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -96,74 +97,42 @@ export default async function AdminSeasonsPage() {
             Historical & Current Timelines ({allSeasons.length})
           </span>
 
-          {allSeasons.map((season) => {
-            const currentIsActive = season.isActive === true;
-            
-            // ⚡ FIXED: Safe parsing fallbacks to eliminate "Date | null" compiler type alerts
-            const displayStart = season.startDate ? new Date(season.startDate).toLocaleDateString() : "TBD";
-            const displayEnd = season.endDate ? new Date(season.endDate).toLocaleDateString() : "TBD";
-            
-            return (
-              <div 
-                key={season.id} 
-                className={`bg-slate-900/40 border p-5 rounded-2xl shadow-xl flex items-center justify-between group transition-all ${
-                  currentIsActive ? "border-rose-500 ring-1 ring-rose-500/20" : "border-slate-900 hover:border-slate-800"
-                }`}
-              >
-                <div className="flex items-center gap-4">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center border shadow-inner ${
-                    currentIsActive 
-                      ? "bg-rose-600 text-white border-rose-700" 
-                      : "bg-slate-950 text-slate-700 border-slate-900"
-                  }`}>
-                    <CalendarDays className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-black text-white text-sm tracking-tight group-hover:text-indigo-400 transition-colors">
-                        {season.name}
-                      </h3>
-                      {currentIsActive && (
-                        <span className="bg-emerald-600 text-white text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md shadow-lg shadow-emerald-900/20">
-                          Live Active
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-[0.1em] mt-0.5 tabular-nums">
-                      {displayStart} <span className="text-slate-700 mx-1">—</span> {displayEnd}
-                    </p>
-                  </div>
+          {allSeasons.map((season) => (
+            <div 
+              key={season.id} 
+              className="flex items-center justify-between p-5 bg-zinc-900/40 backdrop-blur-md border border-zinc-850 rounded-2xl hover:border-zinc-800 transition-all group"
+            >
+              <div className="flex items-center gap-4 min-w-0">
+                <div className="w-10 h-10 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-center text-zinc-500 group-hover:text-indigo-400 transition-colors shrink-0">
+                  <Calendar className="w-4 h-4" />
                 </div>
-
-                {/* INLINE ACTION TOGGLES AND FORMS */}
-                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-150">
-                  {!currentIsActive && (
-                    <form action={activateSeasonAction}>
-                      <input type="hidden" name="seasonId" value={season.id} />
-                      <button
-                        type="submit"
-                        title="Set Season as Active"
-                        className="w-9 h-9 rounded-xl bg-slate-950 border border-slate-800 text-slate-600 hover:text-indigo-400 flex items-center justify-center transition-all outline-none"
-                      >
-                        <ToggleLeft className="w-5 h-5" />
-                      </button>
-                    </form>
-                  )}
-
-                  <form action={deleteSeasonAction}>
-                    <input type="hidden" name="seasonId" value={season.id} />
-                    <button
-                      type="submit"
-                      title={`Drop ${season.name}`}
-                      className="w-9 h-9 rounded-xl bg-slate-950 border border-slate-800 text-slate-600 hover:text-rose-500 hover:border-rose-900/40 transition-all outline-none"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </form>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-black text-white uppercase tracking-tight truncate">
+                      {season.name}
+                    </h3>
+                    {season.isActive && (
+                      <span className="px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[8px] font-black uppercase tracking-widest animate-pulse">
+                        Live
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mt-0.5">
+                    {season.startDate ? new Date(season.startDate).toLocaleDateString() : "TBD"} — {season.endDate ? new Date(season.endDate).toLocaleDateString() : "TBD"}
+                  </span>
                 </div>
               </div>
-            );
-          })}
+
+              {/* 🎯 SEASON EDIT LINK BUTTON */}
+              <Link
+                href={`/admin/seasons/${season.id}`}
+                className="flex items-center gap-2 px-4 py-2.5 bg-zinc-950 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 rounded-xl text-[10px] font-black uppercase tracking-wider text-zinc-400 hover:text-white transition-all shadow-sm shrink-0"
+              >
+                <Edit2 className="w-3 h-3 text-indigo-400" />
+                <span>Edit Timeline</span>
+              </Link>
+            </div>
+          ))}
 
           {allSeasons.length === 0 && (
             <div className="bg-slate-900/40 border border-slate-900 rounded-2xl py-12 text-center text-slate-700 font-black text-xs uppercase tracking-[0.2em] italic">

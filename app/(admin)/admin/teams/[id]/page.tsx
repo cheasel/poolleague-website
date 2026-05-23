@@ -1,166 +1,168 @@
 import { db } from "@/src/db";
-import { teams, divisions, seasons } from "@/src/db/schema";
-import { eq, asc } from "drizzle-orm";
+import { teams, venues } from "@/src/db/schema";
+import { eq, and, ne, count } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { supabaseStorage } from "@/src/lib/supabase-storage"; // 🎯 Import our storage helper
-import Link from "next/link";
-import Image from "next/image";
-import { Save, ArrowLeft, Users, ImageIcon } from "lucide-react";
+// 🎯 Fixed import path exactly as requested
+import { supabaseAdmin } from "@/src/lib/supabase-storage"; 
+import EditTeamForm from "./EditTeamForm";
 
 export const dynamic = "force-dynamic";
 
 interface PageProps {
-  params: Promise<{
-    id: string;
-  }>;
+  params: Promise<{ id: string }>;
 }
 
 export default async function EditTeamPage({ params }: PageProps) {
-  const { id } = await params;
-  const teamId = Number(id);
+  const resolvedParams = await params;
+  const teamId = Number(resolvedParams.id);
 
-  // 1. Fetch the team and all available divisions
-  const [team] = await db.select().from(teams).where(eq(teams.id, teamId));
-  const allDivisions = await db
-    .select({
-      id: divisions.id,
-      name: divisions.name,
-      seasonName: seasons.name,
+  // 1. Fetch current team record context
+  const [team] = await db
+    .select()
+    .from(teams)
+    .where(eq(teams.id, teamId))
+    .limit(1);
+
+  if (!team) {
+    redirect("/admin/teams");
+  }
+
+  // 2. Fetch all venues along with their current total allocated team counts
+  const allVenuesRaw = await db.select().from(venues);
+  
+  const venuesWithCounts = await Promise.all(
+    allVenuesRaw.map(async (venue) => {
+      const [teamsCounter] = await db
+        .select({ value: count() })
+        .from(teams)
+        .where(eq(teams.homeVenueId, venue.id));
+
+      return {
+        id: venue.id,
+        name: venue.name,
+        currentTeamsCount: teamsCounter?.value || 0,
+      };
     })
-    .from(divisions)
-    .leftJoin(seasons, eq(divisions.seasonId, seasons.id))
-    .orderBy(asc(divisions.name));
+  );
 
-  if (!team) return <div className="p-20 text-center font-black uppercase text-slate-400">Team not found.</div>;
-
-  // 2. Server Action to update the team with storage pipeline
-  async function updateTeam(formData: FormData) {
+  // --- SERVER ACTION: PERSIST TEAM CHANGES & PURGE OLD ASSET ---
+  async function updateTeam(prevState: any, formData: FormData) {
     "use server";
-    const name = formData.get("name") as string;
-    const divisionId = Number(formData.get("divisionId"));
-    const logoFile = formData.get("logo") as File;
 
-    let publicLogoUrl = team.logoUrl; // Default back to the current database link if unchanged
+    const targetTeamId = Number(formData.get("teamId"));
+    const updatedName = (formData.get("name") as string)?.trim();
+    const venueIdInput = formData.get("homeVenueId");
+    const targetVenueId = venueIdInput ? Number(venueIdInput) : null;
 
-    // Run the upload code only if a brand new file is provided
-    if (logoFile && logoFile.size > 0) {
-      const fileExtension = logoFile.name.split('.').pop();
-      const fileName = `team-${teamId}-${Date.now()}.${fileExtension}`;
+    // 🔍 Force check: extraction from multipart stream
+    const logoFile = formData.get("logoFile") as File | null;
+    let finalLogoUrl = formData.get("existingLogoUrl") as string | null;
 
-      const { data, error } = await supabaseStorage.storage
-        .from("team-logos")
-        .upload(fileName, logoFile, {
-          cacheControl: "3600",
-          upsert: true, // Overwrites if the exact same file path gets generated
-        });
-
-      if (!error && data) {
-        const { data: linkData } = supabaseStorage.storage
-          .from("team-logos")
-          .getPublicUrl(data.path);
-        
-        publicLogoUrl = linkData.publicUrl;
-      } else if (error) {
-        console.error("Supabase Logo Upload Error:", error.message);
-      }
+    if (!updatedName) {
+      return { error: "Roster name cannot be left blank." };
     }
 
-    await db.update(teams)
-      .set({ name, divisionId, logoUrl: publicLogoUrl })
-      .where(eq(teams.id, teamId));
+    try {
+      // 🎯 BACKEND STRUCTURAL CAPACITY CONSTRAINT CHECK
+      if (targetVenueId) {
+        const [tenantCount] = await db
+          .select({ value: count() })
+          .from(teams)
+          .where(
+            and(
+              eq(teams.homeVenueId, targetVenueId),
+              ne(teams.id, targetTeamId)
+            )
+          );
+
+        if (tenantCount && tenantCount.value >= 2) {
+          return { error: "Allocation Rejected: Selected Arena has already fulfilled its maximum limit of 2 home teams." };
+        }
+      }
+
+      // 💾 STREAM UPLOAD & CLEANUP PIPELINE
+      if (logoFile && logoFile.size > 0 && logoFile.name !== "undefined") {
+        const bucketName = "team-logos"; 
+
+        // 🗑️ PURGE OLD TEAM LOGO FROM STORAGE BUCKET
+        if (finalLogoUrl && finalLogoUrl.includes(bucketName)) {
+          try {
+            const pathParts = finalLogoUrl.split(`${bucketName}/`);
+            if (pathParts.length > 1) {
+              const oldFilePath = pathParts[1];
+              console.log(`🗑️ Removing old logo: "${oldFilePath}"`);
+              await supabaseAdmin.storage.from(bucketName).remove([oldFilePath]);
+            }
+          } catch (cleanupErr) {
+            console.error("⚠️ Failed to delete old logo:", cleanupErr);
+          }
+        }
+        
+        // Transform file streams into node data blocks
+        const arrayBuffer = await logoFile.arrayBuffer();
+        const fileBuffer = Buffer.from(arrayBuffer);
+        
+        const fileExtension = logoFile.name.split('.').pop() || 'png';
+        const filePath = `logos/team_${targetTeamId}_${Date.now()}.${fileExtension}`;
+
+        console.log(`🚀 Uploading new logo to path: "${filePath}"`);
+
+        const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+          .from(bucketName)
+          .upload(filePath, fileBuffer, {
+            contentType: logoFile.type,
+            upsert: true,
+          });
+
+        if (uploadError) {
+          console.error("❌ Supabase storage upload failed:", uploadError);
+          return { error: `Bucket Upload Blocked: ${uploadError.message}` };
+        }
+
+        // Generate clean public address URL
+        const { data: urlData } = supabaseAdmin.storage.from(bucketName).getPublicUrl(filePath);
+        finalLogoUrl = urlData.publicUrl;
+      }
+
+      // 3. Persist modifications to database
+      await db
+        .update(teams)
+        .set({
+          name: updatedName,
+          logoUrl: finalLogoUrl,
+          homeVenueId: targetVenueId,
+        })
+        .where(eq(teams.id, targetTeamId));
+
+      console.log("💾 Database updated cleanly.");
+
+    } catch (err) {
+      console.error("Unhandled Exception: ", err);
+      return { error: "Transaction processing failed." };
+    }
 
     revalidatePath("/admin/teams");
-    revalidatePath("/standings");
+    revalidatePath(`/admin/teams/${targetTeamId}`);
     redirect("/admin/teams");
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-10 pb-16 px-4 text-slate-200">
-      <header className="flex items-center justify-between">
-        <Link href="/admin/teams" className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-indigo-400 transition-colors">
-          <ArrowLeft className="w-4 h-4" /> Back to Team Registry
-        </Link>
-        <div className="bg-slate-900 border border-slate-800 text-slate-400 px-5 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-inner">
-          Entry ID: {teamId}
-        </div>
+    <div className="max-w-3xl mx-auto space-y-8 pb-24 px-4 text-zinc-200 antialiased">
+      <header className="border-b border-zinc-800/60 pb-6">
+        <h1 className="text-3xl font-black text-white uppercase tracking-tighter italic">
+          Modify Team <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-indigo-200">Configuration</span>
+        </h1>
+        <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mt-1">
+          Adjust home ground hub assignment locations and club profile options
+        </p>
       </header>
 
-      <div className="bg-slate-900/40 backdrop-blur-md rounded-[2.5rem] p-10 shadow-2xl border border-slate-900 relative overflow-hidden group hover:border-slate-800 transition-all">
-        <div className="absolute top-0 right-0 w-64 h-full bg-indigo-500/5 blur-[100px] rounded-full pointer-events-none"></div>
-        
-        <div className="flex items-center gap-5 mb-12 relative z-10">
-          <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 text-indigo-400 shadow-inner">
-            <Users className="w-7 h-7" />
-          </div>
-          <h1 className="text-3xl md:text-4xl font-black text-white uppercase tracking-tighter italic leading-none">Update <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-500">Club Squad</span></h1>
-        </div>
-
-        {/* 🎯 FIXED: Form now includes encType for files */}
-        <form action={updateTeam} encType="multipart/form-data" className="space-y-8 relative z-10">
-          
-          {/* Current Logo Preview Component */}
-          {team.logoUrl && (
-            <div className="flex items-center gap-4 p-4 bg-slate-950 rounded-2xl border border-slate-800/60">
-              <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-slate-900 border border-slate-800">
-                <Image src={team.logoUrl} alt="Team logo" fill className="object-cover" />
-              </div>
-              <div>
-                <div className="text-[10px] font-black uppercase tracking-wider text-slate-500">Active Emblem Asset</div>
-                <div className="text-xs font-bold text-indigo-400 truncate max-w-sm">Stored in Supabase Cloud</div>
-              </div>
-            </div>
-          )}
-
-          <div className="space-y-2.5">
-            <label className="text-[10px] font-black uppercase tracking-widest text-slate-600 ml-2">Team Designation Name</label>
-            <input 
-              name="name" 
-              defaultValue={team.name} 
-              required 
-              className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-indigo-500 outline-none font-bold text-white transition-all shadow-inner placeholder:text-slate-800"
-            />
-          </div>
-
-          {/* 🎯 NEW: Interactive File Input Field */}
-          <div className="space-y-2.5">
-            <label className="text-[10px] font-black uppercase tracking-widest text-slate-600 ml-2">Update Logo Graphic (.png / .jpg)</label>
-            <div className="relative flex items-center bg-slate-950 border border-slate-800 rounded-2xl p-2.5 group">
-              <input 
-                type="file"
-                name="logo" 
-                accept="image/png, image/jpeg, image/webp" 
-                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
-              />
-              <div className="flex items-center gap-3 px-2 py-1 text-slate-400">
-                <ImageIcon className="w-4 h-4 text-indigo-500" />
-                <span className="text-xs font-bold">Choose new file to replace logo image...</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-2.5">
-            <label className="text-[10px] font-black uppercase tracking-widest text-slate-600 ml-2">Assigned Division Bracket</label>
-            <select 
-              name="divisionId" 
-              defaultValue={team.divisionId || ""} 
-              required 
-              className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-indigo-500 outline-none font-bold text-white appearance-none transition-all shadow-inner"
-            >
-              <option value="">Select Division Bracket...</option>
-              {allDivisions.map((div) => (
-                <option key={div.id} value={div.id}>
-                  {div.name} ({div.seasonName})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <button className="w-full bg-indigo-600 hover:bg-indigo-500 text-white p-5 rounded-[1.5rem] font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 transition-all shadow-lg shadow-indigo-900/20 active:scale-95">
-            <Save className="w-4 h-4 stroke-[2.5]" /> Commit Squad Parameters
-          </button>
-        </form>
-      </div>
+      <EditTeamForm 
+        team={team} 
+        venuesList={venuesWithCounts} 
+        updateTeamAction={updateTeam} 
+      />
     </div>
   );
 }

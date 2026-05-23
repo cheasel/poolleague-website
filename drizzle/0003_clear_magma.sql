@@ -1,1 +1,0 @@
-ALTER TABLE "divisions" ADD COLUMN "tier" integer DEFAULT 1 NOT NULL;

@@ -1,6 +1,6 @@
 {
-  "id": "3437f1d0-2885-434f-a89b-3880f30f70df",
-  "prevId": "019aa0fc-b950-4e85-8db3-ea4453ecb9f4",
+  "id": "4fd0d180-cc73-4a24-a6ba-a435e212d2c1",
+  "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -575,6 +575,12 @@
           "notNull": true,
           "default": 0
         },
+        "logo_url": {
+          "name": "logo_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -635,7 +641,23 @@
           "default": true
         }
       },
-      "indexes": {},
+      "indexes": {
+        "venues_name_lower_idx": {
+          "name": "venues_name_lower_idx",
+          "columns": [
+            {
+              "expression": "lower(\"name\")",
+              "asc": true,
+              "isExpression": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},

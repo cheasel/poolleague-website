@@ -2,7 +2,9 @@ CREATE TYPE "public"."match_status" AS ENUM('scheduled', 'live', 'completed', 'c
 CREATE TYPE "public"."role" AS ENUM('admin', 'captain', 'viewer');--> statement-breakpoint
 CREATE TABLE "divisions" (
 	"id" serial PRIMARY KEY NOT NULL,
-	"name" text NOT NULL
+	"name" varchar(255) NOT NULL,
+	"season_id" integer,
+	"tier" integer DEFAULT 1 NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "match_games" (
@@ -21,21 +23,22 @@ CREATE TABLE "match_games" (
 --> statement-breakpoint
 CREATE TABLE "matches" (
 	"id" serial PRIMARY KEY NOT NULL,
-	"season_id" integer,
-	"division_id" integer,
+	"date" timestamp,
+	"status" varchar(50) DEFAULT 'scheduled',
+	"week_number" integer DEFAULT 1 NOT NULL,
 	"home_team_id" integer,
 	"away_team_id" integer,
-	"home_team_score_total" integer DEFAULT 0,
-	"away_team_score_total" integer DEFAULT 0,
-	"match_date" timestamp,
-	"status" "match_status" DEFAULT 'scheduled'
+	"home_score" integer,
+	"away_score" integer,
+	"season_id" integer,
+	"division_id" integer
 );
 --> statement-breakpoint
 CREATE TABLE "players" (
 	"id" serial PRIMARY KEY NOT NULL,
-	"name" text NOT NULL,
-	"handicap" integer DEFAULT 0,
-	"team_id" integer
+	"name" varchar(255) NOT NULL,
+	"team_id" integer,
+	"image_url" text
 );
 --> statement-breakpoint
 CREATE TABLE "profiles" (
@@ -65,9 +68,14 @@ CREATE TABLE "team_memberships" (
 --> statement-breakpoint
 CREATE TABLE "teams" (
 	"id" serial PRIMARY KEY NOT NULL,
-	"name" text NOT NULL,
+	"name" varchar(255) NOT NULL,
 	"home_venue_id" integer,
-	"is_active" boolean DEFAULT true
+	"division_id" integer,
+	"points" integer DEFAULT 0 NOT NULL,
+	"sets_won" integer DEFAULT 0 NOT NULL,
+	"sets_lost" integer DEFAULT 0 NOT NULL,
+	"logo_url" text,
+	"created_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
 CREATE TABLE "venues" (
@@ -77,18 +85,16 @@ CREATE TABLE "venues" (
 	"is_active" boolean DEFAULT true
 );
 --> statement-breakpoint
+ALTER TABLE "divisions" ADD CONSTRAINT "divisions_season_id_seasons_id_fk" FOREIGN KEY ("season_id") REFERENCES "public"."seasons"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "match_games" ADD CONSTRAINT "match_games_match_id_matches_id_fk" FOREIGN KEY ("match_id") REFERENCES "public"."matches"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "match_games" ADD CONSTRAINT "match_games_player1_id_players_id_fk" FOREIGN KEY ("player1_id") REFERENCES "public"."players"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "match_games" ADD CONSTRAINT "match_games_player1_partner_id_players_id_fk" FOREIGN KEY ("player1_partner_id") REFERENCES "public"."players"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "match_games" ADD CONSTRAINT "match_games_player2_id_players_id_fk" FOREIGN KEY ("player2_id") REFERENCES "public"."players"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "match_games" ADD CONSTRAINT "match_games_player2_partner_id_players_id_fk" FOREIGN KEY ("player2_partner_id") REFERENCES "public"."players"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "matches" ADD CONSTRAINT "matches_season_id_seasons_id_fk" FOREIGN KEY ("season_id") REFERENCES "public"."seasons"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "matches" ADD CONSTRAINT "matches_division_id_divisions_id_fk" FOREIGN KEY ("division_id") REFERENCES "public"."divisions"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "matches" ADD CONSTRAINT "matches_home_team_id_teams_id_fk" FOREIGN KEY ("home_team_id") REFERENCES "public"."teams"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "matches" ADD CONSTRAINT "matches_away_team_id_teams_id_fk" FOREIGN KEY ("away_team_id") REFERENCES "public"."teams"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "players" ADD CONSTRAINT "players_team_id_teams_id_fk" FOREIGN KEY ("team_id") REFERENCES "public"."teams"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "players" ADD CONSTRAINT "players_team_id_teams_id_fk" FOREIGN KEY ("team_id") REFERENCES "public"."teams"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "team_memberships" ADD CONSTRAINT "team_memberships_player_id_players_id_fk" FOREIGN KEY ("player_id") REFERENCES "public"."players"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "team_memberships" ADD CONSTRAINT "team_memberships_team_id_teams_id_fk" FOREIGN KEY ("team_id") REFERENCES "public"."teams"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "team_memberships" ADD CONSTRAINT "team_memberships_season_id_seasons_id_fk" FOREIGN KEY ("season_id") REFERENCES "public"."seasons"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "team_memberships" ADD CONSTRAINT "team_memberships_division_id_divisions_id_fk" FOREIGN KEY ("division_id") REFERENCES "public"."divisions"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "teams" ADD CONSTRAINT "teams_home_venue_id_venues_id_fk" FOREIGN KEY ("home_venue_id") REFERENCES "public"."venues"("id") ON DELETE no action ON UPDATE no action;
+ALTER TABLE "teams" ADD CONSTRAINT "teams_division_id_divisions_id_fk" FOREIGN KEY ("division_id") REFERENCES "public"."divisions"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+CREATE UNIQUE INDEX "venues_name_lower_idx" ON "venues" USING btree (lower("name"));
