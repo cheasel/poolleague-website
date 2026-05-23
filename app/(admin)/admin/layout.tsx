@@ -15,7 +15,8 @@ import {
   ChevronRight,
   FolderTree,
   History,
-  ExternalLink
+  ExternalLink,
+  MapPin
 } from "lucide-react";
 
 interface AdminLayoutProps {
@@ -38,6 +39,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { href: "/admin/matches", label: "Scorecard Dispatch", icon: Calendar },
     { href: "/admin/teams", label: "Squad Directory", icon: Trophy },
     { href: "/admin/players", label: "Roster Controls", icon: Users },
+    { href: "/admin/venues", label: "Venue Profiles", icon: MapPin },
   ];
 
   const renderNavList = (items: typeof operationalItems, closeMobile = false) => {

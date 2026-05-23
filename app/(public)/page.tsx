@@ -202,48 +202,52 @@ export default async function PublicHomePage() {
           
           {/* Card 2: Team Form Leader */}
           <div className="bg-slate-900/80 backdrop-blur-md p-5 rounded-2xl border border-slate-800 shadow-xl flex items-center gap-4 transition-all hover:border-orange-900/60 group">
-            <div className="p-3 bg-orange-950/60 text-orange-400 rounded-xl border border-orange-900/50 shadow-inner group-hover:scale-105 transition-transform"><Flame className="w-4 h-4 fill-orange-500" /></div>
-            <div>
+            <div className="p-3 bg-orange-950/60 text-orange-400 rounded-xl border border-orange-900/50 shadow-inner group-hover:scale-105 transition-transform">
+              <Flame className="w-4 h-4 fill-orange-500" />
+            </div>
+            
+            {/* 🎯 THE FIX: Add min-w-0 here to allow the text container to shrink properly inside the flexbox */}
+            <div className="min-w-0 flex-1"> 
               <span className="text-slate-500 font-bold uppercase tracking-wider text-[9px] block">Form Leader</span>
-              <span className="text-sm font-black text-orange-400 uppercase tracking-tight block mt-0.5 truncate max-w-[160px]">
+              <span className="text-sm font-black text-orange-400 uppercase tracking-tight block mt-0.5 truncate">
                 {leader1 ? `${leader1.name} (${leader1.current} W)` : "No Active Streak"}
               </span>
             </div>
           </div>
 
           {/* 🎯 CHANGED: Card 3 is now a high-density player list compatible with displaying multi-rank metrics */}
-          <div className="bg-slate-900/80 backdrop-blur-md p-4 rounded-2xl border border-slate-800 shadow-xl flex flex-col justify-center min-h-[82px] transition-all hover:border-indigo-900/60">
-            <div className="flex items-center gap-1.5 mb-2 px-1 border-b border-slate-800/50 pb-1">
+          <div className="bg-slate-900/80 backdrop-blur-md p-4 rounded-2xl border border-slate-800 shadow-xl flex flex-col min-h-[160px] transition-all hover:border-indigo-900/60">
+            <div className="flex items-center gap-1.5 mb-3 px-1 border-b border-slate-800/50 pb-2">
               <Award className="w-3 h-3 text-indigo-400" />
               <span className="text-slate-500 font-bold uppercase tracking-wider text-[9px]">Frame MVP Leaders</span>
             </div>
             
-            {topPlayers.length === 0 ? (
-              <span className="text-[11px] font-bold text-slate-500 uppercase px-1">No Frame Matches Parsed</span>
-            ) : (
-              <div className="space-y-1.5">
-                {topPlayers.map((player, index) => (
+            <div className="flex-1 flex flex-col justify-center space-y-2">
+              {topPlayers.length === 0 ? (
+                <span className="text-[10px] font-bold text-slate-600 uppercase text-center">No Data</span>
+              ) : (
+                topPlayers.map((player, index) => (
                   <div key={player.name} className="flex items-center justify-between text-xs px-1 group/row">
-                    <div className="flex items-center gap-2 truncate max-w-[180px]">
-                      <span className={`font-mono text-[10px] font-black w-3.5 h-3.5 flex items-center justify-center rounded-md ${
+                    <div className="flex items-center gap-2 truncate min-w-0">
+                      <span className={`font-mono text-[10px] font-black w-4 h-4 flex items-center justify-center rounded ${
                         index === 0 ? 'bg-indigo-900/40 text-indigo-400 border border-indigo-800/50' : 'text-slate-600'
                       }`}>
                         {index + 1}
                       </span>
-                      <span className="font-black text-slate-200 uppercase tracking-tight truncate group-hover/row:text-white transition-colors">
+                      <span className="font-black text-slate-200 uppercase truncate group-hover/row:text-white transition-colors">
                         {player.name}
                       </span>
                       <span className="text-[9px] text-slate-500 font-semibold truncate uppercase tracking-tighter">
                         {player.team}
                       </span>
                     </div>
-                    <span className="font-mono font-black bg-slate-950 border border-slate-800 text-indigo-400 px-1.5 py-0.5 rounded text-[10px] tabular-nums">
+                    <span className="font-mono font-black bg-slate-950 border border-slate-800 text-indigo-400 px-1.5 py-0.5 rounded text-[10px] shrink-0 tabular-nums">
                       {player.wins} W
                     </span>
                   </div>
-                ))}
-              </div>
-            )}
+                ))
+              )}
+            </div>
           </div>
 
         </div>
