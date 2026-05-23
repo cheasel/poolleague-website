@@ -225,12 +225,15 @@ export default function StandingsClient({
                       <td className="px-2.5 py-3 text-center font-extrabold text-rose-400/70 bg-indigo-950/[0.05]">{row.overallLosses}</td>
                       
                       {/* Combined Frame Diff Cell */}
-                      <td className="px-3 py-3 text-center bg-indigo-950/[0.1] border-l border-slate-800">
-                        <div className="flex flex-col items-center gap-0.5">
-                          <span className="font-mono font-semibold tabular-nums text-slate-300">
+                      <td className="px-3 py-3 text-center bg-indigo-950/[0.1] border-l border-slate-800 whitespace-nowrap">
+                        <div className="flex items-center justify-center gap-1.5">
+                          {/* Raw Frames */}
+                          <span className="font-mono font-semibold tabular-nums text-slate-300 text-[11px]">
                             {row.overallFramesWon}:{row.overallFramesLost}
                           </span>
-                          <span className={`font-mono text-[9px] font-bold ${
+                          
+                          {/* Difference with dynamic coloring */}
+                          <span className={`font-mono text-[10px] font-bold ${
                             row.frameDifference > 0 ? 'text-emerald-400' : 
                             row.frameDifference < 0 ? 'text-rose-400' : 'text-slate-500'
                           }`}>
