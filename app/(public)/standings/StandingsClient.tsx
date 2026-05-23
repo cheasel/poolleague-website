@@ -145,8 +145,21 @@ export default function StandingsClient({
                       <td className="px-4 py-4 text-center font-bold text-emerald-400 font-mono tabular-nums">{row.overallWins}</td>
                       <td className="px-4 py-4 text-center text-slate-500 font-mono tabular-nums">{row.overallDraws}</td>
                       <td className="px-4 py-4 text-center text-rose-400/80 font-mono tabular-nums">{row.overallLosses}</td>
-                      <td className="px-4 py-4 text-center font-mono tabular-nums font-semibold text-slate-400">
-                        {row.overallFramesWon}-{row.overallFramesLost} <span className="text-[10px] ml-1">({row.frameDifference > 0 ? `+${row.frameDifference}` : row.frameDifference})</span>
+                      <td className="px-3 py-3 text-center bg-indigo-950/[0.1] border-l border-slate-800 whitespace-nowrap">
+                        <div className="flex items-center justify-center gap-1.5">
+                          {/* Raw Frames */}
+                          <span className="font-mono font-semibold tabular-nums text-slate-300 text-[11px]">
+                            {row.overallFramesWon}:{row.overallFramesLost}
+                          </span>
+                          
+                          {/* Difference with dynamic coloring */}
+                          <span className={`font-mono text-[10px] font-bold ${
+                            row.frameDifference > 0 ? 'text-emerald-400' : 
+                            row.frameDifference < 0 ? 'text-rose-400' : 'text-slate-500'
+                          }`}>
+                            ({row.frameDifference > 0 ? `+${row.frameDifference}` : row.frameDifference})
+                          </span>
+                        </div>
                       </td>
                       <td className="px-6 py-4 text-center bg-indigo-950/30 text-indigo-400 font-black font-mono text-sm border-l border-slate-800">
                         {row.overallPoints}
