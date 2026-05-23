@@ -177,24 +177,24 @@ export default function StandingsClient({
                     <th className="px-4 py-3.5 text-center w-12">Rank</th>
                     <th className="px-4 py-3.5 border-r border-slate-800">Squad Club</th>
                     
-                    {/* Home Segment */}
+                    {/* Home */}
                     <th className="px-2.5 py-3.5 text-center">P</th>
                     <th className="px-2.5 py-3.5 text-center text-emerald-400">W</th>
                     <th className="px-2.5 py-3.5 text-center text-slate-500">D</th>
                     <th className="px-2.5 py-3.5 text-center border-r border-slate-800 text-rose-400">L</th>
 
-                    {/* Away Segment */}
+                    {/* Away */}
                     <th className="px-2.5 py-3.5 text-center">P</th>
                     <th className="px-2.5 py-3.5 text-center text-emerald-400">W</th>
                     <th className="px-2.5 py-3.5 text-center text-slate-500">D</th>
                     <th className="px-2.5 py-3.5 text-center border-r border-slate-800 text-rose-400">L</th>
 
-                    {/* Global Segment */}
-                    <th className="px-2.5 py-3.5 text-center bg-indigo-950/10">Played</th>
-                    <th className="px-2.5 py-3.5 text-center bg-indigo-950/10 text-emerald-400 font-black">W</th>
-                    <th className="px-2.5 py-3.5 text-center bg-indigo-950/10 text-slate-500 font-black">D</th>
-                    <th className="px-2.5 py-3.5 text-center bg-indigo-950/10 text-rose-400 font-black">L</th>
-                    <th className="px-3 py-3.5 text-center bg-indigo-950/20 font-bold border-l border-slate-800">Frames</th>
+                    {/* Aggregate */}
+                    <th className="px-2.5 py-3.5 text-center bg-indigo-950/10">P</th>
+                    <th className="px-2.5 py-3.5 text-center bg-indigo-950/10 text-emerald-400">W</th>
+                    <th className="px-2.5 py-3.5 text-center bg-indigo-950/10 text-slate-500">D</th>
+                    <th className="px-2.5 py-3.5 text-center bg-indigo-950/10 text-rose-400">L</th>
+                    <th className="px-3 py-3.5 text-center bg-indigo-950/20 font-bold border-l border-slate-800">Frames (+/-)</th>
                     <th className="px-4 py-3.5 text-center bg-indigo-600/40 text-white font-black border-l border-slate-800">PTS</th>
                   </tr>
                 </thead>
@@ -206,26 +206,39 @@ export default function StandingsClient({
                         <Link href={`/teams/${row.id}`}>{row.name}</Link>
                       </td>
                       
-                      {/* Home */}
-                      <td className="px-2.5 py-3 text-center font-mono text-slate-500">{row.home.played}</td>
+                      {/* Home Data */}
+                      <td className="px-2.5 py-3 text-center font-mono">{row.home.played}</td>
                       <td className="px-2.5 py-3 text-center font-bold text-emerald-400/80 font-mono">{row.home.wins}</td>
                       <td className="px-2.5 py-3 text-center text-slate-600 font-mono">{row.home.draws}</td>
                       <td className="px-2.5 py-3 text-center text-rose-400/60 font-mono border-r border-slate-800">{row.home.losses}</td>
 
-                      {/* Away */}
-                      <td className="px-2.5 py-3 text-center font-mono text-slate-500">{row.away.played}</td>
+                      {/* Away Data */}
+                      <td className="px-2.5 py-3 text-center font-mono">{row.away.played}</td>
                       <td className="px-2.5 py-3 text-center font-bold text-emerald-400/80 font-mono">{row.away.wins}</td>
                       <td className="px-2.5 py-3 text-center text-slate-600 font-mono">{row.away.draws}</td>
                       <td className="px-2.5 py-3 text-center text-rose-400/60 font-mono border-r border-slate-800">{row.away.losses}</td>
 
-                      {/* Aggregate */}
-                      <td className="px-2.5 py-3 text-center font-mono bg-indigo-950/[0.05] text-slate-500">{row.overallPlayed}</td>
-                      <td className="px-2.5 py-3 text-center font-extrabold text-emerald-400/90 bg-indigo-950/[0.05] font-mono">{row.overallWins}</td>
-                      <td className="px-2.5 py-3 text-center font-extrabold text-slate-500 bg-indigo-950/[0.05] font-mono">{row.overallDraws}</td>
-                      <td className="px-2.5 py-3 text-center font-extrabold text-rose-400/70 bg-indigo-950/[0.05] font-mono">{row.overallLosses}</td>
-                      <td className="px-3 py-3 text-center font-mono bg-indigo-950/[0.1] font-semibold tabular-nums text-slate-400 border-l border-slate-800">
-                        {row.overallFramesWon}:{row.overallFramesLost}
+                      {/* Aggregate Data */}
+                      <td className="px-2.5 py-3 text-center font-mono bg-indigo-950/[0.05]">{row.overallPlayed}</td>
+                      <td className="px-2.5 py-3 text-center font-extrabold text-emerald-400/90 bg-indigo-950/[0.05]">{row.overallWins}</td>
+                      <td className="px-2.5 py-3 text-center font-extrabold text-slate-500 bg-indigo-950/[0.05]">{row.overallDraws}</td>
+                      <td className="px-2.5 py-3 text-center font-extrabold text-rose-400/70 bg-indigo-950/[0.05]">{row.overallLosses}</td>
+                      
+                      {/* Combined Frame Diff Cell */}
+                      <td className="px-3 py-3 text-center bg-indigo-950/[0.1] border-l border-slate-800">
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span className="font-mono font-semibold tabular-nums text-slate-300">
+                            {row.overallFramesWon}:{row.overallFramesLost}
+                          </span>
+                          <span className={`font-mono text-[9px] font-bold ${
+                            row.frameDifference > 0 ? 'text-emerald-400' : 
+                            row.frameDifference < 0 ? 'text-rose-400' : 'text-slate-500'
+                          }`}>
+                            ({row.frameDifference > 0 ? `+${row.frameDifference}` : row.frameDifference})
+                          </span>
+                        </div>
                       </td>
+
                       <td className="px-4 py-3 text-center bg-indigo-950 text-indigo-400 font-black font-mono text-xs shadow-inner border-l border-slate-800 italic">
                         {row.overallPoints}
                       </td>
