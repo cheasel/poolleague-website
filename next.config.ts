@@ -1,5 +1,9 @@
 import type { NextConfig } from "next";
 
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+});
+
 const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
@@ -8,7 +12,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "YOUR_PROJECT_ID.supabase.co", 
+        hostname: "vkxqxvonkyxcowtslnju.supabase.co", 
         port: "",
         pathname: "/storage/v1/object/public/**",
       },
@@ -16,4 +20,5 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// Export the merged configuration
+export default withBundleAnalyzer(nextConfig);

@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "@next/bundle-analyzer": "^16.2.6",
     "@supabase/supabase-js": "^2.106.1",
     "drizzle-orm": "^0.45.2",
     "lucide-react": "^1.16.0",

@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Trophy, Users, Star, Layers } from "lucide-react";
+import Image from 'next/image';
 
 interface PlayerStatRow {
   id: number;
@@ -269,7 +270,13 @@ export default function PlayerStatsClient({
                       <span className="text-[11px] font-mono font-bold text-slate-600 w-4 text-center">{idx + 1}</span>
                       <div className="w-7 h-7 rounded-lg overflow-hidden bg-slate-900 border border-slate-800 shrink-0 hidden sm:flex items-center justify-center shadow-inner">
                         {p.imageUrl ? (
-                          <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" />
+                          <Image 
+                          src={p.imageUrl || '/placeholder.png'} 
+                          alt={p.name} 
+                          width={48} 
+                          height={48} 
+                          className="rounded-full object-cover" 
+                        />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-[10px] font-black bg-gradient-to-br from-slate-800 to-slate-900 text-slate-400 uppercase">
                             {p.name.charAt(0)}

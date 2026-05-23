@@ -2,39 +2,35 @@
 import { useEffect, useState } from "react";
 import { fetchTitleRaceData } from "@/src/app/actions";
 
-// Define the shape of your data clearly
+interface Match {
+  id: number;
+  seasonId: number | null; // Changed from number to number | null
+  divisionId: number | null; // Changed from number to number | null
+  status: string | null;
+}
+
 export default function TitleRace({ divisionId, seasonId }: { divisionId: number, seasonId: number }) {
-  const [data, setData] = useState<any[]>([]);
+  const [data, setData] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let isMounted = true;
-    
-    async function loadData() {
-      try {
-        setLoading(true);
-        const result = await fetchTitleRaceData(seasonId, divisionId);
-        if (isMounted) {
-          setData(result);
-          setLoading(false);
-        }
-      } catch (err) {
-        console.error("Failed to fetch:", err);
-      }
-    }
-    
-    loadData();
-    return () => { isMounted = false; };
+    fetchTitleRaceData(seasonId, divisionId)
+      .then((res) => {
+        // Filter out any results that have a null seasonId if your logic requires a number
+        const sanitizedData = res.filter(m => m.seasonId !== null) as Match[];
+        setData(sanitizedData);
+        setLoading(false);
+      })
+      .catch((err) => console.error(err));
   }, [seasonId, divisionId]);
 
-  if (loading) return <div className="p-4 text-xs text-slate-500">Loading Title Race...</div>;
+  if (loading) return <div className="p-4 text-xs text-slate-500 animate-pulse">Loading...</div>;
 
   return (
     <div className="p-4">
-      <h3 className="text-white font-bold mb-2">Title Race</h3>
-      <div className="text-slate-400 text-xs">
-        {data.length > 0 ? `${data.length} matches tracked` : "No matches found."}
-      </div>
+      <h3 className="text-white font-bold mb-2 uppercase text-[10px] tracking-widest">Title Race</h3>
+      <div className="text-indigo-400 font-black text-2xl">{data.length}</div>
+      <div className="text-slate-500 text-[10px] uppercase font-bold">Matches in Scope</div>
     </div>
   );
 }
