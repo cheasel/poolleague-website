@@ -6,6 +6,7 @@ import { Trophy, CalendarDays, ArrowRight, Zap, Star, Flame, Award, Medal } from
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 3600; // Cache the data for 1 hour
 
 async function getRecentResults(seasonId: number, divisionId: number) {
   const rawMatches = await db
@@ -141,9 +142,11 @@ export default async function PublicHomePage() {
   const currentDivisions = await db.select().from(divisions).orderBy(divisions.tier).limit(1);
   const activeDivisionId = currentDivisions[0]?.id || 1;
 
-  const recentResults = await getRecentResults(activeSeasonId, activeDivisionId);
-  const sortedStreaks = await getTopFormStreaks(activeSeasonId, activeDivisionId);
-  const topPlayers = await getTopPlayerStats(activeSeasonId, activeDivisionId); // 🎯 ADDED
+  const [recentResults, sortedStreaks, topPlayers] = await Promise.all([
+    getRecentResults(activeSeasonId, activeDivisionId),
+    getTopFormStreaks(activeSeasonId, activeDivisionId),
+    getTopPlayerStats(activeSeasonId, activeDivisionId)
+  ]);
 
   const leader1 = sortedStreaks[0]?.current > 0 ? sortedStreaks[0] : null;
 
