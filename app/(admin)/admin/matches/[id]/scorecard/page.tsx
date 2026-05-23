@@ -117,10 +117,14 @@ export default async function MatchScorecardPage({ params }: PageProps) {
       let leaguePoints = 0;
       completedMatches.forEach((m) => {
         const isHome = m.homeTeamId === teamId;
-        const won = isHome 
-          ? (m.homeScore ?? 0) > (m.awayScore ?? 0)
-          : (m.awayScore ?? 0) > (m.homeScore ?? 0);
-        if (won) leaguePoints += 2; // Adjust rules accordingly
+        const hScore = m.homeScore ?? 0;
+        const aScore = m.awayScore ?? 0;
+        if (hScore === aScore) {
+          leaguePoints += 1;
+        } else {
+          const won = isHome ? hScore > aScore : aScore > hScore;
+          if (won) leaguePoints += 2;
+        }
       });
 
       await db.update(teams).set({ points: leaguePoints }).where(eq(teams.id, teamId));

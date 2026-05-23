@@ -96,8 +96,8 @@ export default async function AdminMatchesPage({ searchParams }: PageProps) {
     let homePointsAward = 0;
     let awayPointsAward = 0;
 
-    if (homeScore > awayScore) homePointsAward = 3;
-    else if (awayScore > homeScore) awayPointsAward = 3;
+    if (homeScore > awayScore) homePointsAward = 2;
+    else if (awayScore > homeScore) awayPointsAward = 2;
     else {
       homePointsAward = 1;
       awayPointsAward = 1;
