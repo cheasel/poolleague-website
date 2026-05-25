@@ -5,7 +5,7 @@ import { desc, eq, and, sql, asc } from "drizzle-orm";
 import { Trophy, CalendarDays, ArrowRight, Zap, Star, Flame, Award, Medal } from "lucide-react";
 import Link from "next/link";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 
 async function getRecentResults(seasonId: number, divisionId: number) {

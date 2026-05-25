@@ -3,7 +3,7 @@ import { teams, matches, players, seasons, divisions, matchGames } from "@/src/d
 import { eq, and, desc, sql } from "drizzle-orm";
 import PlayerStatsClient from "./PlayerStatsClient";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 interface PageProps {
   searchParams: Promise<{

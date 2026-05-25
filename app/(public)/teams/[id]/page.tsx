@@ -6,7 +6,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import TeamProfileClient from "./team-profile-client";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 interface PageProps {
   params: Promise<{
