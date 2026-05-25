@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { Users, CalendarDays, ArrowUpRight, User, BarChart4, Trophy } from "lucide-react";
+import Image from "next/image";
 
 interface RosterPlayer {
   id: number;
@@ -160,9 +161,9 @@ export default function TeamProfileClient({
                     className="p-5 px-8 flex items-center justify-between hover:bg-slate-900/40 transition-colors group"
                   >
                     <div className="flex items-center gap-5">
-                      <div className="w-11 h-11 rounded-xl overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center shrink-0 group-hover:border-indigo-500/50 transition-colors shadow-inner">
+                      <div className="w-11 h-11 rounded-xl overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center shrink-0 group-hover:border-indigo-500/50 transition-colors shadow-inner relative">
                         {player.imageUrl ? (
-                          <img src={player.imageUrl} alt={player.name} className="w-full h-full object-cover" />
+                          <Image src={player.imageUrl} alt={player.name} width={44} height={44} className="w-full h-full object-cover" />
                         ) : (
                           <User className="w-4 h-4 text-slate-700 group-hover:text-indigo-400 transition-colors" />
                         )}
@@ -194,9 +195,9 @@ export default function TeamProfileClient({
                       <tr key={stat.id} className="hover:bg-slate-900/40 transition-colors group">
                         <td className="p-4 pl-8 font-black text-white whitespace-nowrap">
                           <Link href={`/players/${stat.id}`} className="hover:text-indigo-400 transition-colors flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg overflow-hidden bg-slate-950 border border-slate-800 shrink-0 flex items-center justify-center">
+                            <div className="w-8 h-8 rounded-lg overflow-hidden bg-slate-950 border border-slate-800 shrink-0 flex items-center justify-center relative">
                               {stat.imageUrl ? (
-                                <img src={stat.imageUrl} alt={stat.name} className="w-full h-full object-cover" />
+                                <Image src={stat.imageUrl} alt={stat.name} width={32} height={32} className="w-full h-full object-cover" />
                               ) : (
                                 <User className="w-3.5 h-3.5 text-slate-700" />
                               )}
