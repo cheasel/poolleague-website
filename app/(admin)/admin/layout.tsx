@@ -18,6 +18,8 @@ import {
   ExternalLink,
   MapPin
 } from "lucide-react";
+import { signOutAction } from "@/src/app/auth-actions";
+
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -129,6 +131,9 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             </div>
             <button 
               title="Sign Out Session"
+              onClick={async () => {
+                await signOutAction();
+              }}
               className="w-9 h-9 rounded-xl hover:bg-red-950/30 hover:text-red-400 flex items-center justify-center transition-colors text-slate-500 shrink-0"
             >
               <LogOut className="w-4 h-4" />
@@ -193,10 +198,15 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 <ExternalLink className="w-3 h-3 text-slate-500" />
               </Link>
               
-              <div className="flex items-center justify-between text-slate-500">
+              <button 
+                onClick={async () => {
+                  await signOutAction();
+                }}
+                className="flex items-center justify-between text-slate-500 hover:text-red-400 transition-colors w-full text-left"
+              >
                 <span className="text-[10px] font-black uppercase tracking-wider">Director Operations</span>
-                <LogOut className="w-4 h-4 text-slate-600" />
-              </div>
+                <LogOut className="w-4 h-4 text-slate-600 group-hover:text-red-400" />
+              </button>
             </div>
           </div>
         </div>
