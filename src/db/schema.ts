@@ -1,4 +1,4 @@
-import { pgTable, serial, text, integer, varchar, timestamp, boolean, uuid, pgEnum, uniqueIndex } from 'drizzle-orm/pg-core';
+import { pgTable, serial, text, integer, varchar, timestamp, boolean, uuid, pgEnum, uniqueIndex, index } from 'drizzle-orm/pg-core';
 import { relations, sql } from 'drizzle-orm';
 
 // 1. Enums for type safety
@@ -29,7 +29,9 @@ export const divisions = pgTable("divisions", {
   name: varchar("name", { length: 255 }).notNull(),
   seasonId: integer("season_id").references(() => seasons.id, { onDelete: "cascade" }),
   tier: integer("tier").default(1).notNull(), 
-});
+}, (table) => [
+  index('divisions_season_idx').on(table.seasonId),
+]);
 
 export const teams = pgTable("teams", {
   id: serial("id").primaryKey(),
@@ -41,14 +43,18 @@ export const teams = pgTable("teams", {
   setsLost: integer("sets_lost").default(0).notNull(),
   logoUrl: text("logo_url"),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => [
+  index('teams_division_idx').on(table.divisionId),
+]);
 
 export const players = pgTable("players", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
   teamId: integer("team_id").references(() => teams.id, { onDelete: "set null" }),
   imageUrl: text("image_url"), 
-});
+}, (table) => [
+  index('players_team_idx').on(table.teamId),
+]);
 
 // 3. The Flexible Membership Table
 export const teamMemberships = pgTable('team_memberships', {
@@ -58,7 +64,11 @@ export const teamMemberships = pgTable('team_memberships', {
   seasonId: integer('season_id').references(() => seasons.id),
   divisionId: integer('division_id').references(() => divisions.id),
   isCaptain: boolean('is_captain').default(false),
-});
+}, (table) => [
+  index('team_memberships_player_idx').on(table.playerId),
+  index('team_memberships_team_idx').on(table.teamId),
+  index('team_memberships_season_division_idx').on(table.seasonId, table.divisionId),
+]);
 
 // 4. Match & Scoring Tables
 export const matches = pgTable("matches", {
@@ -72,7 +82,12 @@ export const matches = pgTable("matches", {
   awayScore: integer("away_score"),
   seasonId: integer("season_id"),
   divisionId: integer("division_id"),
-});
+}, (table) => [
+  index('matches_season_division_idx').on(table.seasonId, table.divisionId),
+  index('matches_home_team_idx').on(table.homeTeamId),
+  index('matches_away_team_idx').on(table.awayTeamId),
+  index('matches_status_idx').on(table.status),
+]);
 
 export const matchGames = pgTable("match_games", {
   id: serial("id").primaryKey(),
@@ -86,7 +101,11 @@ export const matchGames = pgTable("match_games", {
   player1Score: integer("player1_score").default(0),
   player2Score: integer("player2_score").default(0),
   createdAt: timestamp("created_at").defaultNow(),
-});
+}, (table) => [
+  index('match_games_match_idx').on(table.matchId),
+  index('match_games_player1_idx').on(table.player1Id),
+  index('match_games_player2_idx').on(table.player2Id),
+]);
 
 // 5. Auth Profiles
 export const profiles = pgTable('profiles', {
