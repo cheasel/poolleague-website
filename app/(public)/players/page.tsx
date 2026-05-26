@@ -2,6 +2,7 @@ import { db } from "@/src/db";
 import { teams, matches, players, seasons, divisions, matchGames } from "@/src/db/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
 import dynamic from "next/dynamic";
+import { unstable_cache } from "next/cache";
 
 const PlayerStatsClient = dynamic(() => import("./PlayerStatsClient"), {
   ssr: true,
@@ -16,154 +17,201 @@ interface PageProps {
   }>;
 }
 
+const getCachedSeasons = unstable_cache(
+  async () => {
+    return db.select().from(seasons).orderBy(desc(seasons.startDate));
+  },
+  ["seasons-list"],
+  { revalidate: 300, tags: ["seasons"] }
+);
+
+const getCachedDivisions = unstable_cache(
+  async () => {
+    return db.select().from(divisions).orderBy(divisions.tier);
+  },
+  ["divisions-list"],
+  { revalidate: 300, tags: ["divisions"] }
+);
+
+const getCachedPlayersData = unstable_cache(
+  async (selectedSeasonId: number | null, selectedDivisionId: number | null) => {
+    const completedMatches = await db
+      .select({
+        id: matches.id,
+        homeTeamId: matches.homeTeamId,
+        awayTeamId: matches.awayTeamId,
+        homeScore: matches.homeScore,
+        awayScore: matches.awayScore,
+      })
+      .from(matches)
+      .where(
+        and(
+          eq(matches.status, "completed"),
+          selectedSeasonId ? eq(matches.seasonId, selectedSeasonId) : undefined,
+          selectedDivisionId ? eq(matches.divisionId, selectedDivisionId) : undefined
+        )
+      );
+
+    const completedMatchIds = completedMatches.map((m) => m.id);
+
+    const teamMatchCountMap: Record<number, number> = {};
+    const teamTotalFramesMap: Record<number, number> = {};
+
+    completedMatches.forEach((m) => {
+      const totalMatchFrames = Number(m.homeScore || 0) + Number(m.awayScore || 0);
+
+      if (m.homeTeamId) {
+        teamMatchCountMap[m.homeTeamId] = (teamMatchCountMap[m.homeTeamId] || 0) + 1;
+        teamTotalFramesMap[m.homeTeamId] = (teamTotalFramesMap[m.homeTeamId] || 0) + totalMatchFrames;
+      }
+      if (m.awayTeamId) {
+        teamMatchCountMap[m.awayTeamId] = (teamMatchCountMap[m.awayTeamId] || 0) + 1;
+        teamTotalFramesMap[m.awayTeamId] = (teamTotalFramesMap[m.awayTeamId] || 0) + totalMatchFrames;
+      }
+    });
+
+    const basePlayers = await db
+      .select({
+        id: players.id,
+        name: players.name,
+        imageUrl: players.imageUrl,
+        teamId: players.teamId,
+        teamName: teams.name,
+      })
+      .from(players)
+      .leftJoin(teams, eq(players.teamId, teams.id))
+      .where(selectedDivisionId ? eq(teams.divisionId, selectedDivisionId) : undefined);
+
+    const statsMap = basePlayers.reduce((acc, p) => {
+      acc[p.id] = {
+        id: p.id,
+        name: p.name,
+        imageUrl: p.imageUrl,
+        teamName: p.teamName || "Free Agent",
+        maxTeamMatches: p.teamId ? (teamMatchCountMap[p.teamId] || 0) : 0,
+        maxTeamFrames: p.teamId ? (teamTotalFramesMap[p.teamId] || 0) : 0,
+        matchPlayGames: new Set<number>(),
+        framePlay: 0,
+        singlePlay: 0,
+        singleWin: 0,
+        singleLost: 0,
+        singlePct: "0.0",
+        doublePlay: 0,
+        doubleWin: 0,
+        doubleLost: 0,
+        doublePct: "0.0",
+        totalPlay: 0,
+        totalWin: 0,
+        totalLost: 0,
+        totalPct: "0.0",
+      };
+      return acc;
+    }, {} as Record<number, any>);
+
+    if (completedMatchIds.length > 0) {
+      const gamesPlayed = await db
+        .select({
+          matchId: matchGames.matchId,
+          gameType: matchGames.gameType,
+          player1Id: matchGames.player1Id,
+          player2Id: matchGames.player2Id,
+          player1PartnerId: matchGames.player1PartnerId,
+          player2PartnerId: matchGames.player2PartnerId,
+          player1Score: matchGames.player1Score,
+          player2Score: matchGames.player2Score,
+        })
+        .from(matchGames)
+        .where(sql`${matchGames.matchId} IN ${completedMatchIds}`);
+
+      gamesPlayed.forEach((game) => {
+        const p1Id = game.player1Id;
+        const p2Id = game.player2Id;
+        const p1Score = Number(game.player1Score || 0);
+        const p2Score = Number(game.player2Score || 0);
+
+        if (game.gameType === "single") {
+          if (p1Id && statsMap[p1Id]) {
+            statsMap[p1Id].singlePlay += 1;
+            statsMap[p1Id].framePlay += 1;
+            statsMap[p1Id].matchPlayGames.add(game.matchId);
+            if (p1Score > p2Score) statsMap[p1Id].singleWin += 1;
+            else if (p1Score < p2Score) statsMap[p1Id].singleLost += 1;
+          }
+          if (p2Id && statsMap[p2Id]) {
+            statsMap[p2Id].singlePlay += 1;
+            statsMap[p2Id].framePlay += 1;
+            statsMap[p2Id].matchPlayGames.add(game.matchId);
+            if (p2Score > p1Score) statsMap[p2Id].singleWin += 1;
+            else if (p2Score < p1Score) statsMap[p2Id].singleLost += 1;
+          }
+        }
+
+        if (game.gameType === "double") {
+          const partners = [
+            { main: p1Id, won: p1Score > p2Score, lost: p1Score < p2Score },
+            { main: game.player1PartnerId, won: p1Score > p2Score, lost: p1Score < p2Score },
+            { main: p2Id, won: p2Score > p1Score, lost: p2Score < p1Score },
+            { main: game.player2PartnerId, won: p2Score > p1Score, lost: p2Score < p1Score },
+          ];
+
+          partners.forEach(({ main, won, lost }) => {
+            if (main && statsMap[main]) {
+              statsMap[main].doublePlay += 1;
+              statsMap[main].framePlay += 1;
+              statsMap[main].matchPlayGames.add(game.matchId);
+              if (won) statsMap[main].doubleWin += 1;
+              if (lost) statsMap[main].doubleLost += 1;
+            }
+          });
+        }
+      });
+    }
+
+    const calculatedPlayers = Object.values(statsMap).map((p: any) => {
+      const totalPlay = p.singlePlay + p.doublePlay;
+      const totalWin = p.singleWin + p.doubleWin;
+      const totalLost = p.singleLost + p.doubleLost;
+
+      return {
+        id: p.id,
+        name: p.name,
+        imageUrl: p.imageUrl,
+        teamName: p.teamName,
+        maxTeamMatches: p.maxTeamMatches,
+        maxTeamFrames: p.maxTeamFrames,
+        framePlay: p.framePlay,
+        singlePlay: p.singlePlay,
+        singleWin: p.singleWin,
+        singleLost: p.singleLost,
+        singlePct: p.singlePlay > 0 ? ((p.singleWin / p.singlePlay) * 100).toFixed(1) : "0.0",
+        doublePlay: p.doublePlay,
+        doubleWin: p.doubleWin,
+        doubleLost: p.doubleLost,
+        doublePct: p.doublePlay > 0 ? ((p.doubleWin / p.doublePlay) * 100).toFixed(1) : "0.0",
+        totalPlay,
+        totalWin,
+        totalLost,
+        totalPct: totalPlay > 0 ? ((totalWin / totalPlay) * 100).toFixed(1) : "0.0",
+        matchPlay: p.matchPlayGames.size,
+      };
+    });
+
+    return calculatedPlayers;
+  },
+  ["players-data"],
+  { revalidate: 60, tags: ["players"] }
+);
+
 export default async function PublicPlayersPage({ searchParams }: PageProps) {
   const params = await searchParams;
 
-  const allSeasons = await db.select().from(seasons).orderBy(desc(seasons.startDate));
-  const allDivisions = await db.select().from(divisions).orderBy(divisions.tier);
+  const allSeasons = await getCachedSeasons();
+  const allDivisions = await getCachedDivisions();
 
   const selectedSeasonId = params.seasonId ? Number(params.seasonId) : (allSeasons[0]?.id || null);
   const selectedDivisionId = params.divisionId ? Number(params.divisionId) : (allDivisions[0]?.id || null);
 
-  const completedMatches = await db
-    .select({
-      id: matches.id,
-      homeTeamId: matches.homeTeamId,
-      awayTeamId: matches.awayTeamId,
-      homeScore: matches.homeScore,
-      awayScore: matches.awayScore,
-    })
-    .from(matches)
-    .where(
-      and(
-        eq(matches.status, "completed"),
-        selectedSeasonId ? eq(matches.seasonId, selectedSeasonId) : undefined,
-        selectedDivisionId ? eq(matches.divisionId, selectedDivisionId) : undefined
-      )
-    );
-
-  const completedMatchIds = completedMatches.map((m) => m.id);
-
-  const teamMatchCountMap: Record<number, number> = {};
-  const teamTotalFramesMap: Record<number, number> = {};
-
-  completedMatches.forEach((m) => {
-    const totalMatchFrames = Number(m.homeScore || 0) + Number(m.awayScore || 0);
-
-    if (m.homeTeamId) {
-      teamMatchCountMap[m.homeTeamId] = (teamMatchCountMap[m.homeTeamId] || 0) + 1;
-      teamTotalFramesMap[m.homeTeamId] = (teamTotalFramesMap[m.homeTeamId] || 0) + totalMatchFrames;
-    }
-    if (m.awayTeamId) {
-      teamMatchCountMap[m.awayTeamId] = (teamMatchCountMap[m.awayTeamId] || 0) + 1;
-      teamTotalFramesMap[m.awayTeamId] = (teamTotalFramesMap[m.awayTeamId] || 0) + totalMatchFrames;
-    }
-  });
-
-  const basePlayers = await db
-    .select({
-      id: players.id,
-      name: players.name,
-      imageUrl: players.imageUrl,
-      teamId: players.teamId,
-      teamName: teams.name,
-    })
-    .from(players)
-    .leftJoin(teams, eq(players.teamId, teams.id))
-    .where(selectedDivisionId ? eq(teams.divisionId, selectedDivisionId) : undefined);
-
-  const statsMap = basePlayers.reduce((acc, p) => {
-    acc[p.id] = {
-      id: p.id,
-      name: p.name,
-      imageUrl: p.imageUrl,
-      teamName: p.teamName || "Free Agent",
-      maxTeamMatches: p.teamId ? (teamMatchCountMap[p.teamId] || 0) : 0,
-      maxTeamFrames: p.teamId ? (teamTotalFramesMap[p.teamId] || 0) : 0,
-      matchPlayGames: new Set<number>(),
-      framePlay: 0,
-      singlePlay: 0,
-      singleWin: 0,
-      singleLost: 0,
-      singlePct: "0.0",
-      doublePlay: 0,
-      doubleWin: 0,
-      doubleLost: 0,
-      doublePct: "0.0",
-      totalPlay: 0,
-      totalWin: 0,
-      totalLost: 0,
-      totalPct: "0.0",
-    };
-    return acc;
-  }, {} as Record<number, any>);
-
-  if (completedMatchIds.length > 0) {
-    const gamesPlayed = await db
-      .select()
-      .from(matchGames)
-      .where(sql`${matchGames.matchId} IN ${completedMatchIds}`);
-
-    gamesPlayed.forEach((game) => {
-      const p1Id = game.player1Id;
-      const p2Id = game.player2Id;
-      const p1Score = Number(game.player1Score || 0);
-      const p2Score = Number(game.player2Score || 0);
-
-      if (game.gameType === "single") {
-        if (p1Id && statsMap[p1Id]) {
-          statsMap[p1Id].singlePlay += 1;
-          statsMap[p1Id].framePlay += 1;
-          statsMap[p1Id].matchPlayGames.add(game.matchId);
-          if (p1Score > p2Score) statsMap[p1Id].singleWin += 1;
-          else if (p1Score < p2Score) statsMap[p1Id].singleLost += 1;
-        }
-        if (p2Id && statsMap[p2Id]) {
-          statsMap[p2Id].singlePlay += 1;
-          statsMap[p2Id].framePlay += 1;
-          statsMap[p2Id].matchPlayGames.add(game.matchId);
-          if (p2Score > p1Score) statsMap[p2Id].singleWin += 1;
-          else if (p2Score < p1Score) statsMap[p2Id].singleLost += 1;
-        }
-      }
-
-      if (game.gameType === "double") {
-        const partners = [
-          { main: p1Id, won: p1Score > p2Score, lost: p1Score < p2Score },
-          { main: game.player1PartnerId, won: p1Score > p2Score, lost: p1Score < p2Score },
-          { main: p2Id, won: p2Score > p1Score, lost: p2Score < p1Score },
-          { main: game.player2PartnerId, won: p2Score > p1Score, lost: p2Score < p1Score },
-        ];
-
-        partners.forEach(({ main, won, lost }) => {
-          if (main && statsMap[main]) {
-            statsMap[main].doublePlay += 1;
-            statsMap[main].framePlay += 1;
-            statsMap[main].matchPlayGames.add(game.matchId);
-            if (won) statsMap[main].doubleWin += 1;
-            if (lost) statsMap[main].doubleLost += 1;
-          }
-        });
-      }
-    });
-  }
-
-  const calculatedPlayers = Object.values(statsMap).map((p: any) => {
-    const totalPlay = p.singlePlay + p.doublePlay;
-    const totalWin = p.singleWin + p.doubleWin;
-    const totalLost = p.singleLost + p.doubleLost;
-
-    return {
-      ...p,
-      matchPlay: p.matchPlayGames.size,
-      totalPlay,
-      totalWin,
-      totalLost,
-      singlePct: p.singlePlay > 0 ? ((p.singleWin / p.singlePlay) * 100).toFixed(1) : "0.0",
-      doublePct: p.doublePlay > 0 ? ((p.doubleWin / p.doublePlay) * 100).toFixed(1) : "0.0",
-      totalPct: totalPlay > 0 ? ((totalWin / totalPlay) * 100).toFixed(1) : "0.0",
-    };
-  });
+  const calculatedPlayers = await getCachedPlayersData(selectedSeasonId, selectedDivisionId);
 
   return (
     <div className="min-h-screen bg-slate-950 pb-16 text-slate-100">
