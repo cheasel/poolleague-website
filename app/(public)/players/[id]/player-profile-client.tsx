@@ -106,7 +106,7 @@ export default function PlayerProfileClient({
             
             {/* LARGE HEADER HERO PHOTO */}
             <div className="w-20 h-20 md:w-24 md:h-24 rounded-2xl overflow-hidden border-2 border-indigo-500/30 bg-slate-950 shrink-0 shadow-xl flex items-center justify-center relative">
-              {imageUrl ? (
+              {imageUrl && imageUrl.length > 0 ? (
                 <Image src={imageUrl} alt={playerName} width={96} height={96} className="w-full h-full object-cover" priority />
               ) : (
                 <div className="text-3xl font-black text-slate-700 uppercase">{playerName.charAt(0)}</div>

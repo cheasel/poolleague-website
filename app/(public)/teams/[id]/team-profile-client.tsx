@@ -175,7 +175,7 @@ export default function TeamProfileClient({
                   >
                     <div className="flex items-center gap-5">
                       <div className="w-11 h-11 rounded-xl overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center shrink-0 group-hover:border-indigo-500/50 transition-colors shadow-inner relative">
-                        {player.imageUrl ? (
+                        {player.imageUrl && player.imageUrl.length > 0 ? (
                           <Image src={player.imageUrl} alt={player.name} width={44} height={44} className="w-full h-full object-cover" />
                         ) : (
                           <User className="w-4 h-4 text-slate-700 group-hover:text-indigo-400 transition-colors" />
@@ -241,7 +241,7 @@ export default function TeamProfileClient({
                           <td className="p-4 pl-8 font-black text-white whitespace-nowrap">
                             <Link href={`/players/${stat.id}`} prefetch={false} className="hover:text-indigo-400 transition-colors flex items-center gap-3">
                               <div className="w-8 h-8 rounded-lg overflow-hidden bg-slate-950 border border-slate-800 shrink-0 flex items-center justify-center relative">
-                                {stat.imageUrl ? (
+                                {stat.imageUrl && stat.imageUrl.length > 0 ? (
                                   <Image src={stat.imageUrl} alt={stat.name} width={32} height={32} className="w-full h-full object-cover" />
                                 ) : (
                                   <User className="w-3.5 h-3.5 text-slate-700" />

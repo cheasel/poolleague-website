@@ -6,13 +6,22 @@ export async function updateSession(request: NextRequest) {
     request,
   })
 
+  const { pathname } = request.nextUrl
+  const isAdminPage = pathname.startsWith('/admin')
+  const isLoginPage = pathname === '/login'
+
+  // OPTIMIZATION: Skip Supabase auth entirely for public routes.
+  // The getUser() call makes an external HTTP request to Supabase auth servers,
+  // which adds latency and can hang on slow mobile connections. Public pages
+  // (standings, players, teams, matches) don't need authentication at all.
+  if (!isAdminPage && !isLoginPage) {
+    return supabaseResponse
+  }
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 
   if (!url || !anonKey) {
-    const isLoginPage = request.nextUrl.pathname === '/login';
-    const isAdminPage = request.nextUrl.pathname.startsWith('/admin');
-
     if (isAdminPage || isLoginPage) {
       console.warn("Supabase environment variables are missing (URL or Anon Key). Skipping auth updates.");
     }
@@ -50,23 +59,23 @@ export async function updateSession(request: NextRequest) {
       }
     )
 
-    // Refresh the session — this is the critical call
+    // Refresh the session — this is the critical call (only for admin/login routes)
     const {
       data: { user },
     } = await supabase.auth.getUser()
 
     // Protect /admin routes: redirect unauthenticated users to /login
-    if (request.nextUrl.pathname.startsWith('/admin')) {
+    if (isAdminPage) {
       if (!user) {
         const loginUrl = request.nextUrl.clone()
         loginUrl.pathname = '/login'
-        loginUrl.searchParams.set('redirectTo', request.nextUrl.pathname)
+        loginUrl.searchParams.set('redirectTo', pathname)
         return NextResponse.redirect(loginUrl)
       }
     }
 
     // If authenticated user visits /login, redirect them to /admin
-    if (request.nextUrl.pathname === '/login' && user) {
+    if (isLoginPage && user) {
       const adminUrl = request.nextUrl.clone()
       adminUrl.pathname = '/admin'
       return NextResponse.redirect(adminUrl)
@@ -74,7 +83,7 @@ export async function updateSession(request: NextRequest) {
   } catch (error) {
     console.error("Supabase updateSession failed:", error)
     // For safety, if it fails on an admin page, redirect to login. For public, let it pass.
-    if (request.nextUrl.pathname.startsWith('/admin')) {
+    if (isAdminPage) {
       const loginUrl = request.nextUrl.clone()
       loginUrl.pathname = '/login'
       return NextResponse.redirect(loginUrl)

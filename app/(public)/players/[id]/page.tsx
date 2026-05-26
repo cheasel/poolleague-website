@@ -107,9 +107,12 @@ export default async function PlayerProfilePage({ params }: PageProps) {
     return <div className="p-20 text-center font-black uppercase text-slate-400">Player profile sheet unavailable.</div>;
   }
 
-  const allSeasons = await getCachedSeasons();
-  const rawGames = await getCachedPlayerGames(playerId);
-  const playerMapRecord = await getCachedPlayersMap();
+  // Optimize: Execute caching queries in parallel to drastically improve page speed on cache misses
+  const [allSeasons, rawGames, playerMapRecord] = await Promise.all([
+    getCachedSeasons(),
+    getCachedPlayerGames(playerId),
+    getCachedPlayersMap(),
+  ]);
 
   return (
     <div className="min-h-screen bg-slate-950 pb-16 text-slate-100">

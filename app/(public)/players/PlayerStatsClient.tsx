@@ -278,7 +278,7 @@ export default function PlayerStatsClient({
                     <Link href={`/players/${p.id}`} prefetch={false} className="hover:text-indigo-400 transition-colors flex items-center gap-3">
                       <span className="text-[11px] font-mono font-bold text-slate-600 w-4 text-center">{idx + 1}</span>
                       <div className="w-7 h-7 rounded-lg overflow-hidden bg-slate-900 border border-slate-800 shrink-0 hidden sm:flex items-center justify-center shadow-inner">
-                        {p.imageUrl ? (
+                        {p.imageUrl && p.imageUrl.length > 0 ? (
                           <Image 
                           src={p.imageUrl || '/placeholder.png'} 
                           alt={p.name} 

@@ -96,16 +96,18 @@ export default async function PublicTeamProfilePage({ params }: PageProps) {
     return <div className="p-20 text-center font-black uppercase text-slate-400">Team profile unavailable.</div>;
   }
 
-  const roster = await getCachedRoster(teamId);
-  const teamMatches = await getCachedTeamMatches(teamId);
+  // Optimize: Execute caching queries in parallel to drastically improve page speed on cache misses
+  const [roster, teamMatches, allGames] = await Promise.all([
+    getCachedRoster(teamId),
+    getCachedTeamMatches(teamId),
+    getCachedMatchGames(),
+  ]);
 
   const completedTeamMatchIds = new Set(
     teamMatches
       .filter((m) => m.status === "completed")
       .map((m) => m.id)
   );
-
-  const allGames = await getCachedMatchGames();
 
   // Calculate live statistics for only the rostered players on this team
   const rosterStats = calculateRosterStats(
