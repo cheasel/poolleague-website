@@ -1,7 +1,11 @@
 import { db } from "@/src/db";
 import { teams, matches, players, seasons, divisions, matchGames } from "@/src/db/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
-import PlayerStatsClient from "./PlayerStatsClient";
+import dynamic from "next/dynamic";
+
+const PlayerStatsClient = dynamic(() => import("./PlayerStatsClient"), {
+  ssr: true,
+});
 
 export const revalidate = 60;
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Trophy, Users, Star, Layers } from "lucide-react";
@@ -56,6 +56,11 @@ export default function PlayerStatsClient({
   const searchParams = useSearchParams();
 
   const [pageSize, setPageSize] = useState<number>(25);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const [sortBy, setSortBy] = useState<SortOption>("winrate"); // 🎯 ADDED: Sort option tracking state
 
   // Filter States
@@ -109,8 +114,9 @@ export default function PlayerStatsClient({
       }
     });
 
-    return result.slice(0, pageSize);
-  }, [initialPlayers, pageSize, enableFrameFilter, minFramePercentage, maxFramesPlayed, enableAttendanceFilter, minAttendancePercentage, maxMatchesPlayed, sortBy]);
+    const activePageSize = mounted ? pageSize : Math.min(pageSize, 10);
+    return result.slice(0, activePageSize);
+  }, [initialPlayers, pageSize, enableFrameFilter, minFramePercentage, maxFramesPlayed, enableAttendanceFilter, minAttendancePercentage, maxMatchesPlayed, sortBy, mounted]);
 
   return (
     <div className="space-y-6">
