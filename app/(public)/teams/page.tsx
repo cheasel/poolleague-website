@@ -4,6 +4,7 @@ import { eq, and, desc, sql } from "drizzle-orm";
 import { unstable_cache } from "next/cache";
 import { Suspense } from "react";
 import TeamStatsClient from "./TeamStatsClient";
+import { calculateTeamStats } from "@/src/utils/stats-calculator";
 
 export const revalidate = 60;
 
@@ -53,100 +54,23 @@ const getCachedTeamStatsData = (selectedSeasonId: number | null, selectedDivisio
       ? await db.select().from(teams).where(eq(teams.divisionId, selectedDivisionId))
       : await db.select().from(teams);
 
-    const statsMap = baseTeams.reduce((acc, t) => {
-      acc[t.id] = {
-        id: t.id,
-        name: t.name,
-        logoUrl: t.logoUrl,
-        singlePlay: 0,
-        singleWin: 0,
-        singleLost: 0,
-        doublePlay: 0,
-        doubleWin: 0,
-        doubleLost: 0,
-      };
-      return acc;
-    }, {} as Record<number, any>);
+    const gamesPlayed = completedMatchIds.length > 0
+      ? await db
+          .select({
+            matchId: matchGames.matchId,
+            gameType: matchGames.gameType,
+            player1Score: matchGames.player1Score,
+            player2Score: matchGames.player2Score,
+          })
+          .from(matchGames)
+          .where(sql`${matchGames.matchId} IN ${completedMatchIds}`)
+      : [];
 
-    if (completedMatchIds.length > 0) {
-      const gamesPlayed = await db
-        .select({
-          matchId: matchGames.matchId,
-          gameType: matchGames.gameType,
-          player1Score: matchGames.player1Score,
-          player2Score: matchGames.player2Score,
-        })
-        .from(matchGames)
-        .where(sql`${matchGames.matchId} IN ${completedMatchIds}`);
-
-      const matchTeamMap = new Map<number, { homeTeamId: number | null; awayTeamId: number | null }>();
-      completedMatches.forEach((m) => {
-        matchTeamMap.set(m.id, { homeTeamId: m.homeTeamId, awayTeamId: m.awayTeamId });
-      });
-
-      gamesPlayed.forEach((game) => {
-        if (!game.matchId) return;
-        const teamIds = matchTeamMap.get(game.matchId);
-        if (!teamIds) return;
-
-        const { homeTeamId, awayTeamId } = teamIds;
-        const p1Score = Number(game.player1Score || 0);
-        const p2Score = Number(game.player2Score || 0);
-
-        const isHomeWin = p1Score > p2Score;
-        const isAwayWin = p2Score > p1Score;
-
-        if (game.gameType === "single") {
-          if (homeTeamId && statsMap[homeTeamId]) {
-            statsMap[homeTeamId].singlePlay += 1;
-            if (isHomeWin) statsMap[homeTeamId].singleWin += 1;
-            else if (isAwayWin) statsMap[homeTeamId].singleLost += 1;
-          }
-          if (awayTeamId && statsMap[awayTeamId]) {
-            statsMap[awayTeamId].singlePlay += 1;
-            if (isAwayWin) statsMap[awayTeamId].singleWin += 1;
-            else if (isHomeWin) statsMap[awayTeamId].singleLost += 1;
-          }
-        } else if (game.gameType === "double") {
-          if (homeTeamId && statsMap[homeTeamId]) {
-            statsMap[homeTeamId].doublePlay += 1;
-            if (isHomeWin) statsMap[homeTeamId].doubleWin += 1;
-            else if (isAwayWin) statsMap[homeTeamId].doubleLost += 1;
-          }
-          if (awayTeamId && statsMap[awayTeamId]) {
-            statsMap[awayTeamId].doublePlay += 1;
-            if (isAwayWin) statsMap[awayTeamId].doubleWin += 1;
-            else if (isHomeWin) statsMap[awayTeamId].doubleLost += 1;
-          }
-        }
-      });
-    }
-
-    const calculatedTeams = Object.values(statsMap).map((t: any) => {
-      const totalPlay = t.singlePlay + t.doublePlay;
-      const totalWin = t.singleWin + t.doubleWin;
-      const totalLost = t.singleLost + t.doubleLost;
-
-      return {
-        id: t.id,
-        name: t.name,
-        logoUrl: t.logoUrl,
-        singlePlay: t.singlePlay,
-        singleWin: t.singleWin,
-        singleLost: t.singleLost,
-        singlePct: t.singlePlay > 0 ? ((t.singleWin / t.singlePlay) * 100).toFixed(1) : "0.0",
-        doublePlay: t.doublePlay,
-        doubleWin: t.doubleWin,
-        doubleLost: t.doubleLost,
-        doublePct: t.doublePlay > 0 ? ((t.doubleWin / t.doublePlay) * 100).toFixed(1) : "0.0",
-        totalPlay,
-        totalWin,
-        totalLost,
-        totalPct: totalPlay > 0 ? ((totalWin / totalPlay) * 100).toFixed(1) : "0.0",
-      };
-    });
-
-    return calculatedTeams;
+    return calculateTeamStats(
+      baseTeams.map(t => ({ id: t.id, name: t.name, logoUrl: t.logoUrl })),
+      completedMatches,
+      gamesPlayed
+    );
   },
   ["teams-stats-data", String(selectedSeasonId), String(selectedDivisionId)],
   { revalidate: 60, tags: ["teams", "matches"] }

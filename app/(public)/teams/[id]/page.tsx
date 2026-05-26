@@ -5,6 +5,7 @@ import { alias } from "drizzle-orm/pg-core";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import TeamProfileClient from "./team-profile-client";
+import { calculateRosterStats } from "@/src/utils/stats-calculator";
 
 export const revalidate = 60;
 
@@ -78,61 +79,11 @@ export default async function PublicTeamProfilePage({ params }: PageProps) {
   const allGames = await db.select().from(matchGames);
 
   // Calculate live statistics for only the rostered players on this team
-  const rosterStats = roster.map((player) => {
-    let singlesPlayed = 0;
-    let singlesWins = 0;
-    let doublesPlayed = 0;
-    let doublesWins = 0;
-    const playedMatchIds = new Set<number>();
-
-    allGames.forEach((game) => {
-      if (!game.matchId) return;
-      const isHome = game.player1Id === player.id || game.player1PartnerId === player.id;
-      const isAway = game.player2Id === player.id || game.player2PartnerId === player.id;
-      
-      if (!isHome && !isAway) return;
-
-      if (completedTeamMatchIds.has(game.matchId)) {
-        playedMatchIds.add(game.matchId);
-      }
-
-      const playerWon = isHome 
-        ? (Number(game.player1Score || 0) > Number(game.player2Score || 0)) 
-        : (Number(game.player2Score || 0) > Number(game.player1Score || 0));
-      
-      if (game.gameType === 'double') {
-        doublesPlayed++;
-        if (playerWon) doublesWins++;
-      } else {
-        singlesPlayed++;
-        if (playerWon) singlesWins++;
-      }
-    });
-
-    const totalPlayed = singlesPlayed + doublesPlayed;
-    const totalWins = singlesWins + doublesWins;
-    const winPercentage = totalPlayed > 0 ? ((totalWins / totalPlayed) * 100).toFixed(1) : "0.0";
-    const matchesPlayed = playedMatchIds.size;
-    const teamTotalMatches = completedTeamMatchIds.size;
-    const matchPlayPercentage = teamTotalMatches > 0 ? ((matchesPlayed / teamTotalMatches) * 100).toFixed(1) : "0.0";
-
-    return {
-      id: player.id,
-      name: player.name,
-      imageUrl: player.imageUrl,
-      singlesPlayed,
-      singlesWins,
-      singlesLosses: singlesPlayed - singlesWins,
-      doublesPlayed,
-      doublesWins,
-      doublesLosses: doublesPlayed - doublesWins,
-      totalPlayed,
-      totalWins,
-      winPercentage,
-      matchesPlayed,
-      matchPlayPercentage,
-    };
-  }).sort((a, b) => Number(b.winPercentage) - Number(a.winPercentage));
+  const rosterStats = calculateRosterStats(
+    roster,
+    allGames,
+    completedTeamMatchIds
+  ).sort((a, b) => Number(b.winPercentage) - Number(a.winPercentage));
 
   return (
     <div className="min-h-screen bg-slate-950 pb-16 text-slate-100">
