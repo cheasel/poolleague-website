@@ -170,6 +170,7 @@ export default function TeamProfileClient({
                   <Link 
                     key={player.id}
                     href={`/players/${player.id}`}
+                    prefetch={false}
                     className="p-5 px-8 flex items-center justify-between hover:bg-slate-900/40 transition-colors group"
                   >
                     <div className="flex items-center gap-5">
@@ -238,7 +239,7 @@ export default function TeamProfileClient({
                       {processedStats.map((stat) => (
                         <tr key={stat.id} className="hover:bg-slate-900/40 transition-colors group">
                           <td className="p-4 pl-8 font-black text-white whitespace-nowrap">
-                            <Link href={`/players/${stat.id}`} className="hover:text-indigo-400 transition-colors flex items-center gap-3">
+                            <Link href={`/players/${stat.id}`} prefetch={false} className="hover:text-indigo-400 transition-colors flex items-center gap-3">
                               <div className="w-8 h-8 rounded-lg overflow-hidden bg-slate-950 border border-slate-800 shrink-0 flex items-center justify-center relative">
                                 {stat.imageUrl ? (
                                   <Image src={stat.imageUrl} alt={stat.name} width={32} height={32} className="w-full h-full object-cover" />

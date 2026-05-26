@@ -179,7 +179,7 @@ export default function TeamStatsClient({
               {processedTeams.map((t, idx) => (
                 <tr key={t.id} className="hover:bg-slate-900/40 transition-colors group">
                   <td className="px-4 py-3.5 font-bold text-white sticky left-0 bg-slate-950 group-hover:bg-slate-900 border-r border-slate-800 z-10 whitespace-nowrap">
-                    <Link href={`/teams/${t.id}`} className="hover:text-indigo-400 transition-colors flex items-center gap-3">
+                    <Link href={`/teams/${t.id}`} prefetch={false} className="hover:text-indigo-400 transition-colors flex items-center gap-3">
                       <span className="text-[11px] font-mono font-bold text-slate-600 w-4 text-center">{idx + 1}</span>
                       <div className="w-7 h-7 rounded-lg overflow-hidden bg-slate-900 border border-slate-800 shrink-0 hidden sm:flex items-center justify-center shadow-inner">
                         {t.logoUrl ? (

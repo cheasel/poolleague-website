@@ -139,7 +139,7 @@ export default function StandingsClient({
                         {index + 1}
                       </td>
                       <td className="px-6 py-4 font-black text-white text-[13px] uppercase tracking-tight group-hover:text-indigo-400 transition-colors">
-                        <Link href={`/teams/${row.id}`}>{row.name}</Link>
+                        <Link href={`/teams/${row.id}`} prefetch={false}>{row.name}</Link>
                       </td>
                       <td className="px-4 py-4 text-center font-mono tabular-nums">{row.overallPlayed}</td>
                       <td className="px-4 py-4 text-center font-bold text-emerald-400 font-mono tabular-nums">{row.overallWins}</td>
@@ -216,7 +216,7 @@ export default function StandingsClient({
                     <tr key={row.id} className="hover:bg-slate-900/40 transition-colors group">
                       <td className="px-4 py-3 text-center font-mono font-bold text-slate-600 border-r border-slate-900">{index + 1}</td>
                       <td className="px-4 py-3 font-black text-white uppercase border-r border-slate-800 tracking-tight text-[12px] group-hover:text-indigo-400 transition-colors">
-                        <Link href={`/teams/${row.id}`}>{row.name}</Link>
+                        <Link href={`/teams/${row.id}`} prefetch={false}>{row.name}</Link>
                       </td>
                       
                       {/* Home Data */}

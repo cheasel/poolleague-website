@@ -5,6 +5,7 @@ import { alias } from "drizzle-orm/pg-core";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import PlayerProfileClient from "./player-profile-client";
+import { unstable_cache } from "next/cache";
 
 export const revalidate = 60;
 
@@ -14,69 +15,101 @@ interface PageProps {
   }>;
 }
 
+const getCachedPlayerProfile = (playerId: number) => unstable_cache(
+  async () => {
+    const [row] = await db
+      .select({
+        id: players.id,
+        name: players.name,
+        imageUrl: players.imageUrl,
+        teamName: teams.name,
+      })
+      .from(players)
+      .leftJoin(teams, eq(players.teamId, teams.id))
+      .where(eq(players.id, playerId));
+    return row || null;
+  },
+  ["player-profile", String(playerId)],
+  { revalidate: 60, tags: ["players", "teams"] }
+)();
+
+const getCachedSeasons = unstable_cache(
+  async () => {
+    return db.select().from(seasons).orderBy(desc(seasons.name));
+  },
+  ["seasons-list"],
+  { revalidate: 300, tags: ["seasons"] }
+);
+
+const getCachedPlayerGames = (playerId: number) => unstable_cache(
+  async () => {
+    const homeTeams = alias(teams, "homeTeams");
+    const awayTeams = alias(teams, "awayTeams");
+
+    return db
+      .select({
+        id: matchGames.id,
+        gameType: matchGames.gameType,
+        player1Id: matchGames.player1Id,
+        player1PartnerId: matchGames.player1PartnerId,
+        player2Id: matchGames.player2Id,
+        player2PartnerId: matchGames.player2PartnerId,
+        player1Score: matchGames.player1Score,
+        player2Score: matchGames.player2Score,
+        matchId: matchGames.matchId,
+        matchDate: matches.date,
+        homeTeamName: homeTeams.name,
+        awayTeamName: awayTeams.name,
+        seasonId: divisions.seasonId,
+        seasonName: seasons.name,
+        divisionName: divisions.name,
+      })
+      .from(matchGames)
+      .leftJoin(matches, eq(matchGames.matchId, matches.id))
+      .leftJoin(homeTeams, eq(matches.homeTeamId, homeTeams.id))
+      .leftJoin(awayTeams, eq(matches.awayTeamId, awayTeams.id))
+      .leftJoin(divisions, eq(homeTeams.divisionId, divisions.id))
+      .leftJoin(seasons, eq(divisions.seasonId, seasons.id))
+      .where(
+        or(
+          eq(matchGames.player1Id, playerId),
+          eq(matchGames.player1PartnerId, playerId),
+          eq(matchGames.player2Id, playerId),
+          eq(matchGames.player2PartnerId, playerId)
+        )
+      )
+      .orderBy(desc(matches.date), desc(matchGames.gameOrder));
+  },
+  ["player-games-list", String(playerId)],
+  { revalidate: 60, tags: ["matchGames", "matches", "teams"] }
+)();
+
+const getCachedPlayersMap = unstable_cache(
+  async () => {
+    const globalPlayersList = await db.select().from(players);
+    const playerMapRecord: Record<number, string> = {};
+    globalPlayersList.forEach(p => {
+      playerMapRecord[p.id] = p.name;
+    });
+    return playerMapRecord;
+  },
+  ["players-map"],
+  { revalidate: 300, tags: ["players"] }
+);
+
 export default async function PlayerProfilePage({ params }: PageProps) {
   const { id } = await params;
   const playerId = Number(id);
 
-  const [player] = await db
-    .select({
-      id: players.id,
-      name: players.name,
-      imageUrl: players.imageUrl, // <-- FETCH IMAGE NATIVELY
-      teamName: teams.name,
-    })
-    .from(players)
-    .leftJoin(teams, eq(players.teamId, teams.id))
-    .where(eq(players.id, playerId));
+  const player = await getCachedPlayerProfile(playerId);
 
   if (!player) {
     return <div className="p-20 text-center font-black uppercase text-slate-400">Player profile sheet unavailable.</div>;
   }
 
-  const allSeasons = await db.select().from(seasons).orderBy(desc(seasons.name));
-
-  const homeTeams = alias(teams, "homeTeams");
-  const awayTeams = alias(teams, "awayTeams");
-
-  const rawGames = await db
-    .select({
-      id: matchGames.id,
-      gameType: matchGames.gameType,
-      player1Id: matchGames.player1Id,
-      player1PartnerId: matchGames.player1PartnerId,
-      player2Id: matchGames.player2Id,
-      player2PartnerId: matchGames.player2PartnerId,
-      player1Score: matchGames.player1Score,
-      player2Score: matchGames.player2Score,
-      matchId: matchGames.matchId,
-      matchDate: matches.date,
-      homeTeamName: homeTeams.name,
-      awayTeamName: awayTeams.name,
-      seasonId: divisions.seasonId,
-      seasonName: seasons.name,
-      divisionName: divisions.name,
-    })
-    .from(matchGames)
-    .leftJoin(matches, eq(matchGames.matchId, matches.id))
-    .leftJoin(homeTeams, eq(matches.homeTeamId, homeTeams.id))
-    .leftJoin(awayTeams, eq(matches.awayTeamId, awayTeams.id))
-    .leftJoin(divisions, eq(homeTeams.divisionId, divisions.id))
-    .leftJoin(seasons, eq(divisions.seasonId, seasons.id))
-    .where(
-      or(
-        eq(matchGames.player1Id, playerId),
-        eq(matchGames.player1PartnerId, playerId),
-        eq(matchGames.player2Id, playerId),
-        eq(matchGames.player2PartnerId, playerId)
-      )
-    )
-    .orderBy(desc(matches.date), desc(matchGames.gameOrder));
-
-  const globalPlayersList = await db.select().from(players);
-  const playerMapRecord: Record<number, string> = {};
-  globalPlayersList.forEach(p => {
-    playerMapRecord[p.id] = p.name;
-  });
+  const allSeasons = await getCachedSeasons();
+  const rawGames = await getCachedPlayerGames(playerId);
+  const playerMapRecord = await getCachedPlayersMap();
 
   return (
     <div className="min-h-screen bg-slate-950 pb-16 text-slate-100">
@@ -86,7 +119,7 @@ export default async function PlayerProfilePage({ params }: PageProps) {
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#0f172a_1px,transparent_1px),linear-gradient(to_bottom,#0f172a_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-60 pointer-events-none" />
         
         <div className="max-w-6xl mx-auto px-4 py-8 relative z-10 space-y-6">
-          <Link href="/players" className="inline-flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-indigo-400 transition-all">
+          <Link href="/players" prefetch={false} className="inline-flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-indigo-400 transition-all">
             <ArrowLeft className="w-4 h-4" /> Return to Analytics Leaderboard
           </Link>
           

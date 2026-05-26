@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import TeamProfileClient from "./team-profile-client";
 import { calculateRosterStats } from "@/src/utils/stats-calculator";
+import { unstable_cache } from "next/cache";
 
 export const revalidate = 60;
 
@@ -15,59 +16,88 @@ interface PageProps {
   }>;
 }
 
+const getCachedTeamProfile = (teamId: number) => unstable_cache(
+  async () => {
+    const [row] = await db
+      .select({
+        id: teams.id,
+        name: teams.name,
+        divisionName: divisions.name,
+        seasonName: seasons.name,
+      })
+      .from(teams)
+      .leftJoin(divisions, eq(teams.divisionId, divisions.id))
+      .leftJoin(seasons, eq(divisions.seasonId, seasons.id))
+      .where(eq(teams.id, teamId));
+    return row || null;
+  },
+  ["team-profile", String(teamId)],
+  { revalidate: 60, tags: ["teams", "divisions", "seasons"] }
+)();
+
+const getCachedRoster = (teamId: number) => unstable_cache(
+  async () => {
+    return db
+      .select({
+        id: players.id,
+        name: players.name,
+        imageUrl: players.imageUrl,
+      })
+      .from(players)
+      .where(eq(players.teamId, teamId))
+      .orderBy(asc(players.name));
+  },
+  ["team-roster", String(teamId)],
+  { revalidate: 60, tags: ["players", "teams"] }
+)();
+
+const getCachedTeamMatches = (teamId: number) => unstable_cache(
+  async () => {
+    const homeTeamsAlias = alias(teams, "homeTeamsAlias");
+    const awayTeamsAlias = alias(teams, "awayTeamsAlias");
+
+    return db
+      .select({
+        id: matches.id,
+        matchDate: matches.date,
+        status: matches.status,
+        homeTeamId: matches.homeTeamId,
+        awayTeamId: matches.awayTeamId,
+        homeTeamName: homeTeamsAlias.name,
+        awayTeamName: awayTeamsAlias.name,
+        homeTeamScoreTotal: matches.homeScore,
+        awayTeamScoreTotal: matches.awayScore,
+      })
+      .from(matches)
+      .leftJoin(homeTeamsAlias, eq(matches.homeTeamId, homeTeamsAlias.id))
+      .leftJoin(awayTeamsAlias, eq(matches.awayTeamId, awayTeamsAlias.id))
+      .where(or(eq(matches.homeTeamId, teamId), eq(matches.awayTeamId, teamId)))
+      .orderBy(desc(matches.date));
+  },
+  ["team-matches-list", String(teamId)],
+  { revalidate: 60, tags: ["matches", "teams"] }
+)();
+
+const getCachedMatchGames = unstable_cache(
+  async () => {
+    return db.select().from(matchGames);
+  },
+  ["all-match-games-list"],
+  { revalidate: 60, tags: ["matchGames"] }
+);
+
 export default async function PublicTeamProfilePage({ params }: PageProps) {
   const { id } = await params;
   const teamId = Number(id);
 
-  // 1. Fetch targeted team identity core taxonomy properties
-  const [team] = await db
-    .select({
-      id: teams.id,
-      name: teams.name,
-      divisionName: divisions.name,
-      seasonName: seasons.name,
-    })
-    .from(teams)
-    .leftJoin(divisions, eq(teams.divisionId, divisions.id))
-    .leftJoin(seasons, eq(divisions.seasonId, seasons.id))
-    .where(eq(teams.id, teamId));
+  const team = await getCachedTeamProfile(teamId);
 
   if (!team) {
     return <div className="p-20 text-center font-black uppercase text-slate-400">Team profile unavailable.</div>;
   }
 
-  // 2. Fetch team roster
-  const roster = await db
-    .select({
-      id: players.id,
-      name: players.name,
-      imageUrl: players.imageUrl,
-    })
-    .from(players)
-    .where(eq(players.teamId, teamId))
-    .orderBy(asc(players.name));
-
-  // 3. Chain aliased tables to aggregate schedule lists
-  const homeTeamsAlias = alias(teams, "homeTeamsAlias");
-  const awayTeamsAlias = alias(teams, "awayTeamsAlias");
-
-  const teamMatches = await db
-    .select({
-      id: matches.id,
-      matchDate: matches.date,
-      status: matches.status,
-      homeTeamId: matches.homeTeamId,
-      awayTeamId: matches.awayTeamId,
-      homeTeamName: homeTeamsAlias.name,
-      awayTeamName: awayTeamsAlias.name,
-      homeTeamScoreTotal: matches.homeScore,
-      awayTeamScoreTotal: matches.awayScore,
-    })
-    .from(matches)
-    .leftJoin(homeTeamsAlias, eq(matches.homeTeamId, homeTeamsAlias.id))
-    .leftJoin(awayTeamsAlias, eq(matches.awayTeamId, awayTeamsAlias.id))
-    .where(or(eq(matches.homeTeamId, teamId), eq(matches.awayTeamId, teamId)))
-    .orderBy(desc(matches.date));
+  const roster = await getCachedRoster(teamId);
+  const teamMatches = await getCachedTeamMatches(teamId);
 
   const completedTeamMatchIds = new Set(
     teamMatches
@@ -75,8 +105,7 @@ export default async function PublicTeamProfilePage({ params }: PageProps) {
       .map((m) => m.id)
   );
 
-  // 4. Fetch all match games in the league to compute roster stats
-  const allGames = await db.select().from(matchGames);
+  const allGames = await getCachedMatchGames();
 
   // Calculate live statistics for only the rostered players on this team
   const rosterStats = calculateRosterStats(
@@ -93,7 +122,7 @@ export default async function PublicTeamProfilePage({ params }: PageProps) {
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#0f172a_1px,transparent_1px),linear-gradient(to_bottom,#0f172a_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-60 pointer-events-none" />
         
         <div className="max-w-6xl mx-auto px-4 py-8 relative z-10 space-y-6">
-          <Link href="/standings" className="inline-flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-indigo-400 transition-all">
+          <Link href="/standings" prefetch={false} className="inline-flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-indigo-400 transition-all">
             <ArrowLeft className="w-4 h-4" /> Return to Standings
           </Link>
           
