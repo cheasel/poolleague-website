@@ -59,7 +59,19 @@ export default function PlayerStatsClient({
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    if (typeof window !== "undefined") {
+      if ("requestIdleCallback" in window) {
+        const handle = requestIdleCallback(() => {
+          setMounted(true);
+        });
+        return () => cancelIdleCallback(handle);
+      } else {
+        const handle = setTimeout(() => {
+          setMounted(true);
+        }, 150);
+        return () => clearTimeout(handle);
+      }
+    }
   }, []);
   const [sortBy, setSortBy] = useState<SortOption>("winrate"); // 🎯 ADDED: Sort option tracking state
 
