@@ -1,4 +1,4 @@
-import { spawn } from 'child_process';
+import { spawn, execSync } from 'child_process';
 import http from 'http';
 
 // Wait utility
@@ -32,7 +32,7 @@ async function main() {
   const serverUrl = `http://localhost:${port}`;
   
   console.log(`Starting production server on port ${port}...`);
-  const serverProcess = spawn('npx', ['next', 'start', '-p', String(port)], {
+  const serverProcess = spawn(`npx next start -p ${port}`, {
     shell: true,
     stdio: 'ignore'
   });
@@ -84,7 +84,15 @@ async function main() {
 
   // Kill the server process
   console.log('Stopping Next.js production server...');
-  serverProcess.kill('SIGTERM');
+  if (process.platform === 'win32') {
+    try {
+      execSync(`taskkill /pid ${serverProcess.pid} /f /t`, { stdio: 'ignore' });
+    } catch (e) {
+      // Ignore errors if already terminated
+    }
+  } else {
+    serverProcess.kill('SIGTERM');
+  }
   
   if (hasFailed) {
     console.error('❌ Integration tests failed.');
