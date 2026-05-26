@@ -62,7 +62,7 @@ export default function TeamProfileClient({
   
   const [activeTab, setActiveTab] = useState<"roster" | "stats">("roster");
   const [enableMatchPlayFilter, setEnableMatchPlayFilter] = useState(false);
-  const [minMatchPlayPercentage, setMinMatchPlayPercentage] = useState(30);
+  const [minMatchPlayPercentage, setMinMatchPlayPercentage] = useState(40);
 
   const processedStats = useMemo(() => {
     let result = [...rosterStats];

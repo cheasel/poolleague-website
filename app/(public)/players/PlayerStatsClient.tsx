@@ -68,9 +68,9 @@ export default function PlayerStatsClient({
 
   // Filter States
   const [enableFrameFilter, setEnableFrameFilter] = useState<boolean>(false);
-  const [minFramePercentage, setMinFramePercentage] = useState<number>(30);
+  const [minFramePercentage, setMinFramePercentage] = useState<number>(40);
   const [enableAttendanceFilter, setEnableAttendanceFilter] = useState<boolean>(false); // 🎯 ADDED
-  const [minAttendancePercentage, setMinAttendancePercentage] = useState<number>(30); // 🎯 ADDED
+  const [minAttendancePercentage, setMinAttendancePercentage] = useState<number>(40); // 🎯 ADDED
 
   const handleFilterChange = (key: 'seasonId' | 'divisionId', value: string) => {
     const params = new URLSearchParams(searchParams.toString());
