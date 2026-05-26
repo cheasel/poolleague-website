@@ -82,11 +82,18 @@ export async function updateSession(request: NextRequest) {
     }
   } catch (error) {
     console.error("Supabase updateSession failed:", error)
-    // For safety, if it fails on an admin page, redirect to login. For public, let it pass.
+    // Only redirect to login if there are NO Supabase session cookies at all.
+    // If cookies exist but getUser() failed (transient network error), let the
+    // request through — the page-level auth will handle it gracefully.
     if (isAdminPage) {
-      const loginUrl = request.nextUrl.clone()
-      loginUrl.pathname = '/login'
-      return NextResponse.redirect(loginUrl)
+      const hasSessionCookies = request.cookies.getAll().some(
+        (cookie) => cookie.name.startsWith('sb-') && cookie.name.endsWith('-auth-token')
+      )
+      if (!hasSessionCookies) {
+        const loginUrl = request.nextUrl.clone()
+        loginUrl.pathname = '/login'
+        return NextResponse.redirect(loginUrl)
+      }
     }
   }
 
