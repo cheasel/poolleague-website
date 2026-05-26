@@ -3,6 +3,7 @@ import { matches, teams, seasons, divisions } from "@/src/db/schema";
 import { eq, sql, desc, asc, and } from "drizzle-orm";
 import MatchPageClient from "./MatchPageClient";
 import { Suspense } from "react";
+import { unstable_cache } from "next/cache";
 
 export const revalidate = 60;
 
@@ -14,12 +15,65 @@ interface PageProps {
   }>;
 }
 
+const getCachedSeasons = unstable_cache(
+  async () => {
+    return db.select().from(seasons).orderBy(desc(seasons.startDate));
+  },
+  ["seasons-list"],
+  { revalidate: 300, tags: ["seasons"] }
+);
+
+const getCachedDivisions = unstable_cache(
+  async () => {
+    return db.select().from(divisions).orderBy(divisions.tier);
+  },
+  ["divisions-list"],
+  { revalidate: 300, tags: ["divisions"] }
+);
+
+const getCachedMatchesData = (
+  selectedSeasonId: number | null,
+  selectedDivisionId: number | null,
+  sortDirection: "asc" | "desc"
+) => unstable_cache(
+  async () => {
+    const conditions = [];
+    if (selectedSeasonId) {
+      conditions.push(eq(matches.seasonId, selectedSeasonId));
+    }
+    if (selectedDivisionId) {
+      conditions.push(eq(matches.divisionId, selectedDivisionId));
+    }
+
+    return db
+      .select({
+        id: matches.id,
+        date: matches.date,
+        status: matches.status,
+        weekNumber: matches.weekNumber,
+        homeTeamId: matches.homeTeamId,
+        homeTeamName: sql<string>`home_teams.name`,
+        awayTeamId: matches.awayTeamId,
+        awayTeamName: sql<string>`away_teams.name`,
+        homeScore: matches.homeScore,
+        awayScore: matches.awayScore,
+      })
+      .from(matches)
+      .leftJoin(sql`teams as home_teams`, eq(matches.homeTeamId, sql`home_teams.id`))
+      .leftJoin(sql`teams as away_teams`, eq(matches.awayTeamId, sql`away_teams.id`))
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(sortDirection === "desc" ? desc(matches.date) : asc(matches.date));
+  },
+  ["matches-list-data", String(selectedSeasonId), String(selectedDivisionId), sortDirection],
+  { revalidate: 60, tags: ["matches", "teams"] }
+)();
+
 export default async function PublicMatchesPage({ searchParams }: PageProps) {
   const params = await searchParams;
 
   // 1. Fetch lookup criteria safely
-  const allSeasons = await db.select().from(seasons).orderBy(desc(seasons.startDate));
-  const allDivisions = await db.select().from(divisions).orderBy(divisions.tier);
+  const allSeasons = await getCachedSeasons();
+  const allDivisions = await getCachedDivisions();
 
   const selectedSeasonId = params.seasonId ? Number(params.seasonId) : (allSeasons[0]?.id || null);
   const selectedDivisionId = params.divisionId ? Number(params.divisionId) : (allDivisions[0]?.id || null);
@@ -27,36 +81,8 @@ export default async function PublicMatchesPage({ searchParams }: PageProps) {
   // 🎯 Default sorting direction to 'asc' if not explicitly defined in URL
   const sortDirection = params.sort === "desc" ? "desc" : "asc";
 
-  // 2. Build SQL conditions array
-  const conditions = [];
-  if (selectedSeasonId) {
-    conditions.push(eq(matches.seasonId, selectedSeasonId));
-  }
-  if (selectedDivisionId) {
-    conditions.push(eq(matches.divisionId, selectedDivisionId));
-  }
-
   // 3. Query dataset with sorting order applied dynamically
-  const allMatchesRaw = await db
-    .select({
-      id: matches.id,
-      date: matches.date,
-      status: matches.status,
-      weekNumber: matches.weekNumber,
-      homeTeamId: matches.homeTeamId,
-      homeTeamName: sql<string>`home_teams.name`,
-      awayTeamId: matches.awayTeamId,
-      awayTeamName: sql<string>`away_teams.name`,
-      homeScore: matches.homeScore,
-      awayScore: matches.awayScore,
-    })
-    .from(matches)
-    .leftJoin(teams, eq(matches.homeTeamId, teams.id))
-    .leftJoin(sql`teams as home_teams`, eq(matches.homeTeamId, sql`home_teams.id`))
-    .leftJoin(sql`teams as away_teams`, eq(matches.awayTeamId, sql`away_teams.id`))
-    .where(conditions.length > 0 ? and(...conditions) : undefined)
-    // 🎯 Dynamically sort by date asc or desc
-    .orderBy(sortDirection === "desc" ? desc(matches.date) : asc(matches.date));
+  const allMatchesRaw = await getCachedMatchesData(selectedSeasonId, selectedDivisionId, sortDirection);
 
   // 4. Format structural attributes safely
   const formattedMatches = allMatchesRaw.map((m) => ({
