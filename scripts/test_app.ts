@@ -46,6 +46,7 @@ async function main() {
     { name: 'Standings Page', path: '/standings' },
     { name: 'Matches Page', path: '/matches' },
     { name: 'Players Page', path: '/players' },
+    { name: 'Team Stats Page', path: '/teams' },
     { name: 'Login Page', path: '/login' }
   ];
 

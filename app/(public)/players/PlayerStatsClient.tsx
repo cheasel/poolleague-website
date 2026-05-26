@@ -131,7 +131,7 @@ export default function PlayerStatsClient({
             onChange={(e) => handleFilterChange('seasonId', e.target.value)}
             className="p-2.5 bg-slate-950 border border-slate-800 rounded-xl font-bold text-xs text-slate-200 outline-none cursor-pointer hover:border-slate-700 transition-colors"
           >
-            {seasons.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+            {seasons.map((s) => <option key={s.id} value={s.id} className="bg-slate-950 text-slate-200">{s.name}</option>)}
           </select>
 
           <select
@@ -139,7 +139,7 @@ export default function PlayerStatsClient({
             onChange={(e) => handleFilterChange('divisionId', e.target.value)}
             className="p-2.5 bg-slate-950 border border-slate-800 rounded-xl font-bold text-xs text-slate-200 outline-none cursor-pointer hover:border-slate-700 transition-colors"
           >
-            {divisions.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+            {divisions.map((d) => <option key={d.id} value={d.id} className="bg-slate-950 text-slate-200">{d.name}</option>)}
           </select>
 
           <select
@@ -147,10 +147,10 @@ export default function PlayerStatsClient({
             onChange={(e) => setPageSize(Number(e.target.value))}
             className="p-2.5 bg-slate-950 border border-slate-800 rounded-xl font-bold text-xs text-slate-200 outline-none cursor-pointer hover:border-slate-700 transition-colors"
           >
-            <option value={10}>Top 10 Performers</option>
-            <option value={25}>Top 25 Performers</option>
-            <option value={50}>Top 50 Performers</option>
-            <option value={100}>All Active Players</option>
+            <option value={10} className="bg-slate-950 text-slate-200">Top 10 Performers</option>
+            <option value={25} className="bg-slate-950 text-slate-200">Top 25 Performers</option>
+            <option value={50} className="bg-slate-950 text-slate-200">Top 50 Performers</option>
+            <option value={100} className="bg-slate-950 text-slate-200">All Active Players</option>
           </select>
 
           {/* Sorting Controller Dropdown 🎯 ADDED */}
@@ -159,8 +159,8 @@ export default function PlayerStatsClient({
             onChange={(e) => setSortBy(e.target.value as SortOption)}
             className="p-2.5 bg-indigo-950/40 border border-indigo-900/40 rounded-xl font-black text-xs text-indigo-400 outline-none cursor-pointer hover:bg-indigo-900/60 transition-all uppercase tracking-tight"
           >
-            <option value="winrate">Sort by Win Rate %</option>
-            <option value="totalwin">Sort by Total Wins</option>
+            <option value="winrate" className="bg-slate-950 text-slate-200">Sort by Win Rate %</option>
+            <option value="totalwin" className="bg-slate-950 text-slate-200">Sort by Total Wins</option>
           </select>
         </div>
 

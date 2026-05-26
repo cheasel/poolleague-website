@@ -1,19 +1,30 @@
 'use client';
 
-import { useState } from 'react'; // 🎯 ADDED: React state hook for layout control
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Trophy, Users, Calendar, BarChart3, Menu, X } from 'lucide-react'; // 🎯 ADDED: Responsive icon tokens
+import { Trophy, Users, Calendar, BarChart3, Menu, X, ChevronDown, Shield } from 'lucide-react';
 
 export default function PublicNavbar() {
   const pathname = usePathname();
-  const [isOpen, setIsOpen] = useState(false); // 🎯 ADDED: Mobile disclosure tracking variable
+  const [isOpen, setIsOpen] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  const navItems = [
-    { name: 'Standings', href: '/standings', icon: Trophy },
-    { name: 'Players', href: '/players', icon: Users },
-    { name: 'Matches', href: '/matches', icon: Calendar },
-  ];
+  useEffect(() => {
+    if (!isDropdownOpen) return;
+    const handleDocumentClick = () => {
+      setIsDropdownOpen(false);
+    };
+    document.addEventListener('click', handleDocumentClick);
+    return () => {
+      document.removeEventListener('click', handleDocumentClick);
+    };
+  }, [isDropdownOpen]);
+
+  const handleDropdownToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsDropdownOpen(!isDropdownOpen);
+  };
 
   return (
     <nav className="sticky top-0 z-50 w-full bg-slate-950/80 backdrop-blur-md border-b border-slate-900">
@@ -31,24 +42,76 @@ export default function PublicNavbar() {
 
           {/* Desktop Navigation Links */}
           <div className="hidden md:flex items-center gap-1">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = pathname.startsWith(item.href);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-                    isActive 
-                      ? 'bg-slate-900 text-white' 
-                      : 'text-slate-400 hover:text-white hover:bg-slate-900/60'
-                  }`}
-                >
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-indigo-400' : 'text-slate-500'}`} />
-                  {item.name}
-                </Link>
-              );
-            })}
+            {/* Standings */}
+            <Link
+              href="/standings"
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                pathname.startsWith('/standings')
+                  ? 'bg-slate-900 text-white'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-900/60'
+              }`}
+            >
+              <Trophy className={`w-4 h-4 ${pathname.startsWith('/standings') ? 'text-indigo-400' : 'text-slate-500'}`} />
+              Standings
+            </Link>
+
+            {/* Stats Dropdown */}
+            <div className="relative">
+              <button
+                onClick={handleDropdownToggle}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all outline-none ${
+                  pathname.startsWith('/players') || pathname.startsWith('/teams')
+                    ? 'bg-slate-900 text-white'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-900/60'
+                }`}
+              >
+                <BarChart3 className={`w-4 h-4 ${pathname.startsWith('/players') || pathname.startsWith('/teams') ? 'text-indigo-400' : 'text-slate-500'}`} />
+                <span>Stats</span>
+                <ChevronDown className={`w-3.5 h-3.5 text-slate-500 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {isDropdownOpen && (
+                <div className="absolute left-0 mt-1 w-48 bg-slate-950/95 backdrop-blur-md border border-slate-800 rounded-2xl shadow-2xl p-2 z-50 animate-in fade-in slide-in-from-top-1 duration-200">
+                  <Link
+                    href="/players"
+                    onClick={() => setIsDropdownOpen(false)}
+                    className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                      pathname.startsWith('/players')
+                        ? 'bg-slate-900 text-indigo-400'
+                        : 'text-slate-400 hover:text-white hover:bg-slate-900/40'
+                    }`}
+                  >
+                    <Users className="w-4 h-4" />
+                    Player Stats
+                  </Link>
+                  <Link
+                    href="/teams"
+                    onClick={() => setIsDropdownOpen(false)}
+                    className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
+                      pathname.startsWith('/teams') && !pathname.match(/\/teams\/\d+/)
+                        ? 'bg-slate-900 text-indigo-400'
+                        : 'text-slate-400 hover:text-white hover:bg-slate-900/40'
+                    }`}
+                  >
+                    <Shield className="w-4 h-4" />
+                    Team Stats
+                  </Link>
+                </div>
+              )}
+            </div>
+
+            {/* Matches */}
+            <Link
+              href="/matches"
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                pathname.startsWith('/matches')
+                  ? 'bg-slate-900 text-white'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-900/60'
+              }`}
+            >
+              <Calendar className={`w-4 h-4 ${pathname.startsWith('/matches') ? 'text-indigo-400' : 'text-slate-500'}`} />
+              Matches
+            </Link>
           </div>
 
           {/* Desktop Admin Quick Link */}
@@ -61,7 +124,7 @@ export default function PublicNavbar() {
             </Link>
           </div>
 
-          {/* 🎯 ADDED: Responsive Mobile Trigger Button Container */}
+          {/* Responsive Mobile Trigger Button Container */}
           <div className="flex items-center md:hidden">
             <button
               onClick={() => setIsOpen(!isOpen)}
@@ -77,7 +140,7 @@ export default function PublicNavbar() {
         </div>
       </div>
 
-      {/* 🎯 ADDED: Dropdown Mobile Route Navigation Panel Drawer */}
+      {/* Dropdown Mobile Route Navigation Panel Drawer */}
       <div 
         className={`md:hidden bg-slate-950 border-b border-slate-900 transition-all duration-200 ease-in-out ${
           isOpen ? 'block opacity-100' : 'hidden opacity-0'
@@ -85,25 +148,61 @@ export default function PublicNavbar() {
         id="mobile-menu"
       >
         <div className="px-2 pt-2 pb-4 space-y-1 sm:px-3">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname.startsWith(item.href);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setIsOpen(false)} // Close menu on route select
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-base font-bold transition-all ${
-                  isActive 
-                    ? 'bg-slate-900 text-white border-l-2 border-indigo-400' 
-                    : 'text-slate-400 hover:text-white hover:bg-slate-900/40'
-                }`}
-              >
-                <Icon className={`w-4 h-4 ${isActive ? 'text-indigo-400' : 'text-slate-500'}`} />
-                {item.name}
-              </Link>
-            );
-          })}
+          {/* Standings */}
+          <Link
+            href="/standings"
+            onClick={() => setIsOpen(false)}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-base font-bold transition-all ${
+              pathname.startsWith('/standings')
+                ? 'bg-slate-900 text-white border-l-2 border-indigo-400'
+                : 'text-slate-400 hover:text-white hover:bg-slate-900/40'
+            }`}
+          >
+            <Trophy className={`w-4 h-4 ${pathname.startsWith('/standings') ? 'text-indigo-400' : 'text-slate-500'}`} />
+            Standings
+          </Link>
+
+          {/* Player Stats */}
+          <Link
+            href="/players"
+            onClick={() => setIsOpen(false)}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-base font-bold transition-all ${
+              pathname.startsWith('/players')
+                ? 'bg-slate-900 text-white border-l-2 border-indigo-400'
+                : 'text-slate-400 hover:text-white hover:bg-slate-900/40'
+            }`}
+          >
+            <Users className={`w-4 h-4 ${pathname.startsWith('/players') ? 'text-indigo-400' : 'text-slate-500'}`} />
+            Player Stats
+          </Link>
+
+          {/* Team Stats */}
+          <Link
+            href="/teams"
+            onClick={() => setIsOpen(false)}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-base font-bold transition-all ${
+              pathname.startsWith('/teams') && !pathname.match(/\/teams\/\d+/)
+                ? 'bg-slate-900 text-white border-l-2 border-indigo-400'
+                : 'text-slate-400 hover:text-white hover:bg-slate-900/40'
+            }`}
+          >
+            <Shield className={`w-4 h-4 ${pathname.startsWith('/teams') && !pathname.match(/\/teams\/\d+/) ? 'text-indigo-400' : 'text-slate-500'}`} />
+            Team Stats
+          </Link>
+
+          {/* Matches */}
+          <Link
+            href="/matches"
+            onClick={() => setIsOpen(false)}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-base font-bold transition-all ${
+              pathname.startsWith('/matches')
+                ? 'bg-slate-900 text-white border-l-2 border-indigo-400'
+                : 'text-slate-400 hover:text-white hover:bg-slate-900/40'
+            }`}
+          >
+            <Calendar className={`w-4 h-4 ${pathname.startsWith('/matches') ? 'text-indigo-400' : 'text-slate-500'}`} />
+            Matches
+          </Link>
           
           <div className="pt-4 mt-2 border-t border-slate-900 px-4">
             <Link 

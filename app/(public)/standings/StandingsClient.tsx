@@ -72,7 +72,7 @@ export default function StandingsClient({
               className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl font-bold text-xs text-slate-200 transition-colors outline-none cursor-pointer hover:border-slate-700"
             >
               {seasons.map((s) => (
-                <option key={s.id} value={s.id}>{s.name}</option>
+                <option key={s.id} value={s.id} className="bg-slate-950 text-slate-200">{s.name}</option>
               ))}
             </select>
           </div>
@@ -85,7 +85,7 @@ export default function StandingsClient({
               className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl font-bold text-xs text-slate-200 transition-colors outline-none cursor-pointer hover:border-slate-700"
             >
               {divisions.map((d) => (
-                <option key={d.id} value={d.id}>{d.name}</option>
+                <option key={d.id} value={d.id} className="bg-slate-950 text-slate-200">{d.name}</option>
               ))}
             </select>
           </div>
