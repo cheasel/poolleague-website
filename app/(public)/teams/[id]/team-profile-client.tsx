@@ -24,6 +24,8 @@ interface PlayerStats {
   totalPlayed: number;
   totalWins: number;
   winPercentage: string;
+  matchesPlayed: number;
+  matchPlayPercentage: string;
 }
 
 interface MatchLog {
@@ -59,6 +61,16 @@ export default function TeamProfileClient({
 }: TeamProfileClientProps) {
   
   const [activeTab, setActiveTab] = useState<"roster" | "stats">("roster");
+  const [enableMatchPlayFilter, setEnableMatchPlayFilter] = useState(false);
+  const [minMatchPlayPercentage, setMinMatchPlayPercentage] = useState(30);
+
+  const processedStats = useMemo(() => {
+    let result = [...rosterStats];
+    if (enableMatchPlayFilter) {
+      result = result.filter(stat => parseFloat(stat.matchPlayPercentage) >= minMatchPlayPercentage);
+    }
+    return result;
+  }, [rosterStats, enableMatchPlayFilter, minMatchPlayPercentage]);
 
   const { completedMatches, scheduledMatches, formTrend } = useMemo(() => {
     const completed = matches.filter(m => m.status === "completed");
@@ -179,49 +191,86 @@ export default function TeamProfileClient({
             </div>
           ) : (
             /* NEW FULLY OPERATIONAL TEAM STATISTICS SHEET */
-            <div className="bg-slate-900/40 border border-slate-900 rounded-[2.5rem] shadow-2xl overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse text-left text-xs">
-                  <thead>
-                    <tr className="bg-slate-900 text-slate-500 font-black uppercase tracking-widest border-b border-slate-800">
-                      <th className="p-4 pl-8">Competitor</th>
-                      <th className="p-4 text-center">Singles (W/L)</th>
-                      <th className="p-4 text-center">Doubles (W/L)</th>
-                      <th className="p-4 text-center bg-indigo-950/30 text-indigo-400 pr-8 shadow-inner italic">Win %</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-800/60 font-black uppercase tracking-tight text-slate-400">
-                    {rosterStats.map((stat) => (
-                      <tr key={stat.id} className="hover:bg-slate-900/40 transition-colors group">
-                        <td className="p-4 pl-8 font-black text-white whitespace-nowrap">
-                          <Link href={`/players/${stat.id}`} className="hover:text-indigo-400 transition-colors flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-lg overflow-hidden bg-slate-950 border border-slate-800 shrink-0 flex items-center justify-center relative">
-                              {stat.imageUrl ? (
-                                <Image src={stat.imageUrl} alt={stat.name} width={32} height={32} className="w-full h-full object-cover" />
-                              ) : (
-                                <User className="w-3.5 h-3.5 text-slate-700" />
-                              )}
-                            </div>
-                            <span className="text-sm">{stat.name}</span>
-                          </Link>
-                        </td>
-                        <td className="p-4 text-center tabular-nums">
-                          <span className="text-emerald-400">{stat.singlesWins}W</span>
-                          <span className="text-slate-800 mx-1.5">•</span>
-                          <span className="text-slate-600">{stat.singlesLosses}L</span>
-                        </td>
-                        <td className="p-4 text-center tabular-nums">
-                          <span className="text-emerald-400">{stat.doublesWins}W</span>
-                          <span className="text-slate-800 mx-1.5">•</span>
-                          <span className="text-slate-600">{stat.doublesLosses}L</span>
-                        </td>
-                        <td className="p-4 text-center font-black italic bg-indigo-950/10 text-indigo-400 tabular-nums pr-8 shadow-sm">
-                          {stat.winPercentage}%
-                        </td>
+            <div className="space-y-4">
+              {/* Filter Control Deck */}
+              <div className="bg-slate-900/80 backdrop-blur-md rounded-2xl p-4 shadow-xl border border-slate-800 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-2.5">
+                  <input
+                    type="checkbox"
+                    id="matchPlayFilterToggle"
+                    checked={enableMatchPlayFilter}
+                    onChange={(e) => setEnableMatchPlayFilter(e.target.checked)}
+                    className="w-4 h-4 text-indigo-600 bg-slate-900 border-slate-700 rounded focus:ring-0 accent-indigo-600 cursor-pointer"
+                  />
+                  <label htmlFor="matchPlayFilterToggle" className="text-[11px] font-black text-slate-400 uppercase tracking-tight cursor-pointer select-none">
+                    Filter Match Play %
+                  </label>
+                </div>
+                <div className="flex items-center gap-1">
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    disabled={!enableMatchPlayFilter}
+                    value={minMatchPlayPercentage}
+                    onChange={(e) => setMinMatchPlayPercentage(Math.min(100, Math.max(0, Number(e.target.value))))}
+                    className={`w-12 p-1 text-center font-bold text-xs border rounded-lg outline-none transition-all ${
+                      enableMatchPlayFilter ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-950 border-slate-900 text-slate-700 cursor-not-allowed'
+                    }`}
+                  />
+                  <span className="text-[11px] font-bold text-slate-600">%</span>
+                </div>
+              </div>
+
+              <div className="bg-slate-900/40 border border-slate-900 rounded-[2.5rem] shadow-2xl overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse text-left text-xs">
+                    <thead>
+                      <tr className="bg-slate-900 text-slate-500 font-black uppercase tracking-widest border-b border-slate-800">
+                        <th className="p-4 pl-8">Competitor</th>
+                        <th className="p-4 text-center">Singles (W/L)</th>
+                        <th className="p-4 text-center">Doubles (W/L)</th>
+                        <th className="p-4 text-center">Match Play</th>
+                        <th className="p-4 text-center bg-indigo-950/30 text-indigo-400 pr-8 shadow-inner italic">Win %</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/60 font-black uppercase tracking-tight text-slate-400">
+                      {processedStats.map((stat) => (
+                        <tr key={stat.id} className="hover:bg-slate-900/40 transition-colors group">
+                          <td className="p-4 pl-8 font-black text-white whitespace-nowrap">
+                            <Link href={`/players/${stat.id}`} className="hover:text-indigo-400 transition-colors flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-lg overflow-hidden bg-slate-950 border border-slate-800 shrink-0 flex items-center justify-center relative">
+                                {stat.imageUrl ? (
+                                  <Image src={stat.imageUrl} alt={stat.name} width={32} height={32} className="w-full h-full object-cover" />
+                                ) : (
+                                  <User className="w-3.5 h-3.5 text-slate-700" />
+                                )}
+                              </div>
+                              <span className="text-sm">{stat.name}</span>
+                            </Link>
+                          </td>
+                          <td className="p-4 text-center tabular-nums">
+                            <span className="text-emerald-400">{stat.singlesWins}W</span>
+                            <span className="text-slate-800 mx-1.5">•</span>
+                            <span className="text-slate-600">{stat.singlesLosses}L</span>
+                          </td>
+                          <td className="p-4 text-center tabular-nums">
+                            <span className="text-emerald-400">{stat.doublesWins}W</span>
+                            <span className="text-slate-800 mx-1.5">•</span>
+                            <span className="text-slate-600">{stat.doublesLosses}L</span>
+                          </td>
+                          <td className="p-4 text-center font-mono tabular-nums text-slate-300">
+                            {stat.matchesPlayed} <span className="text-[10px] text-slate-600 font-normal">/ {completedMatches.length}</span>
+                            <span className="text-slate-500 text-[10px] ml-1.5">({stat.matchPlayPercentage}%)</span>
+                          </td>
+                          <td className="p-4 text-center font-black italic bg-indigo-950/10 text-indigo-400 tabular-nums pr-8 shadow-sm">
+                            {stat.winPercentage}%
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}
