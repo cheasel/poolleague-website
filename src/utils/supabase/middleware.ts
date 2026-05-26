@@ -10,9 +10,15 @@ export async function updateSession(request: NextRequest) {
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 
   if (!url || !anonKey) {
+    const isLoginPage = request.nextUrl.pathname === '/login';
+    const isAdminPage = request.nextUrl.pathname.startsWith('/admin');
+
+    if (isAdminPage || isLoginPage) {
+      console.warn("Supabase environment variables are missing (URL or Anon Key). Skipping auth updates.");
+    }
+
     // Protect /admin routes: if trying to access admin without env variables, redirect to login
-    if (request.nextUrl.pathname.startsWith('/admin') || request.nextUrl.pathname === '/login') {
-      console.warn("Supabase environment variables are missing (URL or Anon Key). Skipping auth check and redirecting.")
+    if (isAdminPage) {
       const loginUrl = request.nextUrl.clone()
       loginUrl.pathname = '/login'
       return NextResponse.redirect(loginUrl)
