@@ -1,12 +1,9 @@
 import { db } from "@/src/db";
 import { teams, matches, players, seasons, divisions, matchGames } from "@/src/db/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
-import dynamic from "next/dynamic";
 import { unstable_cache } from "next/cache";
-
-const PlayerStatsClient = dynamic(() => import("./PlayerStatsClient"), {
-  ssr: true,
-});
+import { Suspense } from "react";
+import PlayerStatsClient from "./PlayerStatsClient";
 
 export const revalidate = 60;
 
@@ -33,8 +30,8 @@ const getCachedDivisions = unstable_cache(
   { revalidate: 300, tags: ["divisions"] }
 );
 
-const getCachedPlayersData = unstable_cache(
-  async (selectedSeasonId: number | null, selectedDivisionId: number | null) => {
+const getCachedPlayersData = (selectedSeasonId: number | null, selectedDivisionId: number | null) => unstable_cache(
+  async () => {
     const completedMatches = await db
       .select({
         id: matches.id,
@@ -198,9 +195,9 @@ const getCachedPlayersData = unstable_cache(
 
     return calculatedPlayers;
   },
-  ["players-data"],
+  ["players-data", String(selectedSeasonId), String(selectedDivisionId)],
   { revalidate: 60, tags: ["players"] }
-);
+)();
 
 export default async function PublicPlayersPage({ searchParams }: PageProps) {
   const params = await searchParams;
@@ -232,13 +229,19 @@ export default async function PublicPlayersPage({ searchParams }: PageProps) {
       </div>
 
       <div className="max-w-6xl mx-auto px-4 py-10">
-        <PlayerStatsClient
-          initialPlayers={calculatedPlayers}
-          seasons={allSeasons.map((s) => ({ id: s.id, name: s.name }))}
-          divisions={allDivisions.map((d) => ({ id: d.id, name: d.name }))}
-          selectedSeasonId={selectedSeasonId || undefined}
-          selectedDivisionId={selectedDivisionId || undefined}
-        />
+        <Suspense fallback={
+          <div className="text-slate-400 text-center py-12 font-bold uppercase tracking-wider text-xs">
+            Loading player statistics...
+          </div>
+        }>
+          <PlayerStatsClient
+            initialPlayers={calculatedPlayers}
+            seasons={allSeasons.map((s) => ({ id: s.id, name: s.name }))}
+            divisions={allDivisions.map((d) => ({ id: d.id, name: d.name }))}
+            selectedSeasonId={selectedSeasonId || undefined}
+            selectedDivisionId={selectedDivisionId || undefined}
+          />
+        </Suspense>
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import { db } from "@/src/db";
 import { matches, teams, seasons, divisions } from "@/src/db/schema";
 import { eq, sql, desc, asc, and } from "drizzle-orm";
 import MatchPageClient from "./MatchPageClient";
+import { Suspense } from "react";
 
 export const revalidate = 60;
 
@@ -91,15 +92,21 @@ export default async function PublicMatchesPage({ searchParams }: PageProps) {
       </div>
 
       <div className="max-w-6xl mx-auto px-4 py-10">
-        <MatchPageClient 
-          upcomingFixtures={upcomingFixtures}
-          completedResults={completedResults}
-          seasons={allSeasons.map(s => ({ id: s.id, name: s.name }))}
-          divisions={allDivisions.map(d => ({ id: d.id, name: d.name }))}
-          selectedSeasonId={selectedSeasonId || undefined}
-          selectedDivisionId={selectedDivisionId || undefined}
-          sortDirection={sortDirection}
-        />
+        <Suspense fallback={
+          <div className="text-slate-400 text-center py-12 font-bold uppercase tracking-wider text-xs">
+            Loading match schedules...
+          </div>
+        }>
+          <MatchPageClient 
+            upcomingFixtures={upcomingFixtures}
+            completedResults={completedResults}
+            seasons={allSeasons.map(s => ({ id: s.id, name: s.name }))}
+            divisions={allDivisions.map(d => ({ id: d.id, name: d.name }))}
+            selectedSeasonId={selectedSeasonId || undefined}
+            selectedDivisionId={selectedDivisionId || undefined}
+            sortDirection={sortDirection}
+          />
+        </Suspense>
       </div>
     </div>
   );

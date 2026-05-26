@@ -3,6 +3,7 @@ import { teams, matches, seasons, divisions } from "@/src/db/schema";
 import { eq, sql, desc, and } from "drizzle-orm";
 import StandingsClient from "./StandingsClient";
 import { unstable_cache } from "next/cache";
+import { Suspense } from "react";
 
 export const revalidate = 60;
 
@@ -22,8 +23,8 @@ const getCachedDivisions = unstable_cache(
   { revalidate: 300, tags: ["divisions"] }
 );
 
-const getCachedStandingsData = unstable_cache(
-  async (seasonId: number | null, divisionId: number | null) => {
+const getCachedStandingsData = (seasonId: number | null, divisionId: number | null) => unstable_cache(
+  async () => {
     // 2. Build target conditions
     const conditions = [eq(matches.status, "completed")];
     if (seasonId) conditions.push(eq(matches.seasonId, seasonId));
@@ -145,9 +146,9 @@ const getCachedStandingsData = unstable_cache(
 
     return calculatedStandings;
   },
-  ["standings-data"],
+  ["standings-data", String(seasonId), String(divisionId)],
   { revalidate: 60, tags: ["standings"] }
-);
+)();
 
 interface PageProps {
   searchParams: Promise<{
@@ -188,13 +189,19 @@ export default async function PublicStandingsPage({ searchParams }: PageProps) {
       </div>
 
       <div className="max-w-6xl mx-auto px-4 py-10">
-        <StandingsClient 
-          standings={calculatedStandings}
-          seasons={allSeasons.map(s => ({ id: s.id, name: s.name }))}
-          divisions={allDivisions.map(d => ({ id: d.id, name: d.name }))}
-          selectedSeasonId={selectedSeasonId || undefined}
-          selectedDivisionId={selectedDivisionId || undefined}
-        />
+        <Suspense fallback={
+          <div className="text-slate-400 text-center py-12 font-bold uppercase tracking-wider text-xs">
+            Loading standings...
+          </div>
+        }>
+          <StandingsClient 
+            standings={calculatedStandings}
+            seasons={allSeasons.map(s => ({ id: s.id, name: s.name }))}
+            divisions={allDivisions.map(d => ({ id: d.id, name: d.name }))}
+            selectedSeasonId={selectedSeasonId || undefined}
+            selectedDivisionId={selectedDivisionId || undefined}
+          />
+        </Suspense>
       </div>
     </div>
   );
