@@ -134,19 +134,31 @@ async function getTopPlayerStats(seasonId: number, divisionId: number, limit: nu
     .slice(0, limit);
 }
 
-export default async function PublicHomePage() {
+interface PageProps {
+  searchParams: Promise<{
+    divisionId?: string;
+  }>;
+}
+
+export default async function PublicHomePage({ searchParams }: PageProps) {
+  const params = await searchParams;
+
+  // 1. Fetch seasons and active season id
   const currentSeasons = await db.select().from(seasons).orderBy(desc(seasons.startDate)).limit(1);
   const activeSeasonId = currentSeasons[0]?.id || 1;
   const activeSeasonName = currentSeasons[0]?.name || "Current Season";
 
-  const currentDivisions = await db.select().from(divisions).orderBy(divisions.tier).limit(1);
-  const activeDivisionId = currentDivisions[0]?.id || 1;
+  // 2. Fetch all divisions for the active season
+  const allDivisions = await db.select().from(divisions).where(eq(divisions.seasonId, activeSeasonId)).orderBy(divisions.tier);
 
-  const recentResults = await getRecentResults(activeSeasonId, activeDivisionId);
-  const sortedStreaks = await getTopFormStreaks(activeSeasonId, activeDivisionId);
-  const topPlayers = await getTopPlayerStats(activeSeasonId, activeDivisionId, 5); // 🎯 Fetch top 5
+  // 3. Resolve active division id (default to first division of active season)
+  const selectedDivisionId = params.divisionId ? Number(params.divisionId) : (allDivisions[0]?.id || 1);
+  const currentDivision = allDivisions.find(d => d.id === selectedDivisionId) || allDivisions[0];
 
-
+  // 4. Fetch metrics for the selected division
+  const recentResults = await getRecentResults(activeSeasonId, selectedDivisionId);
+  const sortedStreaks = await getTopFormStreaks(activeSeasonId, selectedDivisionId);
+  const topPlayers = await getTopPlayerStats(activeSeasonId, selectedDivisionId, 5); // 🎯 Fetch top 5
 
   const leader1 = sortedStreaks[0]?.current > 0 ? sortedStreaks[0] : null;
   const mvpPlayer = topPlayers[0] || null;
@@ -194,8 +206,31 @@ export default async function PublicHomePage() {
         </div>
       </div>
 
+      {/* DIVISION SWITCHER TABS */}
+      <div className="max-w-6xl mx-auto px-4 mt-8 z-20 relative">
+        <div className="bg-slate-900/60 backdrop-blur-md p-1 rounded-2xl inline-flex flex-wrap items-center border border-slate-800/80 gap-1">
+          {allDivisions.map((div) => {
+            const isActive = div.id === selectedDivisionId;
+            return (
+              <Link
+                key={div.id}
+                href={`/?divisionId=${div.id}`}
+                scroll={false}
+                className={`px-5 py-2 rounded-xl font-black text-[11px] uppercase tracking-wider transition-all select-none ${
+                  isActive
+                    ? 'bg-slate-950 text-indigo-400 border border-slate-850 shadow-md font-extrabold'
+                    : 'text-slate-500 hover:text-slate-350 border border-transparent'
+                }`}
+              >
+                {div.name}
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+
       {/* STATS SPOTLIGHT GRID */}
-      <div className="max-w-6xl mx-auto px-4 -mt-8 relative z-20">
+      <div className="max-w-6xl mx-auto px-4 mt-8 relative z-20">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
 
           {/* Card 1: League MVP Spotlight */}
@@ -293,7 +328,7 @@ export default async function PublicHomePage() {
               
               <div className="py-2 space-y-1">
                 <h4 className="font-black text-white text-base uppercase tracking-tight">
-                  Premier Division
+                  {currentDivision ? currentDivision.name : "Premier Division"}
                 </h4>
                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight block">
                   {activeSeasonName}
@@ -434,7 +469,7 @@ export default async function PublicHomePage() {
           {/* SIDEBAR BLOCK: TITLE RACE ACTION WIDGET */}
           <div className="w-full bg-slate-900/20 border border-slate-900 rounded-3xl p-1 shadow-lg">
             <TitleRace 
-              divisionId={activeDivisionId} 
+              divisionId={selectedDivisionId} 
               seasonId={activeSeasonId} 
             />
           </div>
