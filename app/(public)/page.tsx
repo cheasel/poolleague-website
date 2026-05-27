@@ -96,15 +96,15 @@ async function getTopPlayerStats(seasonId: number, divisionId: number, limit: nu
       p2Name: sql<string>`p2.name`,
       p1Image: sql<string | null>`p1.image_url`,
       p2Image: sql<string | null>`p2.image_url`,
-      teamName: sql<string>`t.name`,
+      p1TeamName: sql<string>`t1.name`,
+      p2TeamName: sql<string>`t2.name`,
     })
     .from(matchGames)
     .innerJoin(matches, eq(matchGames.matchId, matches.id))
-    .leftJoin(players, eq(matchGames.player1Id, players.id))
     .leftJoin(sql`players as p1`, eq(matchGames.player1Id, sql`p1.id`))
     .leftJoin(sql`players as p2`, eq(matchGames.player2Id, sql`p2.id`))
-    .leftJoin(teams, eq(players.teamId, teams.id))
-    .leftJoin(sql`teams as t`, eq(sql`p1.team_id`, sql`t.id`))
+    .leftJoin(sql`teams as t1`, eq(sql`p1.team_id`, sql`t1.id`))
+    .leftJoin(sql`teams as t2`, eq(sql`p2.team_id`, sql`t2.id`))
     .where(
       and(
         eq(matches.status, "completed"),
@@ -122,11 +122,11 @@ async function getTopPlayerStats(seasonId: number, divisionId: number, limit: nu
     const s2 = g.p2Score ?? 0;
 
     if (p1Id && g.p1Name) {
-      if (!stats[p1Id]) stats[p1Id] = { name: g.p1Name, team: g.teamName || "Independent", wins: 0, image: g.p1Image };
+      if (!stats[p1Id]) stats[p1Id] = { name: g.p1Name, team: g.p1TeamName || "Independent", wins: 0, image: g.p1Image };
       if (s1 > s2) stats[p1Id].wins += 1;
     }
     if (p2Id && g.p2Name) {
-      if (!stats[p2Id]) stats[p2Id] = { name: g.p2Name, team: g.teamName || "Independent", wins: 0, image: g.p2Image };
+      if (!stats[p2Id]) stats[p2Id] = { name: g.p2Name, team: g.p2TeamName || "Independent", wins: 0, image: g.p2Image };
       if (s2 > s1) stats[p2Id].wins += 1;
     }
   });
