@@ -4,6 +4,8 @@ import { seasons, divisions, matches, teams, matchGames, players } from "@/src/d
 import { desc, eq, and, sql, asc } from "drizzle-orm";
 import { Trophy, CalendarDays, ArrowRight, Zap, Star, Flame, Award, Medal, Crown, TrendingUp, Target, ChevronRight, Sparkles } from "lucide-react";
 import Link from "next/link";
+import { unstable_cache } from "next/cache";
+import { Suspense } from "react";
 
 export const revalidate = 60;
 
@@ -134,6 +136,36 @@ async function getTopPlayerStats(seasonId: number, divisionId: number, limit: nu
     .slice(0, limit);
 }
 
+const getCachedSeasons = unstable_cache(
+  async () => db.select().from(seasons).orderBy(desc(seasons.startDate)).limit(1),
+  ["homepage-current-seasons"],
+  { revalidate: 300, tags: ["seasons"] }
+);
+
+const getCachedDivisions = (seasonId: number) => unstable_cache(
+  async () => db.select().from(divisions).where(eq(divisions.seasonId, seasonId)).orderBy(divisions.tier),
+  ["homepage-divisions-list", String(seasonId)],
+  { revalidate: 300, tags: ["divisions"] }
+)();
+
+const getCachedRecentResults = (seasonId: number, divisionId: number) => unstable_cache(
+  async () => getRecentResults(seasonId, divisionId),
+  ["homepage-recent-results", String(seasonId), String(divisionId)],
+  { revalidate: 60, tags: ["matches", "teams"] }
+)();
+
+const getCachedTopFormStreaks = (seasonId: number, divisionId: number) => unstable_cache(
+  async () => getTopFormStreaks(seasonId, divisionId),
+  ["homepage-top-form-streaks", String(seasonId), String(divisionId)],
+  { revalidate: 60, tags: ["matches", "teams"] }
+)();
+
+const getCachedTopPlayerStats = (seasonId: number, divisionId: number, limit: number) => unstable_cache(
+  async () => getTopPlayerStats(seasonId, divisionId, limit),
+  ["homepage-top-player-stats", String(seasonId), String(divisionId), String(limit)],
+  { revalidate: 60, tags: ["matchGames", "players", "teams", "matches"] }
+)();
+
 interface PageProps {
   searchParams: Promise<{
     divisionId?: string;
@@ -143,22 +175,24 @@ interface PageProps {
 export default async function PublicHomePage({ searchParams }: PageProps) {
   const params = await searchParams;
 
-  // 1. Fetch seasons and active season id
-  const currentSeasons = await db.select().from(seasons).orderBy(desc(seasons.startDate)).limit(1);
+  // 1. Fetch seasons and active season id (cached)
+  const currentSeasons = await getCachedSeasons();
   const activeSeasonId = currentSeasons[0]?.id || 1;
   const activeSeasonName = currentSeasons[0]?.name || "Current Season";
 
-  // 2. Fetch all divisions for the active season
-  const allDivisions = await db.select().from(divisions).where(eq(divisions.seasonId, activeSeasonId)).orderBy(divisions.tier);
+  // 2. Fetch all divisions for the active season (cached)
+  const allDivisions = await getCachedDivisions(activeSeasonId);
 
   // 3. Resolve active division id (default to first division of active season)
   const selectedDivisionId = params.divisionId ? Number(params.divisionId) : (allDivisions[0]?.id || 1);
   const currentDivision = allDivisions.find(d => d.id === selectedDivisionId) || allDivisions[0];
 
-  // 4. Fetch metrics for the selected division
-  const recentResults = await getRecentResults(activeSeasonId, selectedDivisionId);
-  const sortedStreaks = await getTopFormStreaks(activeSeasonId, selectedDivisionId);
-  const topPlayers = await getTopPlayerStats(activeSeasonId, selectedDivisionId, 5); // 🎯 Fetch top 5
+  // 4. Fetch metrics for the selected division in parallel (cached)
+  const [recentResults, sortedStreaks, topPlayers] = await Promise.all([
+    getCachedRecentResults(activeSeasonId, selectedDivisionId),
+    getCachedTopFormStreaks(activeSeasonId, selectedDivisionId),
+    getCachedTopPlayerStats(activeSeasonId, selectedDivisionId, 5)
+  ]);
 
   const leader1 = sortedStreaks[0]?.current > 0 ? sortedStreaks[0] : null;
   const mvpPlayer = topPlayers[0] || null;
@@ -468,10 +502,23 @@ export default async function PublicHomePage({ searchParams }: PageProps) {
 
           {/* SIDEBAR BLOCK: TITLE RACE ACTION WIDGET */}
           <div className="w-full bg-slate-900/20 border border-slate-900 rounded-3xl p-1 shadow-lg">
-            <TitleRace 
-              divisionId={selectedDivisionId} 
-              seasonId={activeSeasonId} 
-            />
+            <Suspense fallback={
+              <div className="bg-slate-900/40 rounded-3xl border border-slate-900 shadow-xl overflow-hidden w-full animate-pulse">
+                <div className="p-5 border-b border-slate-800/80 bg-slate-900/20 h-[72px]" />
+                <div className="p-5 space-y-4">
+                  <div className="h-8 bg-slate-950/60 rounded-xl" />
+                  <div className="h-8 bg-slate-950/60 rounded-xl" />
+                  <div className="h-8 bg-slate-950/60 rounded-xl" />
+                  <div className="h-8 bg-slate-950/60 rounded-xl" />
+                  <div className="h-8 bg-slate-950/60 rounded-xl" />
+                </div>
+              </div>
+            }>
+              <TitleRace 
+                divisionId={selectedDivisionId} 
+                seasonId={activeSeasonId} 
+              />
+            </Suspense>
           </div>
 
         </div>

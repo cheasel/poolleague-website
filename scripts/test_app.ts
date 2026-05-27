@@ -72,6 +72,15 @@ async function main() {
   console.log('=============================================');
   console.log('  CACHE HIT PERFORMANCE VERIFICATION         ');
   console.log('=============================================');
+  console.log('Querying / (Home Page Cache Miss / First Compute)...');
+  const homeRes1 = await testEndpoint(`${serverUrl}/`);
+  console.log(`  First Load Time:  ${homeRes1.timeMs}ms`);
+
+  console.log('Querying / again (Home Page Cache Hit)...');
+  const homeRes2 = await testEndpoint(`${serverUrl}/`);
+  console.log(`  Second Load Time: ${homeRes2.timeMs}ms`);
+  console.log(`  Cache Speedup:    ${(homeRes1.timeMs / (homeRes2.timeMs || 1)).toFixed(1)}x faster!\n`);
+
   console.log('Querying /standings (Cache Miss / First Compute)...');
   const res1 = await testEndpoint(`${serverUrl}/standings`);
   console.log(`  First Load Time:  ${res1.timeMs}ms`);

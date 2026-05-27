@@ -1,6 +1,8 @@
 import { db } from "@/src/db";
 import { teams, matches } from "@/src/db/schema";
 import { eq, and } from "drizzle-orm";
+import { unstable_cache } from "next/cache";
+
 
 interface TitleRaceProps {
   divisionId: number;
@@ -77,8 +79,14 @@ async function getTitleRaceStandings(divisionId: number, seasonId: number) {
     .sort((a, b) => b.points - a.points);
 }
 
+const getCachedTitleRaceStandings = (divisionId: number, seasonId: number) => unstable_cache(
+  async () => getTitleRaceStandings(divisionId, seasonId),
+  ["title-race-standings", String(divisionId), String(seasonId)],
+  { revalidate: 60, tags: ["matches", "teams"] }
+)();
+
 export default async function TitleRace({ divisionId, seasonId }: TitleRaceProps) {
-  const standings = await getTitleRaceStandings(divisionId, seasonId);
+  const standings = await getCachedTitleRaceStandings(divisionId, seasonId);
 
   return (
     // 🎯 CHANGED: Replaced white container configurations with translucent dark container panel
