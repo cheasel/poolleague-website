@@ -1,6 +1,7 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import * as schema from './schema';
+import { revalidateTag } from 'next/cache';
 
 const connectionString = process.env.DATABASE_URL;
 
@@ -27,4 +28,96 @@ const conn = globalForDb.conn ?? postgres(connectionString || '', {
 
 if (process.env.NODE_ENV !== "production") globalForDb.conn = conn;
 
-export const db = drizzle(conn, { schema });
+const rawDb = drizzle(conn, { schema });
+
+// Tag-based cache invalidation helper
+function invalidatePublicCaches() {
+  const tags = [
+    "seasons",
+    "divisions",
+    "matches",
+    "teams",
+    "players",
+    "matchGames",
+    "player-profile",
+    "player-games",
+    "team-profile"
+  ];
+  tags.forEach(tag => {
+    try {
+      revalidateTag(tag);
+    } catch (e) {
+      // Ignore errors when called during build/prerender or other environments
+    }
+  });
+}
+
+function wrapBuilder(builder: any) {
+  return new Proxy(builder, {
+    get(bTarget, bProp, bReceiver) {
+      const bValue = Reflect.get(bTarget, bProp, bReceiver);
+      if (bProp === 'then') {
+        return function (onfulfilled?: Function, onrejected?: Function) {
+          return bValue.call(bTarget, (res: any) => {
+            invalidatePublicCaches();
+            return onfulfilled ? onfulfilled(res) : res;
+          }, onrejected);
+        };
+      }
+      if (bProp === 'execute') {
+        return async function (...args: any[]) {
+          const res = await (bValue as Function).apply(bTarget, args);
+          invalidatePublicCaches();
+          return res;
+        };
+      }
+      if (typeof bValue === 'function') {
+        return bValue.bind(bTarget);
+      }
+      return bValue;
+    }
+  });
+}
+
+// Proxied Drizzle DB client to automatically trigger cache invalidation on write mutations
+export const db = new Proxy(rawDb, {
+  get(target, prop, receiver) {
+    const value = Reflect.get(target, prop, receiver);
+
+    if (prop === 'insert' || prop === 'update' || prop === 'delete') {
+      return function (...args: any[]) {
+        const builder = (value as Function).apply(target, args);
+        return wrapBuilder(builder);
+      };
+    }
+
+    if (prop === 'transaction') {
+      return function (transactionCallback: Function, ...args: any[]) {
+        const wrappedCallback = async (tx: any) => {
+          const proxiedTx = new Proxy(tx, {
+            get(tTarget, tProp, tReceiver) {
+              const tValue = Reflect.get(tTarget, tProp, tReceiver);
+              if (tProp === 'insert' || tProp === 'update' || tProp === 'delete') {
+                return function (...tArgs: any[]) {
+                  const builder = (tValue as Function).apply(tTarget, tArgs);
+                  return wrapBuilder(builder);
+                };
+              }
+              if (typeof tValue === 'function') {
+                return tValue.bind(tTarget);
+              }
+              return tValue;
+            }
+          });
+          return transactionCallback(proxiedTx);
+        };
+        return (value as Function).call(target, wrappedCallback, ...args);
+      };
+    }
+
+    if (typeof value === 'function') {
+      return value.bind(target);
+    }
+    return value;
+  }
+}) as typeof rawDb;
