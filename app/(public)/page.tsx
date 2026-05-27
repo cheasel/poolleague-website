@@ -2,7 +2,7 @@ import TitleRace from "@/components/TitleRace";
 import { db } from "@/src/db";
 import { seasons, divisions, matches, teams, matchGames, players } from "@/src/db/schema";
 import { desc, eq, and, sql, asc } from "drizzle-orm";
-import { Trophy, CalendarDays, ArrowRight, Zap, Star, Flame, Award, Medal } from "lucide-react";
+import { Trophy, CalendarDays, ArrowRight, Zap, Star, Flame, Award, Medal, Crown, TrendingUp, Target, ChevronRight, Sparkles } from "lucide-react";
 import Link from "next/link";
 
 export const revalidate = 60;
@@ -83,7 +83,7 @@ async function getTopFormStreaks(seasonId: number, divisionId: number) {
 }
 
 // 🎯 ADDED: Aggregates game/frame level data inside the active season/division context
-async function getTopPlayerStats(seasonId: number, divisionId: number) {
+async function getTopPlayerStats(seasonId: number, divisionId: number, limit: number = 5) {
   const games = await db
     .select({
       player1Id: matchGames.player1Id,
@@ -131,7 +131,7 @@ async function getTopPlayerStats(seasonId: number, divisionId: number) {
 
   return Object.values(stats)
     .sort((a, b) => b.wins - a.wins)
-    .slice(0, 3);
+    .slice(0, limit);
 }
 
 export default async function PublicHomePage() {
@@ -144,33 +144,37 @@ export default async function PublicHomePage() {
 
   const recentResults = await getRecentResults(activeSeasonId, activeDivisionId);
   const sortedStreaks = await getTopFormStreaks(activeSeasonId, activeDivisionId);
-  const topPlayers = await getTopPlayerStats(activeSeasonId, activeDivisionId); // 🎯 ADDED
+  const topPlayers = await getTopPlayerStats(activeSeasonId, activeDivisionId, 5); // 🎯 Fetch top 5
 
 
 
   const leader1 = sortedStreaks[0]?.current > 0 ? sortedStreaks[0] : null;
+  const mvpPlayer = topPlayers[0] || null;
 
   return (
-    <div className="min-h-screen bg-slate-950 pb-16 text-slate-100">
+    <div className="min-h-screen bg-slate-950 pb-16 text-slate-100 relative">
+      {/* Background Ambient Glows */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none z-0" />
+      <div className="absolute top-1/3 right-1/4 w-[300px] h-[300px] bg-pink-500/5 rounded-full blur-[100px] pointer-events-none z-0" />
 
       {/* HERO DASHBOARD BRANDING HEADER */}
-      <div className="relative overflow-hidden bg-slate-950 border-b border-slate-900/60">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#0f172a_1px,transparent_1px),linear-gradient(to_bottom,#0f172a_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-60 pointer-events-none" />
-
-        <div className="max-w-6xl mx-auto px-4 py-16 sm:py-24 relative z-10 space-y-6">
+      <div className="relative overflow-hidden bg-slate-950/60 border-b border-slate-900/60 z-10">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#0f172a_1px,transparent_1px),linear-gradient(to_bottom,#0f172a_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-40 pointer-events-none" />
+        
+        <div className="max-w-6xl mx-auto px-4 py-16 sm:py-20 relative z-10 space-y-6">
           <div className="inline-flex items-center gap-2 bg-indigo-950/50 border border-indigo-900/60 text-indigo-400 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm shadow-indigo-950/40">
-            <Zap className="w-3 h-3 text-indigo-400 fill-indigo-400" /> Live Arena Ecosystem
+            <Zap className="w-3 h-3 text-indigo-400 fill-indigo-400" /> Stats Spotlight Dashboard
           </div>
 
           <h1 className="text-4xl sm:text-6xl font-black text-white uppercase tracking-tighter italic leading-[0.9] max-w-3xl">
-            The Arena for <br />
+            LEAGUE PERFORMANCE <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-500 drop-shadow-sm">
-              Cue Sport Analytics
+              ANALYTICS HUBS
             </span>
           </h1>
 
           <p className="text-slate-400 font-medium text-xs sm:text-sm max-w-xl leading-relaxed">
-            Review detailed live performance metrics, authentic structural standings point distributions, and frame-by-frame match timeline matrices.
+            Track real-time frame MVPs, active team win streaks, aggregate statistics tables, and verified match results.
           </p>
 
           <div className="flex flex-wrap gap-3 pt-2">
@@ -190,66 +194,118 @@ export default async function PublicHomePage() {
         </div>
       </div>
 
-      {/* METRICS ROW CARDS STRIP */}
-      <div className="max-w-6xl mx-auto px-4 -mt-6 relative z-20">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-stretch">
+      {/* STATS SPOTLIGHT GRID */}
+      <div className="max-w-6xl mx-auto px-4 -mt-8 relative z-20">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
 
-          {/* Card 1: Active Season */}
-          <div className="bg-slate-900/80 backdrop-blur-md p-5 rounded-2xl border border-slate-800 shadow-xl flex items-center gap-4">
-            <div className="p-3 bg-amber-950/60 text-amber-400 rounded-xl border border-amber-900/50 shadow-inner"><Star className="w-4 h-4 fill-amber-400" /></div>
-            <div>
-              <span className="text-slate-500 font-bold uppercase tracking-wider text-[9px] block">Active Season</span>
-              <span className="text-sm font-black text-slate-100 uppercase tracking-tight block mt-0.5">{activeSeasonName}</span>
-            </div>
-          </div>
-
-          {/* Card 2: Team Form Leader */}
-          <div className="bg-slate-900/80 backdrop-blur-md p-5 rounded-2xl border border-slate-800 shadow-xl flex items-center gap-4 transition-all hover:border-orange-900/60 group">
-            <div className="p-3 bg-orange-950/60 text-orange-400 rounded-xl border border-orange-900/50 shadow-inner group-hover:scale-105 transition-transform">
-              <Flame className="w-4 h-4 fill-orange-500" />
-            </div>
-
-            {/* 🎯 THE FIX: Add min-w-0 here to allow the text container to shrink properly inside the flexbox */}
-            <div className="min-w-0 flex-1"> 
-              <span className="text-slate-500 font-bold uppercase tracking-wider text-[9px] block">Form Leader</span>
-              <span className="text-sm font-black text-orange-400 uppercase tracking-tight block mt-0.5 truncate">
-                {leader1 ? `${leader1.name} (${leader1.current} W)` : "No Active Streak"}
-              </span>
-            </div>
-          </div>
-
-          {/* 🎯 CHANGED: Card 3 is now a high-density player list compatible with displaying multi-rank metrics */}
-          <div className="bg-slate-900/80 backdrop-blur-md p-4 rounded-2xl border border-slate-800 shadow-xl flex flex-col min-h-[160px] transition-all hover:border-indigo-900/60">
-            <div className="flex items-center gap-1.5 mb-3 px-1 border-b border-slate-800/50 pb-2">
-              <Award className="w-3 h-3 text-indigo-400" />
-              <span className="text-slate-500 font-bold uppercase tracking-wider text-[9px]">Frame MVP Leaders</span>
-            </div>
-
-            <div className="flex-1 flex flex-col justify-center space-y-2">
-              {topPlayers.length === 0 ? (
-                <span className="text-[10px] font-bold text-slate-600 uppercase text-center">No Data</span>
-              ) : (
-                topPlayers.map((player, index) => (
-                  <div key={player.name} className="flex items-center justify-between text-xs px-1 group/row">
-                    <div className="flex items-center gap-2 truncate min-w-0">
-                      <span className={`font-mono text-[10px] font-black w-4 h-4 flex items-center justify-center rounded ${
-                        index === 0 ? 'bg-indigo-900/40 text-indigo-400 border border-indigo-800/50' : 'text-slate-600'
-                      }`}>
-                        {index + 1}
-                      </span>
-                      <span className="font-black text-slate-200 uppercase truncate group-hover/row:text-white transition-colors">
-                        {player.name}
-                      </span>
-                      <span className="text-[9px] text-slate-500 font-semibold truncate uppercase tracking-tighter">
-                        {player.team}
-                      </span>
+          {/* Card 1: League MVP Spotlight */}
+          <div className="bg-slate-900/60 backdrop-blur-md p-6 rounded-3xl border border-slate-800 shadow-xl flex flex-col justify-between hover:border-indigo-500/40 transition-colors relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl group-hover:bg-indigo-500/20 transition-all" />
+            
+            <div className="space-y-4 relative z-10">
+              <div className="flex items-center gap-2 text-indigo-400">
+                <Crown className="w-4 h-4 text-indigo-400 fill-indigo-400/20" />
+                <span className="text-[10px] font-black uppercase tracking-wider">League MVP Spotlight</span>
+              </div>
+              
+              {mvpPlayer ? (
+                <div className="flex items-center gap-4 py-2">
+                  <div className="relative shrink-0">
+                    <div className="w-14 h-14 rounded-full bg-gradient-to-br from-indigo-500 via-purple-600 to-pink-500 flex items-center justify-center font-black text-lg text-white shadow-lg shadow-indigo-950/50">
+                      {mvpPlayer.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
                     </div>
-                    <span className="font-mono font-black bg-slate-950 border border-slate-800 text-indigo-400 px-1.5 py-0.5 rounded text-[10px] shrink-0 tabular-nums">
-                      {player.wins} W
+                    <span className="absolute -bottom-1 -right-1 bg-slate-950 border border-slate-800 p-1 rounded-full text-[10px] shadow">
+                      🥇
                     </span>
                   </div>
-                ))
+                  <div className="min-w-0">
+                    <h4 className="font-black text-white text-[15px] uppercase tracking-tight truncate">
+                      {mvpPlayer.name}
+                    </h4>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight truncate mt-0.5">
+                      {mvpPlayer.team}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-slate-500 py-3">No stats compiled yet.</p>
               )}
+            </div>
+
+            {mvpPlayer && (
+              <div className="mt-4 pt-3 border-t border-slate-800/60 flex items-center justify-between text-xs">
+                <span className="text-slate-500 font-bold uppercase text-[9px] tracking-wider">Frame Record</span>
+                <span className="font-mono font-black text-indigo-400 bg-indigo-950/40 border border-indigo-900/40 px-2 py-0.5 rounded-lg text-[10px]">
+                  {mvpPlayer.wins} Frame Wins
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Card 2: Team on Fire (Streak Spotlight) */}
+          <div className="bg-slate-900/60 backdrop-blur-md p-6 rounded-3xl border border-slate-800 shadow-xl flex flex-col justify-between hover:border-orange-500/40 transition-colors relative overflow-hidden group shadow-[0_0_20px_rgba(249,115,22,0.02)]">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-orange-500/10 rounded-full blur-2xl group-hover:bg-orange-500/20 transition-all" />
+            
+            <div className="space-y-4 relative z-10">
+              <div className="flex items-center gap-2 text-orange-400">
+                <Flame className="w-4 h-4 text-orange-500 fill-orange-500/20" />
+                <span className="text-[10px] font-black uppercase tracking-wider">Team on Fire</span>
+              </div>
+
+              {leader1 ? (
+                <div className="py-2">
+                  <h4 className="font-black text-white text-lg uppercase tracking-tight truncate">
+                    {leader1.name}
+                  </h4>
+                  <div className="flex items-center gap-1.5 text-orange-400 mt-1">
+                    <TrendingUp className="w-3.5 h-3.5" />
+                    <span className="font-bold text-xs uppercase tracking-tight">{leader1.current} Match Win Streak</span>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs text-slate-500 py-3">No active streaks detected.</p>
+              )}
+            </div>
+
+            {leader1 && (
+              <div className="mt-4 pt-3 border-t border-slate-800/60 flex items-center justify-between text-xs">
+                <span className="text-slate-500 font-bold uppercase text-[9px] tracking-wider">Recent Form</span>
+                <div className="flex gap-1">
+                  {Array.from({ length: Math.min(leader1.current, 5) }).map((_, i) => (
+                    <span key={i} className="w-4.5 h-4.5 bg-orange-500/20 border border-orange-500/30 text-orange-400 rounded-full flex items-center justify-center font-mono font-black text-[9px] select-none">
+                      W
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Card 3: League Status */}
+          <div className="bg-slate-900/60 backdrop-blur-md p-6 rounded-3xl border border-slate-800 shadow-xl flex flex-col justify-between hover:border-pink-500/40 transition-colors relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-pink-500/10 rounded-full blur-2xl group-hover:bg-pink-500/20 transition-all" />
+            
+            <div className="space-y-4 relative z-10">
+              <div className="flex items-center gap-2 text-pink-400">
+                <Target className="w-4 h-4 text-pink-400" />
+                <span className="text-[10px] font-black uppercase tracking-wider">Active Division</span>
+              </div>
+              
+              <div className="py-2 space-y-1">
+                <h4 className="font-black text-white text-base uppercase tracking-tight">
+                  Premier Division
+                </h4>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight block">
+                  {activeSeasonName}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 pt-3 border-t border-slate-800/60 flex items-center justify-between text-xs">
+              <span className="text-slate-500 font-bold uppercase text-[9px] tracking-wider">Status Indicator</span>
+              <span className="font-bold text-[9px] text-emerald-400 bg-emerald-950/40 border border-emerald-900/40 px-2 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Live / Active
+              </span>
             </div>
           </div>
 
@@ -260,13 +316,77 @@ export default async function PublicHomePage() {
       <div className="max-w-6xl mx-auto px-4 mt-12">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
 
-          {/* PRIMARY CONTENT BLOCK: RECENT TIMELINE LEDGER */}
-          <div className="lg:col-span-2 space-y-6">
+          {/* PRIMARY CONTENT BLOCK: PLAYER LEADERBOARD */}
+          <div className="lg:col-span-2 space-y-8">
+            
+            {/* Top 5 Player Leaderboard Section */}
             <div className="bg-slate-900/40 border border-slate-900 rounded-3xl p-6 space-y-4 shadow-xl">
               <div className="flex items-center justify-between border-b border-slate-800 pb-4">
                 <div>
-                  <span className="text-[9px] font-black uppercase tracking-wider text-indigo-400 block">Recent Showcase</span>
-                  <h3 className="font-black uppercase tracking-tight text-sm text-white mt-0.5">Latest Match Results</h3>
+                  <span className="text-[9px] font-black uppercase tracking-wider text-indigo-400 block">Roster Rankings</span>
+                  <h3 className="font-black uppercase tracking-tight text-sm text-white mt-0.5 flex items-center gap-1.5">
+                    <Crown className="w-4 h-4 text-indigo-400 fill-indigo-400/20" /> Top 5 Player Leaderboard
+                  </h3>
+                </div>
+                <Link href="/players" className="text-xs font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors">
+                  All Players <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+
+              {topPlayers.length === 0 ? (
+                <p className="text-xs font-medium text-slate-500 py-12 text-center border border-dashed border-slate-800 rounded-2xl">
+                  No player statistics compiled for this division yet.
+                </p>
+              ) : (
+                <div className="overflow-hidden border border-slate-900 rounded-2xl bg-slate-950/20">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-slate-900/60 text-slate-400 font-bold uppercase text-[9px] tracking-wider border-b border-slate-800">
+                        <th className="px-5 py-3 w-16 text-center">Rank</th>
+                        <th className="px-5 py-3">Player Name</th>
+                        <th className="px-5 py-3">Squad Club</th>
+                        <th className="px-5 py-3 text-center w-24">Frame Wins</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/40 text-slate-300 font-medium">
+                      {topPlayers.map((player, index) => (
+                        <tr key={player.name} className="hover:bg-slate-900/30 transition-colors group/row">
+                          <td className="px-5 py-3 text-center font-mono font-black text-slate-500 text-[11px]">
+                            {index === 0 ? (
+                              <span className="inline-flex text-amber-400 text-sm">🥇</span>
+                            ) : index === 1 ? (
+                              <span className="inline-flex text-slate-300 text-sm">🥈</span>
+                            ) : index === 2 ? (
+                              <span className="inline-flex text-amber-600 text-sm">🥉</span>
+                            ) : (
+                              index + 1
+                            )}
+                          </td>
+                          <td className="px-5 py-3 font-black text-white text-[12.5px] uppercase tracking-tight group-hover/row:text-indigo-400 transition-colors">
+                            {player.name}
+                          </td>
+                          <td className="px-5 py-3 text-slate-400 uppercase text-[11px] font-bold tracking-tight">
+                            {player.team}
+                          </td>
+                          <td className="px-5 py-3 text-center">
+                            <span className="font-mono font-black bg-slate-950 border border-slate-850 text-indigo-400 px-2 py-0.5 rounded-lg text-[11px] tabular-nums shadow-inner">
+                              {player.wins} W
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Recent Match Outcomes Section */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-900 pb-3 px-1">
+                <div>
+                  <span className="text-[9px] font-black uppercase tracking-wider text-indigo-400 block">Recent Results</span>
+                  <h3 className="font-black uppercase tracking-tight text-sm text-white mt-0.5">Recent Scoreboards</h3>
                 </div>
                 <Link href="/matches" className="text-xs font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors">
                   All Matches <ArrowRight className="w-3.5 h-3.5" />
@@ -275,26 +395,40 @@ export default async function PublicHomePage() {
 
               {recentResults.length === 0 ? (
                 <p className="text-xs font-medium text-slate-500 py-8 text-center border border-dashed border-slate-800 rounded-2xl">
-                  No completed matches recorded inside the system yet for this timeline frame.
+                  No completed matches recorded inside the system yet.
                 </p>
               ) : (
-                <div className="divide-y divide-slate-800/60">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {recentResults.map((match) => (
-                    <div key={match.id} className="py-4 flex items-center justify-between gap-4 first:pt-1 last:pb-1 group hover:bg-slate-900/20 px-2 rounded-xl transition-colors">
-                      <div className="flex-1 text-right font-black text-slate-200 uppercase tracking-tight text-xs truncate">
-                        {match.homeTeamName}
+                    <div 
+                      key={match.id} 
+                      className="bg-slate-900/40 border border-slate-900 p-4 rounded-2xl flex flex-col justify-between hover:border-slate-800 transition-colors group/match shadow-md"
+                    >
+                      <div className="text-[9px] font-bold uppercase tracking-widest text-slate-500 text-center border-b border-slate-850 pb-2 mb-2">
+                        Official Result
                       </div>
-                      <div className="bg-slate-950 text-indigo-400 border border-slate-800 font-mono font-black text-xs px-3 py-1 rounded-lg shrink-0 shadow-inner tracking-wider">
-                        {match.homeScore} - {match.awayScore}
+                      
+                      <div className="flex items-center justify-between gap-2 py-2">
+                        <div className="flex-1 text-right font-black text-slate-200 uppercase tracking-tight text-xs truncate group-hover/match:text-indigo-400 transition-colors">
+                          {match.homeTeamName}
+                        </div>
+                        <div className="bg-slate-950 text-indigo-400 border border-slate-850 font-mono font-black text-xs px-2 py-1 rounded-lg shrink-0 shadow-inner">
+                          {match.homeScore} - {match.awayScore}
+                        </div>
+                        <div className="flex-1 text-left font-black text-slate-200 uppercase tracking-tight text-xs truncate group-hover/match:text-indigo-400 transition-colors">
+                          {match.awayTeamName}
+                        </div>
                       </div>
-                      <div className="flex-1 text-left font-black text-slate-200 uppercase tracking-tight text-xs truncate">
-                        {match.awayTeamName}
+
+                      <div className="text-center mt-2 pt-2 border-t border-slate-850 text-[9px] font-bold text-slate-500 uppercase tracking-wide">
+                        {match.date ? new Date(match.date).toLocaleDateString("en-GB", { day: '2-digit', month: 'short' }) : "Completed"}
                       </div>
                     </div>
                   ))}
                 </div>
               )}
             </div>
+
           </div>
 
           {/* SIDEBAR BLOCK: TITLE RACE ACTION WIDGET */}
