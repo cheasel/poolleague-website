@@ -6,6 +6,9 @@ import { Trophy, CalendarDays, ArrowRight, Zap, Star, Flame, Award, Medal, Crown
 import Link from "next/link";
 import { unstable_cache } from "next/cache";
 import { Suspense } from "react";
+import Badge from "@/components/Badge";
+import Card from "@/components/Card";
+import { Table, TableRow, TableCell } from "@/components/Table";
 
 export const revalidate = 60;
 
@@ -219,9 +222,9 @@ export default async function PublicHomePage({ searchParams }: PageProps) {
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#0f172a_1px,transparent_1px),linear-gradient(to_bottom,#0f172a_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-40 pointer-events-none" />
         
         <div className="max-w-6xl mx-auto px-4 py-16 sm:py-20 relative z-10 space-y-6">
-          <div className="inline-flex items-center gap-2 bg-indigo-950/50 border border-indigo-900/60 text-indigo-400 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm shadow-indigo-950/40">
+          <Badge variant="indigo">
             <Zap className="w-3 h-3 text-indigo-400 fill-indigo-400" /> Stats Spotlight Dashboard
-          </div>
+          </Badge>
 
           <h1 className="text-4xl sm:text-6xl font-black text-white uppercase tracking-tighter italic leading-[0.9] max-w-3xl">
             LEAGUE PERFORMANCE <br />
@@ -279,10 +282,8 @@ export default async function PublicHomePage({ searchParams }: PageProps) {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
 
           {/* Card 1: League MVP Spotlight */}
-          <div className="bg-slate-900/60 backdrop-blur-md p-6 rounded-3xl border border-slate-800 shadow-xl flex flex-col justify-between hover:border-indigo-500/40 transition-colors relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl group-hover:bg-indigo-500/20 transition-all" />
-            
-            <div className="space-y-4 relative z-10">
+          <Card variant="indigo">
+            <div className="space-y-4">
               <div className="flex items-center gap-2 text-indigo-400">
                 <Crown className="w-4 h-4 text-indigo-400 fill-indigo-400/20" />
                 <span className="text-[10px] font-black uppercase tracking-wider">League MVP Spotlight</span>
@@ -313,20 +314,18 @@ export default async function PublicHomePage({ searchParams }: PageProps) {
             </div>
 
             {mvpPlayer && (
-              <div className="mt-4 pt-3 border-t border-slate-800/60 flex items-center justify-between text-xs">
+              <div className="mt-4 pt-3 border-t border-slate-800/60 flex items-center justify-between text-xs w-full">
                 <span className="text-slate-500 font-bold uppercase text-[9px] tracking-wider">Frame Record</span>
                 <span className="font-mono font-black text-indigo-400 bg-indigo-950/40 border border-indigo-900/40 px-2 py-0.5 rounded-lg text-[10px]">
                   {mvpPlayer.wins} Frame Wins
                 </span>
               </div>
             )}
-          </div>
+          </Card>
 
           {/* Card 2: Team on Fire (Streak Spotlight) */}
-          <div className="bg-slate-900/60 backdrop-blur-md p-6 rounded-3xl border border-slate-800 shadow-xl flex flex-col justify-between hover:border-orange-500/40 transition-colors relative overflow-hidden group shadow-[0_0_20px_rgba(249,115,22,0.02)]">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-orange-500/10 rounded-full blur-2xl group-hover:bg-orange-500/20 transition-all" />
-            
-            <div className="space-y-4 relative z-10">
+          <Card variant="orange">
+            <div className="space-y-4">
               <div className="flex items-center gap-2 text-orange-400">
                 <Flame className="w-4 h-4 text-orange-500 fill-orange-500/20" />
                 <span className="text-[10px] font-black uppercase tracking-wider">Team on Fire</span>
@@ -348,7 +347,7 @@ export default async function PublicHomePage({ searchParams }: PageProps) {
             </div>
 
             {leader1 && (
-              <div className="mt-4 pt-3 border-t border-slate-800/60 flex items-center justify-between text-xs">
+              <div className="mt-4 pt-3 border-t border-slate-800/60 flex items-center justify-between text-xs w-full">
                 <span className="text-slate-500 font-bold uppercase text-[9px] tracking-wider">Recent Form</span>
                 <div className="flex gap-1">
                   {Array.from({ length: Math.min(leader1.current, 5) }).map((_, i) => (
@@ -359,13 +358,11 @@ export default async function PublicHomePage({ searchParams }: PageProps) {
                 </div>
               </div>
             )}
-          </div>
+          </Card>
 
           {/* Card 3: League Status */}
-          <div className="bg-slate-900/60 backdrop-blur-md p-6 rounded-3xl border border-slate-800 shadow-xl flex flex-col justify-between hover:border-pink-500/40 transition-colors relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-pink-500/10 rounded-full blur-2xl group-hover:bg-pink-500/20 transition-all" />
-            
-            <div className="space-y-4 relative z-10">
+          <Card variant="pink">
+            <div className="space-y-4">
               <div className="flex items-center gap-2 text-pink-400">
                 <Target className="w-4 h-4 text-pink-400" />
                 <span className="text-[10px] font-black uppercase tracking-wider">Active Division</span>
@@ -381,13 +378,13 @@ export default async function PublicHomePage({ searchParams }: PageProps) {
               </div>
             </div>
 
-            <div className="mt-4 pt-3 border-t border-slate-800/60 flex items-center justify-between text-xs">
+            <div className="mt-4 pt-3 border-t border-slate-800/60 flex items-center justify-between text-xs w-full">
               <span className="text-slate-500 font-bold uppercase text-[9px] tracking-wider">Status Indicator</span>
               <span className="font-bold text-[9px] text-emerald-400 bg-emerald-950/40 border border-emerald-900/40 px-2 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Live / Active
               </span>
             </div>
-          </div>
+          </Card>
 
         </div>
       </div>
@@ -418,46 +415,24 @@ export default async function PublicHomePage({ searchParams }: PageProps) {
                   No player statistics compiled for this division yet.
                 </p>
               ) : (
-                <div className="overflow-hidden border border-slate-900 rounded-2xl bg-slate-950/20">
-                  <table className="w-full text-left border-collapse text-xs">
-                    <thead>
-                      <tr className="bg-slate-900/60 text-slate-400 font-bold uppercase text-[9px] tracking-wider border-b border-slate-800">
-                        <th className="px-5 py-3 w-16 text-center">Rank</th>
-                        <th className="px-5 py-3">Player Name</th>
-                        <th className="px-5 py-3">Squad Club</th>
-                        <th className="px-5 py-3 text-center w-24">Frame Wins</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-800/40 text-slate-300 font-medium">
-                      {topPlayers.map((player, index) => (
-                        <tr key={player.name} className="hover:bg-slate-900/30 transition-colors group/row">
-                          <td className="px-5 py-3 text-center font-mono font-black text-slate-500 text-[11px]">
-                            {index === 0 ? (
-                              <span className="inline-flex text-amber-400 text-sm">🥇</span>
-                            ) : index === 1 ? (
-                              <span className="inline-flex text-slate-300 text-sm">🥈</span>
-                            ) : index === 2 ? (
-                              <span className="inline-flex text-amber-600 text-sm">🥉</span>
-                            ) : (
-                              index + 1
-                            )}
-                          </td>
-                          <td className="px-5 py-3 font-black text-white text-[12.5px] uppercase tracking-tight group-hover/row:text-indigo-400 transition-colors">
-                            {player.name}
-                          </td>
-                          <td className="px-5 py-3 text-slate-400 uppercase text-[11px] font-bold tracking-tight">
-                            {player.team}
-                          </td>
-                          <td className="px-5 py-3 text-center">
-                            <span className="font-mono font-black bg-slate-950 border border-slate-850 text-indigo-400 px-2 py-0.5 rounded-lg text-[11px] tabular-nums shadow-inner">
-                              {player.wins} W
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <Table headers={["Rank", "Player Name", "Squad Club", "Frame Wins"]}>
+                  {topPlayers.map((player, index) => (
+                    <TableRow key={player.name}>
+                      <TableCell rank={index + 1} />
+                      <TableCell className="font-black text-white text-[12.5px] uppercase tracking-tight group-hover/row:text-indigo-400 transition-colors">
+                        {player.name}
+                      </TableCell>
+                      <TableCell className="text-slate-400 uppercase text-[11px] font-bold tracking-tight">
+                        {player.team}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <span className="font-mono font-black bg-slate-950 border border-slate-850 text-indigo-400 px-2 py-0.5 rounded-lg text-[11px] tabular-nums shadow-inner">
+                          {player.wins} W
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </Table>
               )}
             </div>
 
