@@ -86,47 +86,58 @@ async function getTopFormStreaks(seasonId: number, divisionId: number) {
 
 // 🎯 ADDED: Aggregates game/frame level data inside the active season/division context
 async function getTopPlayerStats(seasonId: number, divisionId: number, limit: number = 5) {
-  const games = await db
-    .select({
-      player1Id: matchGames.player1Id,
-      player2Id: matchGames.player2Id,
-      p1Score: matchGames.player1Score,
-      p2Score: matchGames.player2Score,
-      p1Name: sql<string>`p1.name`,
-      p2Name: sql<string>`p2.name`,
-      p1Image: sql<string | null>`p1.image_url`,
-      p2Image: sql<string | null>`p2.image_url`,
-      p1TeamName: sql<string>`t1.name`,
-      p2TeamName: sql<string>`t2.name`,
-    })
-    .from(matchGames)
-    .innerJoin(matches, eq(matchGames.matchId, matches.id))
-    .leftJoin(sql`players as p1`, eq(matchGames.player1Id, sql`p1.id`))
-    .leftJoin(sql`players as p2`, eq(matchGames.player2Id, sql`p2.id`))
-    .leftJoin(sql`teams as t1`, eq(sql`p1.team_id`, sql`t1.id`))
-    .leftJoin(sql`teams as t2`, eq(sql`p2.team_id`, sql`t2.id`))
-    .where(
-      and(
-        eq(matches.status, "completed"),
-        eq(matches.seasonId, seasonId),
-        eq(matches.divisionId, divisionId)
-      )
-    );
+  const games = await db.query.matchGames.findMany({
+    with: {
+      match: true,
+      player1: {
+        with: {
+          team: true,
+        },
+      },
+      player2: {
+        with: {
+          team: true,
+        },
+      },
+    },
+  });
+
+  const filteredGames = games.filter(
+    (g) =>
+      g.match &&
+      g.match.status === "completed" &&
+      g.match.seasonId === seasonId &&
+      g.match.divisionId === divisionId
+  );
 
   const stats: Record<number, { name: string; team: string; wins: number; image: string | null }> = {};
 
-  games.forEach((g) => {
+  filteredGames.forEach((g) => {
     const p1Id = g.player1Id;
     const p2Id = g.player2Id;
-    const s1 = g.p1Score ?? 0;
-    const s2 = g.p2Score ?? 0;
+    const s1 = g.player1Score ?? 0;
+    const s2 = g.player2Score ?? 0;
 
-    if (p1Id && g.p1Name) {
-      if (!stats[p1Id]) stats[p1Id] = { name: g.p1Name, team: g.p1TeamName || "Independent", wins: 0, image: g.p1Image };
+    if (p1Id && g.player1) {
+      if (!stats[p1Id]) {
+        stats[p1Id] = {
+          name: g.player1.name,
+          team: g.player1.team?.name || "Independent",
+          wins: 0,
+          image: g.player1.imageUrl,
+        };
+      }
       if (s1 > s2) stats[p1Id].wins += 1;
     }
-    if (p2Id && g.p2Name) {
-      if (!stats[p2Id]) stats[p2Id] = { name: g.p2Name, team: g.p2TeamName || "Independent", wins: 0, image: g.p2Image };
+    if (p2Id && g.player2) {
+      if (!stats[p2Id]) {
+        stats[p2Id] = {
+          name: g.player2.name,
+          team: g.player2.team?.name || "Independent",
+          wins: 0,
+          image: g.player2.imageUrl,
+        };
+      }
       if (s2 > s1) stats[p2Id].wins += 1;
     }
   });

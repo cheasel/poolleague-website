@@ -114,3 +114,59 @@ export const profiles = pgTable('profiles', {
   role: roleEnum('role').default('viewer'),
   createdAt: timestamp('created_at').defaultNow(),
 });
+
+// 6. Relations definitions for Drizzle ORM Relational Query API
+export const seasonsRelations = relations(seasons, ({ many }) => ({
+  divisions: many(divisions),
+  matches: many(matches),
+}));
+
+export const divisionsRelations = relations(divisions, ({ one, many }) => ({
+  season: one(seasons, { fields: [divisions.seasonId], references: [seasons.id] }),
+  teams: many(teams),
+  matches: many(matches),
+}));
+
+export const teamsRelations = relations(teams, ({ one, many }) => ({
+  division: one(divisions, { fields: [teams.divisionId], references: [divisions.id] }),
+  venue: one(venues, { fields: [teams.homeVenueId], references: [venues.id] }),
+  players: many(players),
+  homeMatches: many(matches, { relationName: "homeMatches" }),
+  awayMatches: many(matches, { relationName: "awayMatches" }),
+}));
+
+export const venuesRelations = relations(venues, ({ many }) => ({
+  teams: many(teams),
+}));
+
+export const playersRelations = relations(players, ({ one, many }) => ({
+  team: one(teams, { fields: [players.teamId], references: [teams.id] }),
+  memberships: many(teamMemberships),
+  matchGamesAsPlayer1: many(matchGames, { relationName: "player1" }),
+  matchGamesAsPlayer1Partner: many(matchGames, { relationName: "player1Partner" }),
+  matchGamesAsPlayer2: many(matchGames, { relationName: "player2" }),
+  matchGamesAsPlayer2Partner: many(matchGames, { relationName: "player2Partner" }),
+}));
+
+export const teamMembershipsRelations = relations(teamMemberships, ({ one }) => ({
+  player: one(players, { fields: [teamMemberships.playerId], references: [players.id] }),
+  team: one(teams, { fields: [teamMemberships.teamId], references: [teams.id] }),
+  season: one(seasons, { fields: [teamMemberships.seasonId], references: [seasons.id] }),
+  division: one(divisions, { fields: [teamMemberships.divisionId], references: [divisions.id] }),
+}));
+
+export const matchesRelations = relations(matches, ({ one, many }) => ({
+  season: one(seasons, { fields: [matches.seasonId], references: [seasons.id] }),
+  division: one(divisions, { fields: [matches.divisionId], references: [divisions.id] }),
+  homeTeam: one(teams, { fields: [matches.homeTeamId], references: [teams.id], relationName: "homeMatches" }),
+  awayTeam: one(teams, { fields: [matches.awayTeamId], references: [teams.id], relationName: "awayMatches" }),
+  games: many(matchGames),
+}));
+
+export const matchGamesRelations = relations(matchGames, ({ one }) => ({
+  match: one(matches, { fields: [matchGames.matchId], references: [matches.id] }),
+  player1: one(players, { fields: [matchGames.player1Id], references: [players.id], relationName: "player1" }),
+  player1Partner: one(players, { fields: [matchGames.player1PartnerId], references: [players.id], relationName: "player1Partner" }),
+  player2: one(players, { fields: [matchGames.player2Id], references: [players.id], relationName: "player2" }),
+  player2Partner: one(players, { fields: [matchGames.player2PartnerId], references: [players.id], relationName: "player2Partner" }),
+}));
