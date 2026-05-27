@@ -44,9 +44,17 @@ export default function MatchPageClient({
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const [activeTab, setActiveTab] = useState<'fixtures' | 'results'>('results');
+  const initialTab = searchParams.get('tab') === 'fixtures' ? 'fixtures' : 'results';
+  const [activeTab, setActiveTab] = useState<'fixtures' | 'results'>(initialTab);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const itemsPerPage = 20;
+
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam === 'fixtures' || tabParam === 'results') {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     setCurrentPage(1);

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { Trophy, Shield, Columns, LayoutList, Home, Plane, Award } from "lucide-react";
+import { Trophy, Shield, Columns, LayoutList, Home, Plane, Award, History, Calendar, ArrowRight, CalendarDays } from "lucide-react";
 
 interface StandingRow {
   id: number;
@@ -25,12 +25,31 @@ interface DropdownItem {
   name: string;
 }
 
+interface MatchRow {
+  id: number;
+  date: string;
+  status: string;
+  weekNumber: number;
+  homeTeam: string;
+  awayTeam: string;
+  homeScore: number | null;
+  awayScore: number | null;
+}
+
 interface StandingsClientProps {
   standings: StandingRow[];
   seasons: DropdownItem[];
   divisions: DropdownItem[];
   selectedSeasonId?: number;
   selectedDivisionId?: number;
+  resultsByWeek: {
+    weekNumber: number;
+    matches: MatchRow[];
+  }[];
+  fixturesByWeek: {
+    weekNumber: number;
+    matches: MatchRow[];
+  } | null;
 }
 
 export default function StandingsClient({
@@ -38,7 +57,9 @@ export default function StandingsClient({
   seasons,
   divisions,
   selectedSeasonId,
-  selectedDivisionId
+  selectedDivisionId,
+  resultsByWeek = [],
+  fixturesByWeek = null
 }: StandingsClientProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -266,6 +287,122 @@ export default function StandingsClient({
 
           </table>
         </div>
+      </div>
+
+      {/* BOTTOM ACTION SECTION: RESULTS & FIXTURES */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
+        
+        {/* MATCH RESULTS COLUMN */}
+        <div className="bg-slate-900/40 border border-slate-900 rounded-3xl p-6 shadow-xl flex flex-col justify-between">
+          <div className="space-y-6">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+              <div>
+                <span className="text-[9px] font-black uppercase tracking-wider text-indigo-400 block">Completed Outcomes</span>
+                <h3 className="font-black uppercase tracking-tight text-sm text-white mt-0.5 flex items-center gap-1.5">
+                  <History className="w-4 h-4 text-indigo-400" /> Match Results
+                </h3>
+              </div>
+              <Link 
+                href={`/matches?seasonId=${selectedSeasonId || ""}&divisionId=${selectedDivisionId || ""}&tab=results`}
+                className="text-[11px] font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors"
+              >
+                All Results <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
+
+            {resultsByWeek.length === 0 ? (
+              <p className="text-xs font-medium text-slate-500 py-12 text-center border border-dashed border-slate-800 rounded-2xl">
+                No recent match results found.
+              </p>
+            ) : (
+              <div className="space-y-6">
+                {resultsByWeek.map((week) => (
+                  <div key={week.weekNumber} className="space-y-3">
+                    <span className="inline-flex items-center bg-slate-950/60 border border-slate-800 text-[10px] text-slate-400 px-2 py-0.5 rounded-full font-black uppercase tracking-wider">
+                      Week {week.weekNumber}
+                    </span>
+                    <div className="divide-y divide-slate-800/40 border border-slate-900 bg-slate-950/20 rounded-2xl overflow-hidden">
+                      {week.matches.map((match) => (
+                        <Link
+                          key={match.id}
+                          href={`/matches/${match.id}`}
+                          className="p-3 flex items-center justify-between gap-3 hover:bg-slate-900/30 transition-colors group/match"
+                        >
+                          <div className="flex-1 text-right font-black text-slate-300 uppercase tracking-tight text-xs truncate group-hover/match:text-indigo-400 transition-colors">
+                            {match.homeTeam}
+                          </div>
+                          <div className="bg-slate-950 text-indigo-400 border border-slate-800 font-mono font-black text-[11px] px-2.5 py-1 rounded-lg shrink-0 shadow-inner tracking-wider">
+                            {match.homeScore} - {match.awayScore}
+                          </div>
+                          <div className="flex-1 text-left font-black text-slate-300 uppercase tracking-tight text-xs truncate group-hover/match:text-indigo-400 transition-colors">
+                            {match.awayTeam}
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* MATCH FIXTURES COLUMN */}
+        <div className="bg-slate-900/40 border border-slate-900 rounded-3xl p-6 shadow-xl flex flex-col justify-between">
+          <div className="space-y-6">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+              <div>
+                <span className="text-[9px] font-black uppercase tracking-wider text-indigo-400 block">Upcoming Schedule</span>
+                <h3 className="font-black uppercase tracking-tight text-sm text-white mt-0.5 flex items-center gap-1.5">
+                  <CalendarDays className="w-4 h-4 text-indigo-400" /> Match Fixtures
+                </h3>
+              </div>
+              <Link 
+                href={`/matches?seasonId=${selectedSeasonId || ""}&divisionId=${selectedDivisionId || ""}&tab=fixtures`}
+                className="text-[11px] font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors"
+              >
+                All Fixtures <ArrowRight className="w-3 h-3" />
+              </Link>
+            </div>
+
+            {!fixturesByWeek || fixturesByWeek.matches.length === 0 ? (
+              <p className="text-xs font-medium text-slate-500 py-12 text-center border border-dashed border-slate-800 rounded-2xl">
+                No upcoming match fixtures scheduled.
+              </p>
+            ) : (
+              <div className="space-y-3">
+                <span className="inline-flex items-center bg-slate-950/60 border border-slate-800 text-[10px] text-slate-400 px-2 py-0.5 rounded-full font-black uppercase tracking-wider">
+                  Week {fixturesByWeek.weekNumber}
+                </span>
+                <div className="divide-y divide-slate-800/40 border border-slate-900 bg-slate-950/20 rounded-2xl overflow-hidden">
+                  {fixturesByWeek.matches.map((match) => (
+                    <Link
+                      key={match.id}
+                      href={`/matches/${match.id}`}
+                      className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-slate-900/30 transition-colors group/fixture"
+                    >
+                      <div className="flex-1 flex items-center justify-between sm:justify-center gap-4 w-full">
+                        <div className="text-right flex-1 font-black text-slate-300 uppercase tracking-tight text-xs truncate group-hover/fixture:text-indigo-400 transition-colors">
+                          {match.homeTeam}
+                        </div>
+                        <div className="bg-slate-950 text-slate-500 border border-slate-800 rounded-lg px-2.5 py-1 font-bold text-[9px] uppercase tracking-widest flex items-center gap-0.5 shadow-inner shrink-0">
+                          VS
+                        </div>
+                        <div className="text-left flex-1 font-black text-slate-300 uppercase tracking-tight text-xs truncate group-hover/fixture:text-indigo-400 transition-colors">
+                          {match.awayTeam}
+                        </div>
+                      </div>
+                      <div className="text-[10px] font-semibold text-slate-500 font-mono text-center sm:text-right shrink-0 mt-1 sm:mt-0">
+                        {match.date}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
       </div>
     </div>
   );

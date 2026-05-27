@@ -1,9 +1,43 @@
 import { db } from "@/src/db";
 import { teams, matches, seasons, divisions } from "@/src/db/schema";
-import { eq, sql, desc, and } from "drizzle-orm";
+import { eq, sql, desc, and, asc } from "drizzle-orm";
 import StandingsClient from "./StandingsClient";
 import { unstable_cache } from "next/cache";
 import { Suspense } from "react";
+
+const getCachedMatchesForStandings = (seasonId: number | null, divisionId: number | null) => unstable_cache(
+  async () => {
+    const conditions = [];
+    if (seasonId) {
+      conditions.push(eq(matches.seasonId, seasonId));
+    }
+    if (divisionId) {
+      conditions.push(eq(matches.divisionId, divisionId));
+    }
+
+    return db
+      .select({
+        id: matches.id,
+        date: matches.date,
+        status: matches.status,
+        weekNumber: matches.weekNumber,
+        homeTeamId: matches.homeTeamId,
+        homeTeamName: sql<string>`home_teams.name`,
+        awayTeamId: matches.awayTeamId,
+        awayTeamName: sql<string>`away_teams.name`,
+        homeScore: matches.homeScore,
+        awayScore: matches.awayScore,
+      })
+      .from(matches)
+      .leftJoin(sql`teams as home_teams`, eq(matches.homeTeamId, sql`home_teams.id`))
+      .leftJoin(sql`teams as away_teams`, eq(matches.awayTeamId, sql`away_teams.id`))
+      .where(conditions.length > 0 ? and(...conditions) : undefined)
+      .orderBy(asc(matches.weekNumber), asc(matches.date));
+  },
+  ["standings-matches-list", String(seasonId), String(divisionId)],
+  { revalidate: 60, tags: ["matches", "teams"] }
+)();
+
 
 export const revalidate = 60;
 
@@ -170,6 +204,39 @@ export default async function PublicStandingsPage({ searchParams }: PageProps) {
   // 2. Fetch computed standings from cache
   const calculatedStandings = await getCachedStandingsData(selectedSeasonId, selectedDivisionId);
 
+  // 3. Fetch matches list for results & fixtures
+  const allMatchesRaw = await getCachedMatchesForStandings(selectedSeasonId, selectedDivisionId);
+
+  const formattedMatches = allMatchesRaw.map((m) => ({
+    id: m.id,
+    date: m.date ? new Date(m.date).toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' }) : "TBD",
+    status: m.status || "scheduled",
+    weekNumber: m.weekNumber || 1,
+    homeTeam: m.homeTeamName || "Home Team",
+    awayTeam: m.awayTeamName || "Away Team",
+    homeScore: m.homeScore !== null ? Number(m.homeScore) : null,
+    awayScore: m.awayScore !== null ? Number(m.awayScore) : null,
+  }));
+
+  const completed = formattedMatches.filter((m) => m.status === "completed");
+  const upcoming = formattedMatches.filter((m) => m.status !== "completed");
+
+  // Get last 2 matchdays with completed matches
+  const completedWeeks = Array.from(new Set(completed.map(m => m.weekNumber))).sort((a, b) => b - a);
+  const last2Weeks = completedWeeks.slice(0, 2);
+  const resultsByWeek = last2Weeks.map(weekNum => ({
+    weekNumber: weekNum,
+    matches: completed.filter(m => m.weekNumber === weekNum)
+  }));
+
+  // Get next matchday with upcoming matches
+  const upcomingWeeks = Array.from(new Set(upcoming.map(m => m.weekNumber))).sort((a, b) => a - b);
+  const nextWeek = upcomingWeeks[0] ?? null;
+  const fixturesByWeek = nextWeek !== null ? {
+    weekNumber: nextWeek,
+    matches: upcoming.filter(m => m.weekNumber === nextWeek)
+  } : null;
+
   return (
     <div className="min-h-screen bg-slate-950 pb-16 text-slate-100">
       
@@ -200,9 +267,12 @@ export default async function PublicStandingsPage({ searchParams }: PageProps) {
             divisions={allDivisions.map(d => ({ id: d.id, name: d.name }))}
             selectedSeasonId={selectedSeasonId || undefined}
             selectedDivisionId={selectedDivisionId || undefined}
+            resultsByWeek={resultsByWeek}
+            fixturesByWeek={fixturesByWeek}
           />
         </Suspense>
       </div>
+
     </div>
   );
 }
