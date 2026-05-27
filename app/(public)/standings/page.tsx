@@ -72,14 +72,22 @@ const getCachedStandingsData = (seasonId: number | null, divisionId: number | nu
         awayTeamId: matches.awayTeamId,
         homeScore: matches.homeScore,
         awayScore: matches.awayScore,
+        date: matches.date,
       })
       .from(matches)
-      .where(and(...conditions));
+      .where(and(...conditions))
+      .orderBy(desc(matches.date), desc(matches.id));
 
     // 4. Fetch teams assigned to the selected division scope
     const divisionTeams = divisionId 
       ? await db.select().from(teams).where(eq(teams.divisionId, divisionId))
       : await db.select().from(teams);
+
+    // Initialize form list for each team
+    const formMap = divisionTeams.reduce((acc, team) => {
+      acc[team.id] = [];
+      return acc;
+    }, {} as Record<number, ('W' | 'L' | 'D')[]>);
 
     // 5. Build memory ledger matrix to calculate stats
     const standingsMap = divisionTeams.reduce((acc, team) => {
@@ -125,6 +133,20 @@ const getCachedStandingsData = (seasonId: number | null, divisionId: number | nu
         home.homeDraws += 1;
         away.awayDraws += 1;
       }
+
+      // Collect form results (up to 5 recent matches)
+      const homeId = match.homeTeamId!;
+      const awayId = match.awayTeamId!;
+      if (formMap[homeId] && formMap[homeId].length < 5) {
+        if (hScore > aScore) formMap[homeId].push('W');
+        else if (hScore < aScore) formMap[homeId].push('L');
+        else formMap[homeId].push('D');
+      }
+      if (formMap[awayId] && formMap[awayId].length < 5) {
+        if (aScore > hScore) formMap[awayId].push('W');
+        else if (aScore < hScore) formMap[awayId].push('L');
+        else formMap[awayId].push('D');
+      }
     });
 
     // 6. Map to clean response nodes & compute final standing points
@@ -152,6 +174,7 @@ const getCachedStandingsData = (seasonId: number | null, divisionId: number | nu
         overallFramesLost,
         frameDifference,
         overallPoints,
+        form: (formMap[t.id] || []).reverse(), // Oldest-to-newest
         // Specific matrices passed directly down to build Advanced Standings
         home: {
           played: t.homePlayed,
@@ -200,6 +223,13 @@ export default async function PublicStandingsPage({ searchParams }: PageProps) {
 
   const selectedSeasonId = params.seasonId ? Number(params.seasonId) : (allSeasons[0]?.id || null);
   const selectedDivisionId = params.divisionId ? Number(params.divisionId) : (allDivisions[0]?.id || null);
+
+  // Find current selected division to determine if it is the top tier (minimum tier value in current season)
+  // Filter divisions belonging to this season if seasonId is active, otherwise check all
+  const seasonDivisions = allDivisions.filter(d => d.seasonId === selectedSeasonId);
+  const activeDivs = seasonDivisions.length > 0 ? seasonDivisions : allDivisions;
+  const currentDivision = activeDivs.find(d => d.id === selectedDivisionId) || activeDivs[0];
+  const isTopTier = currentDivision ? (currentDivision.tier === Math.min(...activeDivs.map(d => d.tier))) : true;
 
   // 2. Fetch computed standings from cache
   const calculatedStandings = await getCachedStandingsData(selectedSeasonId, selectedDivisionId);
@@ -269,6 +299,7 @@ export default async function PublicStandingsPage({ searchParams }: PageProps) {
             selectedDivisionId={selectedDivisionId || undefined}
             resultsByWeek={resultsByWeek}
             fixturesByWeek={fixturesByWeek}
+            isTopTier={isTopTier}
           />
         </Suspense>
       </div>

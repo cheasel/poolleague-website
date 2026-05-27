@@ -16,6 +16,7 @@ interface StandingRow {
   overallFramesLost: number;
   frameDifference: number;
   overallPoints: number;
+  form: ('W' | 'L' | 'D')[];
   home: { played: number; wins: number; draws: number; losses: number; fw: number; fl: number; };
   away: { played: number; wins: number; draws: number; losses: number; fw: number; fl: number; };
 }
@@ -50,6 +51,7 @@ interface StandingsClientProps {
     weekNumber: number;
     matches: MatchRow[];
   } | null;
+  isTopTier?: boolean;
 }
 
 export default function StandingsClient({
@@ -59,7 +61,8 @@ export default function StandingsClient({
   selectedSeasonId,
   selectedDivisionId,
   resultsByWeek = [],
-  fixturesByWeek = null
+  fixturesByWeek = null,
+  isTopTier = true
 }: StandingsClientProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -133,6 +136,21 @@ export default function StandingsClient({
         </div>
       </div>
 
+      {/* ZONE LEGEND BAR */}
+      <div className="flex flex-wrap items-center gap-4 px-2 py-0.5 text-[11px] font-bold text-slate-400">
+        <span className="text-[10px] uppercase tracking-wider text-slate-500 font-extrabold mr-1">Zone Legend:</span>
+        {!isTopTier && (
+          <div className="flex items-center gap-1.5 bg-emerald-950/20 border border-emerald-900/40 px-2.5 py-1 rounded-lg text-emerald-400">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Promotion (Top 2)</span>
+          </div>
+        )}
+        <div className="flex items-center gap-1.5 bg-rose-950/20 border border-rose-900/40 px-2.5 py-1 rounded-lg text-rose-400">
+          <span className="w-2 h-2 rounded-full bg-rose-500" />
+          <span>Relegation (Bottom 2)</span>
+        </div>
+      </div>
+
       {/* CORE STATS RENDER BOARD */}
       <div className="bg-slate-900/40 border border-slate-900 rounded-3xl shadow-2xl overflow-hidden">
         <div className="overflow-x-auto">
@@ -147,46 +165,97 @@ export default function StandingsClient({
                     <th className="px-6 py-4">Squad Club</th>
                     <th className="px-4 py-4 text-center">Played</th>
                     <th className="px-4 py-4 text-center text-emerald-400">Won</th>
-                    <th className="px-4 py-4 text-center text-slate-500">Drawn</th>
-                    <th className="px-4 py-4 text-center text-rose-400">Lost</th>
-                    <th className="px-4 py-4 text-center">Frames +/-</th>
+                    <th className="px-4 py-4 text-center text-slate-500 hidden sm:table-cell">Drawn</th>
+                    <th className="px-4 py-4 text-center text-rose-400 hidden sm:table-cell">Lost</th>
+                    <th className="px-4 py-4 text-center hidden md:table-cell">Frames +/-</th>
+                    <th className="px-4 py-4 text-center w-28">Form</th>
                     <th className="px-6 py-4 text-center bg-indigo-600/20 text-indigo-400 font-black w-24 border-l border-slate-800">Points</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60 font-medium text-slate-300">
-                  {standings.map((row, index) => (
-                    <tr key={row.id} className="hover:bg-slate-900/40 transition-colors group">
-                      <td className="px-6 py-4 text-center font-mono font-bold text-slate-500 text-[11px]">
-                        {index + 1}
-                      </td>
-                      <td className="px-6 py-4 font-black text-white text-[13px] uppercase tracking-tight group-hover:text-indigo-400 transition-colors">
-                        <Link href={`/teams/${row.id}`} prefetch={false}>{row.name}</Link>
-                      </td>
-                      <td className="px-4 py-4 text-center font-mono tabular-nums">{row.overallPlayed}</td>
-                      <td className="px-4 py-4 text-center font-bold text-emerald-400 font-mono tabular-nums">{row.overallWins}</td>
-                      <td className="px-4 py-4 text-center text-slate-500 font-mono tabular-nums">{row.overallDraws}</td>
-                      <td className="px-4 py-4 text-center text-rose-400/80 font-mono tabular-nums">{row.overallLosses}</td>
-                      <td className="px-3 py-3 text-center bg-indigo-950/[0.1] border-l border-slate-800 whitespace-nowrap">
-                        <div className="flex items-center justify-center gap-1.5">
-                          {/* Raw Frames */}
-                          <span className="font-mono font-semibold tabular-nums text-slate-300 text-[11px]">
-                            {row.overallFramesWon}:{row.overallFramesLost}
-                          </span>
-                          
-                          {/* Difference with dynamic coloring */}
-                          <span className={`font-mono text-[10px] font-bold ${
-                            row.frameDifference > 0 ? 'text-emerald-400' : 
-                            row.frameDifference < 0 ? 'text-rose-400' : 'text-slate-500'
-                          }`}>
-                            ({row.frameDifference > 0 ? `+${row.frameDifference}` : row.frameDifference})
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-center bg-indigo-950/30 text-indigo-400 font-black font-mono text-sm border-l border-slate-800">
-                        {row.overallPoints}
-                      </td>
-                    </tr>
-                  ))}
+                  {standings.map((row, index) => {
+                    const isPromotion = !isTopTier && index < 2;
+                    const isRelegation = standings.length >= 2 && index >= standings.length - 2;
+
+                    const rowBgClass = isPromotion
+                      ? "bg-emerald-950/10 hover:bg-emerald-950/20 transition-colors group"
+                      : isRelegation
+                      ? "bg-rose-950/10 hover:bg-rose-950/20 transition-colors group"
+                      : "hover:bg-slate-900/40 transition-colors group";
+
+                    const posCellClass = `px-6 py-4 text-center font-mono font-bold text-[11px] ${
+                      isPromotion
+                        ? "border-l-4 border-emerald-500 text-emerald-400"
+                        : isRelegation
+                        ? "border-l-4 border-rose-500 text-rose-400"
+                        : "text-slate-500"
+                    }`;
+
+                    return (
+                      <tr key={row.id} className={rowBgClass}>
+                        <td className={posCellClass}>
+                          {index + 1}
+                        </td>
+                        <td className="px-6 py-4 font-black text-white text-[13px] uppercase tracking-tight group-hover:text-indigo-400 transition-colors">
+                          <Link href={`/teams/${row.id}`} prefetch={false}>{row.name}</Link>
+                        </td>
+                        <td className="px-4 py-4 text-center font-mono tabular-nums">{row.overallPlayed}</td>
+                        <td className="px-4 py-4 text-center font-bold text-emerald-400 font-mono tabular-nums">{row.overallWins}</td>
+                        <td className="px-4 py-4 text-center text-slate-500 font-mono tabular-nums hidden sm:table-cell">{row.overallDraws}</td>
+                        <td className="px-4 py-4 text-center text-rose-400/80 font-mono tabular-nums hidden sm:table-cell">{row.overallLosses}</td>
+                        <td className="px-3 py-3 text-center bg-indigo-950/[0.1] border-l border-slate-800 whitespace-nowrap hidden md:table-cell">
+                          <div className="flex items-center justify-center gap-1.5">
+                            {/* Raw Frames */}
+                            <span className="font-mono font-semibold tabular-nums text-slate-300 text-[11px]">
+                              {row.overallFramesWon}:{row.overallFramesLost}
+                            </span>
+                            
+                            {/* Difference with dynamic coloring */}
+                            <span className={`font-mono text-[10px] font-bold ${
+                              row.frameDifference > 0 ? 'text-emerald-400' : 
+                              row.frameDifference < 0 ? 'text-rose-400' : 'text-slate-500'
+                            }`}>
+                              ({row.frameDifference > 0 ? `+${row.frameDifference}` : row.frameDifference})
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <div className="flex items-center justify-center gap-1.5">
+                            {(row.form || []).map((outcome, i) => {
+                              let dotColor = "bg-slate-700 text-slate-400";
+                              let label = "D";
+                              if (outcome === 'W') {
+                                dotColor = "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+                                label = "W";
+                              } else if (outcome === 'L') {
+                                dotColor = "bg-rose-500/20 text-rose-400 border border-rose-500/30";
+                                label = "L";
+                              } else if (outcome === 'D') {
+                                dotColor = "bg-slate-800 text-slate-400 border border-slate-700/50";
+                                label = "D";
+                              }
+
+                              return (
+                                <span
+                                  key={i}
+                                  className={`w-5 h-5 flex items-center justify-center rounded-full font-mono text-[9px] font-black select-none ${dotColor}`}
+                                  title={outcome === 'W' ? 'Win' : outcome === 'L' ? 'Loss' : 'Draw'}
+                                >
+                                  {label}
+                                </span>
+                              );
+                            })}
+                            {(!row.form || row.form.length === 0) && (
+                              <span className="text-[9px] text-slate-600 font-semibold uppercase tracking-wider">No matches</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-center bg-indigo-950/30 text-indigo-400 font-black font-mono text-sm border-l border-slate-800">
+                          {row.overallPoints}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </>
             )}
@@ -233,54 +302,73 @@ export default function StandingsClient({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60 font-medium text-slate-400 text-[11px]">
-                  {standings.map((row, index) => (
-                    <tr key={row.id} className="hover:bg-slate-900/40 transition-colors group">
-                      <td className="px-4 py-3 text-center font-mono font-bold text-slate-600 border-r border-slate-900">{index + 1}</td>
-                      <td className="px-4 py-3 font-black text-white uppercase border-r border-slate-800 tracking-tight text-[12px] group-hover:text-indigo-400 transition-colors">
-                        <Link href={`/teams/${row.id}`} prefetch={false}>{row.name}</Link>
-                      </td>
-                      
-                      {/* Home Data */}
-                      <td className="px-2.5 py-3 text-center font-mono">{row.home.played}</td>
-                      <td className="px-2.5 py-3 text-center font-bold text-emerald-400/80 font-mono">{row.home.wins}</td>
-                      <td className="px-2.5 py-3 text-center text-slate-600 font-mono">{row.home.draws}</td>
-                      <td className="px-2.5 py-3 text-center text-rose-400/60 font-mono border-r border-slate-800">{row.home.losses}</td>
+                  {standings.map((row, index) => {
+                    const isPromotion = !isTopTier && index < 2;
+                    const isRelegation = standings.length >= 2 && index >= standings.length - 2;
 
-                      {/* Away Data */}
-                      <td className="px-2.5 py-3 text-center font-mono">{row.away.played}</td>
-                      <td className="px-2.5 py-3 text-center font-bold text-emerald-400/80 font-mono">{row.away.wins}</td>
-                      <td className="px-2.5 py-3 text-center text-slate-600 font-mono">{row.away.draws}</td>
-                      <td className="px-2.5 py-3 text-center text-rose-400/60 font-mono border-r border-slate-800">{row.away.losses}</td>
+                    const rowBgClass = isPromotion
+                      ? "bg-emerald-950/10 hover:bg-emerald-950/20 transition-colors group"
+                      : isRelegation
+                      ? "bg-rose-950/10 hover:bg-rose-950/20 transition-colors group"
+                      : "hover:bg-slate-900/40 transition-colors group";
 
-                      {/* Aggregate Data */}
-                      <td className="px-2.5 py-3 text-center font-mono bg-indigo-950/[0.05]">{row.overallPlayed}</td>
-                      <td className="px-2.5 py-3 text-center font-extrabold text-emerald-400/90 bg-indigo-950/[0.05]">{row.overallWins}</td>
-                      <td className="px-2.5 py-3 text-center font-extrabold text-slate-500 bg-indigo-950/[0.05]">{row.overallDraws}</td>
-                      <td className="px-2.5 py-3 text-center font-extrabold text-rose-400/70 bg-indigo-950/[0.05]">{row.overallLosses}</td>
-                      
-                      {/* Combined Frame Diff Cell */}
-                      <td className="px-3 py-3 text-center bg-indigo-950/[0.1] border-l border-slate-800 whitespace-nowrap">
-                        <div className="flex items-center justify-center gap-1.5">
-                          {/* Raw Frames */}
-                          <span className="font-mono font-semibold tabular-nums text-slate-300 text-[11px]">
-                            {row.overallFramesWon}:{row.overallFramesLost}
-                          </span>
-                          
-                          {/* Difference with dynamic coloring */}
-                          <span className={`font-mono text-[10px] font-bold ${
-                            row.frameDifference > 0 ? 'text-emerald-400' : 
-                            row.frameDifference < 0 ? 'text-rose-400' : 'text-slate-500'
-                          }`}>
-                            ({row.frameDifference > 0 ? `+${row.frameDifference}` : row.frameDifference})
-                          </span>
-                        </div>
-                      </td>
+                    const posCellClass = `px-4 py-3 text-center font-mono font-bold border-r border-slate-900 ${
+                      isPromotion
+                        ? "border-l-4 border-emerald-500 text-emerald-400"
+                        : isRelegation
+                        ? "border-l-4 border-rose-500 text-rose-400"
+                        : "text-slate-600"
+                    }`;
 
-                      <td className="px-4 py-3 text-center bg-indigo-950 text-indigo-400 font-black font-mono text-xs shadow-inner border-l border-slate-800 italic">
-                        {row.overallPoints}
-                      </td>
-                    </tr>
-                  ))}
+                    return (
+                      <tr key={row.id} className={rowBgClass}>
+                        <td className={posCellClass}>{index + 1}</td>
+                        <td className="px-4 py-3 font-black text-white uppercase border-r border-slate-800 tracking-tight text-[12px] group-hover:text-indigo-400 transition-colors">
+                          <Link href={`/teams/${row.id}`} prefetch={false}>{row.name}</Link>
+                        </td>
+                        
+                        {/* Home Data */}
+                        <td className="px-2.5 py-3 text-center font-mono">{row.home.played}</td>
+                        <td className="px-2.5 py-3 text-center font-bold text-emerald-400/80 font-mono">{row.home.wins}</td>
+                        <td className="px-2.5 py-3 text-center text-slate-600 font-mono">{row.home.draws}</td>
+                        <td className="px-2.5 py-3 text-center text-rose-400/60 font-mono border-r border-slate-800">{row.home.losses}</td>
+
+                        {/* Away Data */}
+                        <td className="px-2.5 py-3 text-center font-mono">{row.away.played}</td>
+                        <td className="px-2.5 py-3 text-center font-bold text-emerald-400/80 font-mono">{row.away.wins}</td>
+                        <td className="px-2.5 py-3 text-center text-slate-600 font-mono">{row.away.draws}</td>
+                        <td className="px-2.5 py-3 text-center text-rose-400/60 font-mono border-r border-slate-800">{row.away.losses}</td>
+
+                        {/* Aggregate Data */}
+                        <td className="px-2.5 py-3 text-center font-mono bg-indigo-950/[0.05]">{row.overallPlayed}</td>
+                        <td className="px-2.5 py-3 text-center font-extrabold text-emerald-400/90 bg-indigo-950/[0.05]">{row.overallWins}</td>
+                        <td className="px-2.5 py-3 text-center font-extrabold text-slate-500 bg-indigo-950/[0.05]">{row.overallDraws}</td>
+                        <td className="px-2.5 py-3 text-center font-extrabold text-rose-400/70 bg-indigo-950/[0.05]">{row.overallLosses}</td>
+                        
+                        {/* Combined Frame Diff Cell */}
+                        <td className="px-3 py-3 text-center bg-indigo-950/[0.1] border-l border-slate-800 whitespace-nowrap">
+                          <div className="flex items-center justify-center gap-1.5">
+                            {/* Raw Frames */}
+                            <span className="font-mono font-semibold tabular-nums text-slate-300 text-[11px]">
+                              {row.overallFramesWon}:{row.overallFramesLost}
+                            </span>
+                            
+                            {/* Difference with dynamic coloring */}
+                            <span className={`font-mono text-[10px] font-bold ${
+                              row.frameDifference > 0 ? 'text-emerald-400' : 
+                              row.frameDifference < 0 ? 'text-rose-400' : 'text-slate-500'
+                            }`}>
+                              ({row.frameDifference > 0 ? `+${row.frameDifference}` : row.frameDifference})
+                            </span>
+                          </div>
+                        </td>
+
+                        <td className="px-4 py-3 text-center bg-indigo-950 text-indigo-400 font-black font-mono text-xs shadow-inner border-l border-slate-800 italic">
+                          {row.overallPoints}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </>
             )}
