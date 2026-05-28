@@ -1,5 +1,5 @@
 import { db } from "@/src/db";
-import { matches, teams, matchGames, players } from "@/src/db/schema";
+import { matches, teams, matchGames, players, seasons, divisions } from "@/src/db/schema";
 import { eq, asc, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import MatchDashboard from "./MatchDashboard";
@@ -20,8 +20,26 @@ export default async function AdminMatchesPage({ searchParams }: PageProps) {
 
   const sortOrder = sortParam === "asc" ? asc(matches.date) : desc(matches.date);
 
-  // Fetch all matches from DB
-  const allMatches = await db.select().from(matches).orderBy(sortOrder);
+  // Fetch all matches from DB with division, season, team logos, and home venue relations
+  const allMatches = await db.query.matches.findMany({
+    with: {
+      homeTeam: {
+        with: {
+          venue: true
+        }
+      },
+      awayTeam: true,
+      division: {
+        with: {
+          season: true
+        }
+      }
+    },
+    orderBy: sortOrder,
+  });
+
+  const allSeasons = await db.select().from(seasons).orderBy(desc(seasons.startDate));
+  const allDivisions = await db.select().from(divisions).orderBy(asc(divisions.name));
   const rawTeams = await db.select().from(teams);
   const allPlayersRaw = await db.select().from(players);
 
@@ -121,7 +139,7 @@ export default async function AdminMatchesPage({ searchParams }: PageProps) {
     <MatchDashboard
       activeMatchId={activeMatchId}
       sortParam={sortParam}
-      allMatches={allMatches}
+      allMatches={allMatches as any}
       rawTeams={rawTeams}
       availableHomePlayers={availableHomePlayers}
       availableAwayPlayers={availableAwayPlayers}
@@ -129,6 +147,8 @@ export default async function AdminMatchesPage({ searchParams }: PageProps) {
       allPlayersRaw={allPlayersRaw}
       addFrameAction={addFrameAction}
       finalizeMatchAction={finalizeMatchAction}
+      seasons={allSeasons}
+      divisions={allDivisions}
     />
   );
 }
