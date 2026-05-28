@@ -70,7 +70,12 @@ export async function updateSession(request: NextRequest) {
         const loginUrl = request.nextUrl.clone()
         loginUrl.pathname = '/login'
         loginUrl.searchParams.set('redirectTo', pathname)
-        return NextResponse.redirect(loginUrl)
+        
+        const response = NextResponse.redirect(loginUrl)
+        supabaseResponse.cookies.getAll().forEach((cookie) => {
+          response.cookies.set(cookie.name, cookie.value, cookie)
+        })
+        return response
       }
     }
 
@@ -78,7 +83,12 @@ export async function updateSession(request: NextRequest) {
     if (isLoginPage && user) {
       const adminUrl = request.nextUrl.clone()
       adminUrl.pathname = '/admin'
-      return NextResponse.redirect(adminUrl)
+      
+      const response = NextResponse.redirect(adminUrl)
+      supabaseResponse.cookies.getAll().forEach((cookie) => {
+        response.cookies.set(cookie.name, cookie.value, cookie)
+      })
+      return response
     }
   } catch (error) {
     console.error("Supabase updateSession failed:", error)
