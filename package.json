@@ -37,7 +37,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "tsx --test src/utils/stats-calculator.test.ts",
+    "test": "tsx --env-file=.env.local --test src/utils/stats-calculator.test.ts src/tests/client-filters.test.ts src/tests/db-proxy.test.ts src/tests/business-rules.test.ts src/tests/admin-redirects.test.ts",
     "db:push": "drizzle-kit push",
     "db:seed": "tsx src/db/seed.ts"
   }
