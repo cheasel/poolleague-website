@@ -117,7 +117,7 @@ export default function PublicNavbar() {
           {/* Desktop Admin Quick Link */}
           <div className="hidden md:block">
             <Link 
-              href="/admin/matches" 
+              href="/admin" 
               className="text-[10px] font-black text-slate-400 border border-slate-800 px-3 py-1.5 rounded-lg hover:bg-white hover:text-slate-950 hover:border-white transition-all uppercase tracking-widest"
             >
               Admin
@@ -206,7 +206,7 @@ export default function PublicNavbar() {
           
           <div className="pt-4 mt-2 border-t border-slate-900 px-4">
             <Link 
-              href="/admin/matches" 
+              href="/admin" 
               onClick={() => setIsOpen(false)}
               className="flex justify-center text-center text-xs font-black text-slate-400 border border-slate-800 px-3 py-3 rounded-xl hover:bg-white hover:text-slate-950 hover:border-white transition-all uppercase tracking-widest"
             >
