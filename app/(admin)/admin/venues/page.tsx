@@ -2,18 +2,21 @@ import { db } from "@/src/db";
 import { venues, teams } from "@/src/db/schema";
 import { asc, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import Link from "next/link";
-import { MapPin, Store, ToggleLeft, Edit2, ShieldCheck, ShieldAlert } from "lucide-react";
-import DeleteVenueButton from "./DeleteVenueButton";
 import CreateVenueForm from "./CreateVenueForm";
+import VenuesList from "./venues-list";
 
 export const dynamic = "force-dynamic";
 
 export default async function VenuesPage() {
-  // 1. Fetch all venues sorted alphabetically
-  const allVenues = await db.select().from(venues).orderBy(asc(venues.name));
+  // 1. Fetch all venues sorted alphabetically, loading their team relations
+  const allVenues = await db.query.venues.findMany({
+    with: {
+      teams: true,
+    },
+    orderBy: asc(venues.name),
+  });
 
-  // --- SERVER ACTION WITH STATE ARGS ---
+  // --- SERVER ACTION: CREATE VENUE ---
   async function createVenue(prevState: any, formData: FormData) {
     "use server";
     
@@ -35,7 +38,6 @@ export default async function VenuesPage() {
         .limit(1);
 
       if (existingName) {
-        // Return structured state payload back to the client UI component frame
         return { error: `"${name}" matches an existing arena signature configuration.` };
       }
 
@@ -70,6 +72,20 @@ export default async function VenuesPage() {
     revalidatePath("/admin/teams");
   }
 
+  // --- SERVER ACTION: TOGGLE ACTIVE STATUS ---
+  async function toggleVenueStatus(formData: FormData) {
+    "use server";
+    const venueId = Number(formData.get("venueId"));
+    const currentActive = formData.get("currentActive") === "true";
+    
+    await db
+      .update(venues)
+      .set({ isActive: !currentActive })
+      .where(eq(venues.id, venueId));
+
+    revalidatePath("/admin/venues");
+  }
+
   return (
     <div className="max-w-6xl mx-auto space-y-10 pb-24 px-4 text-zinc-200 antialiased">
       
@@ -91,72 +107,12 @@ export default async function VenuesPage() {
         {/* COLUMN 1: INTERACTIVE FORM FOR SUBMISSIONS */}
         <CreateVenueForm createVenueAction={createVenue} />
 
-        {/* COLUMN 2 & 3: DIRECTORY GRID */}
-        <div className="lg:col-span-2 space-y-4">
-          <div className="text-[10px] font-black uppercase tracking-widest text-zinc-600 ml-1">
-            Registered Live Locations ({allVenues.length})
-          </div>
-
-          {allVenues.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {allVenues.map((venue) => (
-                <div 
-                  key={venue.id} 
-                  className="bg-zinc-900/30 backdrop-blur-md border border-zinc-850 hover:border-zinc-800/80 rounded-2xl p-5 flex flex-col justify-between group transition-all relative overflow-hidden"
-                >
-                  <div className="space-y-3">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="w-10 h-10 rounded-xl bg-zinc-950 border border-zinc-800 flex items-center justify-center text-zinc-500 group-hover:text-indigo-400 transition-colors shrink-0 shadow-inner">
-                        <Store className="w-4 h-4" />
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        <Link 
-                          href={`/admin/venues/${venue.id}`}
-                          className="p-2 bg-zinc-950 hover:bg-zinc-800 border border-zinc-850 hover:border-zinc-700 rounded-lg text-zinc-500 hover:text-white transition-all shadow-sm"
-                        >
-                          <Edit2 className="w-3 h-3" />
-                        </Link>
-                        <DeleteVenueButton venueId={venue.id} deleteAction={deleteVenue} />
-                      </div>
-                    </div>
-
-                    <div>
-                      <h3 className="text-sm font-black text-white uppercase tracking-tight truncate group-hover:text-indigo-400 transition-colors">
-                        {venue.name}
-                      </h3>
-                      
-                      <p className="flex items-center gap-1.5 text-[11px] text-zinc-500 font-medium mt-1 truncate">
-                        <MapPin className="w-3 h-3 text-zinc-600 shrink-0" />
-                        {venue.address || "No Address Provided"}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="mt-5 pt-3 border-t border-zinc-850/60 flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-zinc-400">
-                    <span className="flex items-center gap-1 text-zinc-500">
-                      <ToggleLeft className="w-3.5 h-3.5 text-zinc-600" /> Operational State
-                    </span>
-                    {venue.isActive ? (
-                      <span className="flex items-center gap-1 text-emerald-400 bg-emerald-500/5 px-2.5 py-1 rounded border border-emerald-500/10 font-mono text-[9px]">
-                        <ShieldCheck className="w-3 h-3" /> Online
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1 text-rose-400 bg-rose-500/5 px-2.5 py-1 rounded border border-rose-500/10 font-mono text-[9px]">
-                        <ShieldAlert className="w-3 h-3" /> Suspended
-                      </span>
-                    )}
-                  </div>
-
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-16 text-xs font-bold text-zinc-600 uppercase border border-dashed border-zinc-800 rounded-[2rem] bg-zinc-950/10">
-              No host venue records configured in database registry core.
-            </div>
-          )}
-        </div>
+        {/* COLUMN 2 & 3: DIRECTORY LIST WITH SEARCH & TOGGLES */}
+        <VenuesList 
+          initialVenues={allVenues} 
+          deleteVenueAction={deleteVenue} 
+          toggleVenueAction={toggleVenueStatus} 
+        />
 
       </div>
     </div>
