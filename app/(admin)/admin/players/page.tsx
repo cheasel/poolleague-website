@@ -2,8 +2,8 @@ import { db } from "@/src/db";
 import { players, teams } from "@/src/db/schema";
 import { eq, asc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { User, Plus, Trash2, Pencil, Shield } from "lucide-react";
-import Link from 'next/link';
+import { Plus } from "lucide-react";
+import PlayersList from "./players-list";
 
 export const dynamic = "force-dynamic";
 
@@ -13,8 +13,10 @@ export default async function AdminPlayersPage() {
     .select({
       id: players.id,
       name: players.name,
+      imageUrl: players.imageUrl,
       teamName: teams.name,
       teamId: players.teamId,
+      teamLogoUrl: teams.logoUrl,
     })
     .from(players)
     .leftJoin(teams, eq(players.teamId, teams.id))
@@ -45,6 +47,22 @@ export default async function AdminPlayersPage() {
     "use server";
     const id = Number(formData.get("id"));
     await db.delete(players).where(eq(players.id, id));
+    revalidatePath("/admin/players");
+    revalidatePath("/players");
+  }
+
+  // 4. Server Action to change a player's team inline
+  async function changePlayerTeam(formData: FormData) {
+    "use server";
+    const playerId = Number(formData.get("playerId"));
+    const teamIdVal = formData.get("teamId");
+    const teamId = teamIdVal ? Number(teamIdVal) : null;
+
+    await db
+      .update(players)
+      .set({ teamId })
+      .where(eq(players.id, playerId));
+
     revalidatePath("/admin/players");
     revalidatePath("/players");
   }
@@ -94,57 +112,15 @@ export default async function AdminPlayersPage() {
           </form>
         </div>
 
-        {/* Players List */}
-        <div className="bg-slate-900/40 rounded-[2.5rem] border border-slate-900 shadow-2xl overflow-hidden">
-          <div className="px-8 py-6 border-b border-slate-800 bg-slate-900/60 flex justify-between items-center">
-            <h2 className="font-black text-white uppercase tracking-tight text-sm">Registered Competitors</h2>
-            <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{allPlayers.length} Total Players</span>
-          </div>
-          
-          <div className="divide-y divide-slate-800/60">
-            {allPlayers.map((player) => (
-              <div key={player.id} className="p-6 md:px-8 flex justify-between items-center hover:bg-slate-900/40 transition-colors group">
-                <div className="flex items-center gap-6">
-                  <div className="bg-slate-950 p-3 rounded-xl border border-slate-900 group-hover:border-indigo-500/30 transition-colors shadow-inner">
-                    <User className="w-5 h-5 text-slate-700 group-hover:text-indigo-400" />
-                  </div>
-                  <div>
-                    <h3 className="font-black text-white uppercase tracking-tight group-hover:text-indigo-400 transition-colors">{player.name}</h3>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Shield className="w-3.5 h-3.5 text-slate-700" />
-                      <span className="text-[9px] font-black text-indigo-400 uppercase tracking-widest bg-indigo-950/30 px-2 py-0.5 rounded-md border border-indigo-900/30 shadow-sm">
-                        {player.teamName || "Free Agent"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Link 
-                    href={`/admin/players/${player.id}`}
-                    className="p-2 text-slate-600 hover:text-indigo-400 transition-colors"
-                  >
-                    <Pencil className="w-5 h-5" />
-                  </Link>
-
-                  <form action={deletePlayer}>
-                    <input type="hidden" name="id" value={player.id} />
-                    <button className="p-2 text-slate-800 hover:text-red-500 transition-colors">
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </form>
-                </div>
-              </div>
-            ))}
-
-            {allPlayers.length === 0 && (
-              <div className="p-20 text-center text-slate-800 font-black uppercase tracking-[0.2em] italic text-xs">
-                No players registered inside the system ledger.
-              </div>
-            )}
-          </div>
-        </div>
+        {/* Players List with Client-Side Interactive Filtering */}
+        <PlayersList 
+          initialPlayers={allPlayers}
+          teams={allTeams}
+          deletePlayerAction={deletePlayer}
+          changePlayerTeamAction={changePlayerTeam}
+        />
       </div>
     </div>
   );
 }
+
