@@ -4,10 +4,12 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Trophy, Shield, Columns, LayoutList, Home, Plane, Award, History, Calendar, ArrowRight, CalendarDays } from "lucide-react";
+import Image from "next/image";
 
 interface StandingRow {
   id: number;
   name: string;
+  logoUrl: string | null;
   overallPlayed: number;
   overallWins: number;
   overallDraws: number;
@@ -197,7 +199,25 @@ export default function StandingsClient({
                           {index + 1}
                         </td>
                         <td className="px-6 py-4 font-black text-white text-[13px] uppercase tracking-tight group-hover:text-indigo-400 transition-colors">
-                          <Link href={`/teams/${row.id}`} prefetch={false}>{row.name}</Link>
+                          <div className="flex items-center gap-2">
+                            {row.logoUrl ? (
+                              <div className="w-6 h-6 rounded bg-slate-950 border border-slate-850 p-0.5 flex items-center justify-center shrink-0">
+                                <Image
+                                  src={row.logoUrl}
+                                  alt={row.name}
+                                  width={24}
+                                  height={24}
+                                  className="object-contain max-w-full max-h-full"
+                                  unoptimized
+                                />
+                              </div>
+                            ) : (
+                              <div className="w-6 h-6 rounded bg-indigo-950/40 border border-indigo-900/20 flex items-center justify-center font-black text-[9px] text-indigo-400 shrink-0">
+                                {row.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+                              </div>
+                            )}
+                            <Link href={`/teams/${row.id}`} prefetch={false}>{row.name}</Link>
+                          </div>
                         </td>
                         <td className="px-4 py-4 text-center font-mono tabular-nums">{row.overallPlayed}</td>
                         <td className="px-4 py-4 text-center font-bold text-emerald-400 font-mono tabular-nums">{row.overallWins}</td>
@@ -324,7 +344,25 @@ export default function StandingsClient({
                       <tr key={row.id} className={rowBgClass}>
                         <td className={posCellClass}>{index + 1}</td>
                         <td className="px-4 py-3 font-black text-white uppercase border-r border-slate-800 tracking-tight text-[12px] group-hover:text-indigo-400 transition-colors">
-                          <Link href={`/teams/${row.id}`} prefetch={false}>{row.name}</Link>
+                          <div className="flex items-center gap-2">
+                            {row.logoUrl ? (
+                              <div className="w-6 h-6 rounded bg-slate-950 border border-slate-850 p-0.5 flex items-center justify-center shrink-0">
+                                <Image
+                                  src={row.logoUrl}
+                                  alt={row.name}
+                                  width={24}
+                                  height={24}
+                                  className="object-contain max-w-full max-h-full"
+                                  unoptimized
+                                />
+                              </div>
+                            ) : (
+                              <div className="w-6 h-6 rounded bg-indigo-950/40 border border-indigo-900/20 flex items-center justify-center font-black text-[9px] text-indigo-400 shrink-0">
+                                {row.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+                              </div>
+                            )}
+                            <Link href={`/teams/${row.id}`} prefetch={false}>{row.name}</Link>
+                          </div>
                         </td>
                         
                         {/* Home Data */}

@@ -24,13 +24,42 @@ export default async function EditSeasonPage({ params }: PageProps) {
     return <div className="p-20 text-center font-black uppercase text-slate-400">Season not found.</div>;
   }
 
+  const formatLocalDate = (dateObj: Date | null) => {
+    if (!dateObj) return "";
+    const d = new Date(dateObj);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+  const formattedStartDate = formatLocalDate(season.startDate);
+  const formattedEndDate = formatLocalDate(season.endDate);
+
   async function updateSeason(formData: FormData) {
     "use server";
     const name = formData.get("name") as string;
     const isActive = formData.get("isActive") === "true";
+    const startStr = formData.get("startDate") as string;
+    const endStr = formData.get("endDate") as string;
+
+    if (!name || name.trim() === "") return;
+
+    let startDate: Date | null = null;
+    if (startStr && startStr.trim() !== "") {
+      startDate = new Date(startStr);
+    }
+
+    let endDate: Date | null = null;
+    if (endStr && endStr.trim() !== "") {
+      endDate = new Date(endStr);
+      if (startDate && endDate <= startDate) {
+        console.warn("⚠️ Aborted update: Closing Standings Date must occur after the Opening Fixture Date.");
+        return;
+      }
+    }
 
     await db.update(seasons)
-      .set({ name, isActive })
+      .set({ name, isActive, startDate, endDate })
       .where(eq(seasons.id, seasonId));
 
     revalidatePath("/admin/seasons");
@@ -67,6 +96,26 @@ export default async function EditSeasonPage({ params }: PageProps) {
               defaultValue={season.name} 
               required 
               className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-rose-500 outline-none font-bold text-white transition-all shadow-inner placeholder:text-slate-800"
+            />
+          </div>
+
+          <div className="space-y-2.5">
+            <label className="text-[10px] font-black uppercase tracking-widest text-slate-600 ml-2">Opening Fixture Launch Date</label>
+            <input 
+              type="date"
+              name="startDate" 
+              defaultValue={formattedStartDate} 
+              className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-rose-500 outline-none font-bold text-white transition-all shadow-inner"
+            />
+          </div>
+
+          <div className="space-y-2.5">
+            <label className="text-[10px] font-black uppercase tracking-widest text-slate-600 ml-2">Closing Standings Lock Date (Optional)</label>
+            <input 
+              type="date"
+              name="endDate" 
+              defaultValue={formattedEndDate} 
+              className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-rose-500 outline-none font-bold text-white transition-all shadow-inner"
             />
           </div>
 

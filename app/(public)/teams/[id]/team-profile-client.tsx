@@ -43,6 +43,7 @@ interface MatchLog {
 interface TeamProfileClientProps {
   teamId: number;
   teamName: string;
+  logoUrl?: string | null;
   divisionName: string;
   seasonName: string;
   roster: RosterPlayer[];
@@ -53,6 +54,7 @@ interface TeamProfileClientProps {
 export default function TeamProfileClient({
   teamId,
   teamName,
+  logoUrl,
   divisionName,
   seasonName,
   roster,
@@ -96,37 +98,57 @@ export default function TeamProfileClient({
         <div className="absolute top-0 right-0 w-80 h-full bg-indigo-600/10 blur-[120px] rounded-full"></div>
         
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 relative z-10">
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400 bg-indigo-950/40 px-3 py-1.5 rounded-xl border border-indigo-900/30 shadow-sm">
-                {divisionName}
-              </span>
-              <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">
-                {seasonName}
-              </span>
-            </div>
-            <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tighter italic leading-none">
-              {teamName}
-            </h1>
-            
-            {/* Form Points Ribbon */}
-            {formTrend.length > 0 && (
-              <div className="flex items-center gap-2 pt-2">
-                <span className="text-[9px] font-black uppercase tracking-widest text-slate-600 mr-2">Form Matrix:</span>
-                {formTrend.map((result, idx) => (
-                  <span 
-                    key={idx} 
-                    className={`w-7 h-7 rounded-lg text-[10px] font-black flex items-center justify-center border shadow-sm transition-transform hover:scale-105 ${
-                      result === 'W' ? 'bg-indigo-600 text-white border-transparent shadow-indigo-950/50' :
-                      result === 'L' ? 'bg-slate-950 text-slate-600 border-slate-800' : 
-                                       'bg-slate-900 text-slate-400 border-slate-800'
-                    }`}
-                  >
-                    {result}
-                  </span>
-                ))}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
+            {/* Team Logo Container */}
+            {logoUrl ? (
+              <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-slate-950/80 backdrop-blur border border-slate-800 p-1 flex items-center justify-center relative shrink-0 shadow-2xl">
+                <Image
+                  src={logoUrl}
+                  alt={teamName}
+                  width={80}
+                  height={80}
+                  className="object-contain max-w-full max-h-full rounded-xl"
+                  unoptimized
+                />
+              </div>
+            ) : (
+              <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl bg-indigo-950/40 border border-indigo-900/20 flex items-center justify-center font-black text-2xl text-indigo-400 shrink-0 shadow-inner">
+                {teamName.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
               </div>
             )}
+
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400 bg-indigo-950/40 px-3 py-1.5 rounded-xl border border-indigo-900/30 shadow-sm">
+                  {divisionName}
+                </span>
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">
+                  {seasonName}
+                </span>
+              </div>
+              <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tighter italic leading-none">
+                {teamName}
+              </h1>
+              
+              {/* Form Points Ribbon */}
+              {formTrend.length > 0 && (
+                <div className="flex items-center gap-2 pt-1">
+                  <span className="text-[9px] font-black uppercase tracking-widest text-slate-600 mr-2">Form Matrix:</span>
+                  {formTrend.map((result, idx) => (
+                    <span 
+                      key={idx} 
+                      className={`w-7 h-7 rounded-lg text-[10px] font-black flex items-center justify-center border shadow-sm transition-transform hover:scale-105 ${
+                        result === 'W' ? 'bg-indigo-600 text-white border-transparent shadow-indigo-950/50' :
+                        result === 'L' ? 'bg-slate-950 text-slate-600 border-slate-800' : 
+                                         'bg-slate-900 text-slate-400 border-slate-800'
+                      }`}
+                    >
+                      {result}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="bg-slate-950/80 backdrop-blur border border-slate-800 rounded-3xl p-6 text-center w-full md:w-auto min-w-[200px] shadow-2xl">

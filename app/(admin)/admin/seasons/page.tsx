@@ -20,15 +20,17 @@ export default async function AdminSeasonsPage() {
     const startStr = formData.get("startDate") as string;
     const endStr = formData.get("endDate") as string;
 
-    if (!name || name.trim() === "" || !startStr || !endStr) return;
+    if (!name || name.trim() === "" || !startStr) return;
 
     const startDate = new Date(startStr);
-    const endDate = new Date(endStr);
-
-    // 🛡️ GUARD: Ensure chronological timeline integrity
-    if (endDate <= startDate) {
-      console.warn("⚠️ Aborted creation: Closing Standings Date must occur after the Opening Fixture Date.");
-      return;
+    let endDate: Date | null = null;
+    if (endStr && endStr.trim() !== "") {
+      endDate = new Date(endStr);
+      // 🛡️ GUARD: Ensure chronological timeline integrity
+      if (endDate <= startDate) {
+        console.warn("⚠️ Aborted creation: Closing Standings Date must occur after the Opening Fixture Date.");
+        return;
+      }
     }
 
     await db.insert(seasons).values({
@@ -171,11 +173,10 @@ export default async function AdminSeasonsPage() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[9px] font-black uppercase tracking-wider text-slate-600 ml-1">Closing Standings Lock Date</label>
+              <label className="text-[9px] font-black uppercase tracking-wider text-slate-600 ml-1">Closing Standings Lock Date (Optional)</label>
               <input
                 type="date"
                 name="endDate"
-                required
                 className="w-full p-3.5 bg-slate-950 border border-slate-800 rounded-xl font-bold text-xs text-white uppercase outline-none focus:border-rose-500 transition-all shadow-inner"
               />
             </div>

@@ -6,6 +6,7 @@ import { Trophy, CalendarDays, ArrowRight, Zap, Star, Flame, Award, Medal, Crown
 import Link from "next/link";
 import { unstable_cache } from "next/cache";
 import { Suspense } from "react";
+import Image from "next/image";
 import Badge from "@/components/Badge";
 import Card from "@/components/Card";
 import { Table, TableRow, TableCell } from "@/components/Table";
@@ -20,6 +21,8 @@ async function getRecentResults(seasonId: number, divisionId: number) {
       date: matches.date,
       homeTeamName: sql<string>`home_teams.name`,
       awayTeamName: sql<string>`away_teams.name`,
+      homeTeamLogo: sql<string | null>`home_teams.logo_url`,
+      awayTeamLogo: sql<string | null>`away_teams.logo_url`,
       homeScore: matches.homeScore,
       awayScore: matches.awayScore,
     })
@@ -113,7 +116,7 @@ async function getTopPlayerStats(seasonId: number, divisionId: number, limit: nu
       g.match.divisionId === divisionId
   );
 
-  const stats: Record<number, { name: string; team: string; wins: number; image: string | null }> = {};
+  const stats: Record<number, { name: string; team: string; teamLogo: string | null; wins: number; image: string | null }> = {};
 
   filteredGames.forEach((g) => {
     const p1Id = g.player1Id;
@@ -126,6 +129,7 @@ async function getTopPlayerStats(seasonId: number, divisionId: number, limit: nu
         stats[p1Id] = {
           name: g.player1.name,
           team: g.player1.team?.name || "Independent",
+          teamLogo: g.player1.team?.logoUrl || null,
           wins: 0,
           image: g.player1.imageUrl,
         };
@@ -137,6 +141,7 @@ async function getTopPlayerStats(seasonId: number, divisionId: number, limit: nu
         stats[p2Id] = {
           name: g.player2.name,
           team: g.player2.team?.name || "Independent",
+          teamLogo: g.player2.team?.logoUrl || null,
           wins: 0,
           image: g.player2.imageUrl,
         };
@@ -423,7 +428,25 @@ export default async function PublicHomePage({ searchParams }: PageProps) {
                         {player.name}
                       </TableCell>
                       <TableCell className="text-slate-400 uppercase text-[11px] font-bold tracking-tight">
-                        {player.team}
+                        <div className="flex items-center gap-2">
+                          {player.teamLogo ? (
+                            <div className="w-5 h-5 rounded bg-slate-950 border border-slate-900 p-0.5 flex items-center justify-center relative shrink-0">
+                              <Image
+                                src={player.teamLogo}
+                                alt={player.team}
+                                width={20}
+                                height={20}
+                                className="object-contain max-w-full max-h-full"
+                                unoptimized
+                              />
+                            </div>
+                          ) : (
+                            <div className="w-5 h-5 rounded bg-indigo-950/40 border border-indigo-900/20 flex items-center justify-center font-black text-[8px] text-indigo-400 shrink-0">
+                              {player.team.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+                            </div>
+                          )}
+                          <span>{player.team}</span>
+                        </div>
                       </TableCell>
                       <TableCell className="text-center">
                         <span className="font-mono font-black bg-slate-950 border border-slate-850 text-indigo-400 px-2 py-0.5 rounded-lg text-[11px] tabular-nums shadow-inner">
@@ -464,14 +487,50 @@ export default async function PublicHomePage({ searchParams }: PageProps) {
                       </div>
                       
                       <div className="flex items-center justify-between gap-2 py-2">
-                        <div className="flex-1 text-right font-black text-slate-200 uppercase tracking-tight text-xs truncate group-hover/match:text-indigo-400 transition-colors">
-                          {match.homeTeamName}
+                        <div className="flex-1 flex items-center justify-end gap-1.5 min-w-0">
+                          <span className="font-black text-slate-200 uppercase tracking-tight text-xs truncate group-hover/match:text-indigo-400 transition-colors">
+                            {match.homeTeamName}
+                          </span>
+                          {match.homeTeamLogo ? (
+                            <div className="w-5 h-5 rounded bg-slate-950 border border-slate-850 p-0.5 flex items-center justify-center shrink-0">
+                              <Image
+                                src={match.homeTeamLogo}
+                                alt={match.homeTeamName}
+                                width={20}
+                                height={20}
+                                className="object-contain"
+                                unoptimized
+                              />
+                            </div>
+                          ) : (
+                            <div className="w-5 h-5 rounded bg-indigo-950/40 border border-indigo-900/20 flex items-center justify-center font-black text-[8px] text-indigo-400 shrink-0">
+                              {match.homeTeamName.substring(0, 2).toUpperCase()}
+                            </div>
+                          )}
                         </div>
                         <div className="bg-slate-950 text-indigo-400 border border-slate-850 font-mono font-black text-xs px-2 py-1 rounded-lg shrink-0 shadow-inner">
                           {match.homeScore} - {match.awayScore}
                         </div>
-                        <div className="flex-1 text-left font-black text-slate-200 uppercase tracking-tight text-xs truncate group-hover/match:text-indigo-400 transition-colors">
-                          {match.awayTeamName}
+                        <div className="flex-1 flex items-center justify-start gap-1.5 min-w-0">
+                          {match.awayTeamLogo ? (
+                            <div className="w-5 h-5 rounded bg-slate-950 border border-slate-850 p-0.5 flex items-center justify-center shrink-0">
+                              <Image
+                                src={match.awayTeamLogo}
+                                alt={match.awayTeamName}
+                                width={20}
+                                height={20}
+                                className="object-contain"
+                                unoptimized
+                              />
+                            </div>
+                          ) : (
+                            <div className="w-5 h-5 rounded bg-indigo-950/40 border border-indigo-900/20 flex items-center justify-center font-black text-[8px] text-indigo-400 shrink-0">
+                              {match.awayTeamName.substring(0, 2).toUpperCase()}
+                            </div>
+                          )}
+                          <span className="font-black text-slate-200 uppercase tracking-tight text-xs truncate group-hover/match:text-indigo-400 transition-colors">
+                            {match.awayTeamName}
+                          </span>
                         </div>
                       </div>
 

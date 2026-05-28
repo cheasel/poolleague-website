@@ -94,6 +94,7 @@ const getCachedStandingsData = (seasonId: number | null, divisionId: number | nu
       acc[team.id] = {
         id: team.id,
         name: team.name,
+        logoUrl: team.logoUrl,
         // Home Performance Tracker
         homePlayed: 0, homeWins: 0, homeDraws: 0, homeLosses: 0, homeFramesWon: 0, homeFramesLost: 0,
         // Away Performance Tracker
@@ -166,6 +167,7 @@ const getCachedStandingsData = (seasonId: number | null, divisionId: number | nu
       return {
         id: t.id,
         name: t.name,
+        logoUrl: t.logoUrl,
         overallPlayed,
         overallWins,
         overallDraws,

@@ -22,6 +22,7 @@ const getCachedTeamProfile = (teamId: number) => unstable_cache(
       .select({
         id: teams.id,
         name: teams.name,
+        logoUrl: teams.logoUrl,
         divisionName: divisions.name,
         seasonName: seasons.name,
       })
@@ -143,6 +144,7 @@ export default async function PublicTeamProfilePage({ params }: PageProps) {
         <TeamProfileClient 
           teamId={teamId}
           teamName={team.name}
+          logoUrl={team.logoUrl}
           divisionName={team.divisionName || "Unassigned Division"}
           seasonName={team.seasonName || "Active Season"}
           roster={roster}
