@@ -90,6 +90,7 @@ export default async function AdminDashboardPage() {
       }
     }
 
+    revalidatePath("/admin");
     revalidatePath("/admin/dashboard");
     revalidatePath("/admin/matches");
   }
@@ -104,6 +105,7 @@ export default async function AdminDashboardPage() {
     if (!name || name.trim() === "" || !divisionId) return;
 
     await db.insert(teams).values({ name: name.trim(), divisionId, points: 0 });
+    revalidatePath("/admin");
     revalidatePath("/admin/dashboard");
   }
 
@@ -114,6 +116,7 @@ export default async function AdminDashboardPage() {
     if (!name || name.trim() === "") return;
 
     await db.insert(players).values({ name: name.trim(), teamId });
+    revalidatePath("/admin");
     revalidatePath("/admin/dashboard");
   }
 
@@ -134,6 +137,7 @@ export default async function AdminDashboardPage() {
       awayScore: 0,
     });
 
+    revalidatePath("/admin");
     revalidatePath("/admin/dashboard");
     revalidatePath("/admin/matches");
   }

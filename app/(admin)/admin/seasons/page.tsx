@@ -41,6 +41,7 @@ export default async function AdminSeasonsPage() {
     });
 
     revalidatePath("/admin/seasons");
+    revalidatePath("/admin");
     revalidatePath("/admin/dashboard");
   }
 
@@ -57,6 +58,7 @@ export default async function AdminSeasonsPage() {
     await db.update(seasons).set({ isActive: true }).where(eq(seasons.id, seasonId));
 
     revalidatePath("/admin/seasons");
+    revalidatePath("/admin");
     revalidatePath("/admin/dashboard");
   }
 
@@ -71,6 +73,7 @@ export default async function AdminSeasonsPage() {
     await db.delete(seasons).where(eq(seasons.id, Number(seasonIdStr)));
 
     revalidatePath("/admin/seasons");
+    revalidatePath("/admin");
     revalidatePath("/admin/dashboard");
   }
 

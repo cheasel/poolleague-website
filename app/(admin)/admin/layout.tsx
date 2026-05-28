@@ -37,7 +37,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   // Category 2: Live Match-Week Operation Panels
   const operationalItems = [
-    { href: "/admin/dashboard", label: "Overview Hub", icon: LayoutDashboard },
+    { href: "/admin", label: "Overview Hub", icon: LayoutDashboard },
     { href: "/admin/matches", label: "Scorecard Dispatch", icon: Calendar },
     { href: "/admin/teams", label: "Squad Directory", icon: Trophy },
     { href: "/admin/players", label: "Roster Controls", icon: Users },
@@ -47,7 +47,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const renderNavList = (items: typeof operationalItems, closeMobile = false) => {
     return items.map((item) => {
       const Icon = item.icon;
-      const isActive = pathname === item.href || (pathname.startsWith(item.href) && item.href !== "/admin/dashboard");
+      const isActive = pathname === item.href || (pathname.startsWith(item.href) && item.href !== "/admin");
 
       return (
         <Link
