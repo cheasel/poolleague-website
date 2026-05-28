@@ -42,7 +42,6 @@ export default async function AdminSeasonsPage() {
 
     revalidatePath("/admin/seasons");
     revalidatePath("/admin");
-    revalidatePath("/admin/dashboard");
   }
 
   // =========================================================================
@@ -59,7 +58,6 @@ export default async function AdminSeasonsPage() {
 
     revalidatePath("/admin/seasons");
     revalidatePath("/admin");
-    revalidatePath("/admin/dashboard");
   }
 
   // =========================================================================
@@ -74,7 +72,6 @@ export default async function AdminSeasonsPage() {
 
     revalidatePath("/admin/seasons");
     revalidatePath("/admin");
-    revalidatePath("/admin/dashboard");
   }
 
   return (

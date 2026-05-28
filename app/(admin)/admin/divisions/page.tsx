@@ -40,7 +40,6 @@ export default async function AdminDivisionsPage() {
 
     revalidatePath("/admin/divisions");
     revalidatePath("/admin");
-    revalidatePath("/admin/dashboard");
   }
 
   // =========================================================================
@@ -68,7 +67,6 @@ export default async function AdminDivisionsPage() {
 
     revalidatePath("/admin/divisions");
     revalidatePath("/admin");
-    revalidatePath("/admin/dashboard");
     revalidatePath("/players");
   }
 
