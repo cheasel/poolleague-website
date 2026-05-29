@@ -20,35 +20,28 @@ export default async function AdminMatchesPage({ searchParams }: PageProps) {
 
   const sortOrder = sortParam === "asc" ? asc(matches.date) : desc(matches.date);
 
-  // Fetch all matches from DB with division, season, team logos, and home venue relations
-  const [
-    allMatches,
-    allSeasons,
-    allDivisions,
-    rawTeams,
-    allPlayersRaw
-  ] = await Promise.all([
-    db.query.matches.findMany({
-      with: {
-        homeTeam: {
-          with: {
-            venue: true
-          }
-        },
-        awayTeam: true,
-        division: {
-          with: {
-            season: true
-          }
+  // Fetch all matches from DB sequentially to prevent pipelining deadlock on max: 1 pool
+  const allMatches = await db.query.matches.findMany({
+    with: {
+      homeTeam: {
+        with: {
+          venue: true
         }
       },
-      orderBy: sortOrder,
-    }),
-    db.select().from(seasons).orderBy(desc(seasons.startDate)),
-    db.select().from(divisions).orderBy(asc(divisions.name)),
-    db.select().from(teams),
-    db.select().from(players)
-  ]);
+      awayTeam: true,
+      division: {
+        with: {
+          season: true
+        }
+      }
+    },
+    orderBy: sortOrder,
+  });
+
+  const allSeasons = await db.select().from(seasons).orderBy(desc(seasons.startDate));
+  const allDivisions = await db.select().from(divisions).orderBy(asc(divisions.name));
+  const rawTeams = await db.select().from(teams);
+  const allPlayersRaw = await db.select().from(players);
 
   const activeMatch = allMatches.find((m) => m.id === activeMatchId);
   

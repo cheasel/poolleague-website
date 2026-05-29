@@ -82,45 +82,45 @@ export default async function AdminDashboardPage() {
     matchProgress = { completed, total, percentage };
   }
 
-  // 5. Query Recent System Activity feeds in parallel
-  const [recentMatches, recentTeams, recentPlayers] = await Promise.all([
-    db
-      .select({
-        id: matches.id,
-        homeTeamId: matches.homeTeamId,
-        awayTeamId: matches.awayTeamId,
-        homeScore: matches.homeScore,
-        awayScore: matches.awayScore,
-        date: matches.date,
-        homeTeamName: sql<string>`t1.name`,
-        awayTeamName: sql<string>`t2.name`,
-      })
-      .from(matches)
-      .leftJoin(sql`teams t1`, eq(matches.homeTeamId, sql`t1.id`))
-      .leftJoin(sql`teams t2`, eq(matches.awayTeamId, sql`t2.id`))
-      .where(eq(matches.status, "completed"))
-      .orderBy(desc(matches.date), desc(matches.id))
-      .limit(3),
-    db
-      .select({
-        id: teams.id,
-        name: teams.name,
-        createdAt: teams.createdAt,
-      })
-      .from(teams)
-      .orderBy(desc(teams.createdAt), desc(teams.id))
-      .limit(3),
-    db
-      .select({
-        id: players.id,
-        name: players.name,
-        teamName: sql<string | null>`t.name`,
-      })
-      .from(players)
-      .leftJoin(sql`teams t`, eq(players.teamId, sql`t.id`))
-      .orderBy(desc(players.id))
-      .limit(3)
-  ]);
+  // 5. Query Recent System Activity feeds sequentially (prevent pipelining deadlock on max: 1 pool)
+  const recentMatches = await db
+    .select({
+      id: matches.id,
+      homeTeamId: matches.homeTeamId,
+      awayTeamId: matches.awayTeamId,
+      homeScore: matches.homeScore,
+      awayScore: matches.awayScore,
+      date: matches.date,
+      homeTeamName: sql<string>`t1.name`,
+      awayTeamName: sql<string>`t2.name`,
+    })
+    .from(matches)
+    .leftJoin(sql`teams t1`, eq(matches.homeTeamId, sql`t1.id`))
+    .leftJoin(sql`teams t2`, eq(matches.awayTeamId, sql`t2.id`))
+    .where(eq(matches.status, "completed"))
+    .orderBy(desc(matches.date), desc(matches.id))
+    .limit(3);
+
+  const recentTeams = await db
+    .select({
+      id: teams.id,
+      name: teams.name,
+      createdAt: teams.createdAt,
+    })
+    .from(teams)
+    .orderBy(desc(teams.createdAt), desc(teams.id))
+    .limit(3);
+
+  const recentPlayers = await db
+    .select({
+      id: players.id,
+      name: players.name,
+      teamName: sql<string | null>`t.name`,
+    })
+    .from(players)
+    .leftJoin(sql`teams t`, eq(players.teamId, sql`t.id`))
+    .orderBy(desc(players.id))
+    .limit(3);
 
   // Combine into a single chronological feed
   const activities: ActivityItem[] = [];

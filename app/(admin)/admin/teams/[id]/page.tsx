@@ -31,20 +31,24 @@ export default async function EditTeamPage({ params }: PageProps) {
   // 2. Fetch all venues along with their current total allocated team counts
   const allVenuesRaw = await db.select().from(venues);
   
-  const venuesWithCounts = await Promise.all(
-    allVenuesRaw.map(async (venue) => {
-      const [teamsCounter] = await db
-        .select({ value: count() })
-        .from(teams)
-        .where(eq(teams.homeVenueId, venue.id));
-
-      return {
-        id: venue.id,
-        name: venue.name,
-        currentTeamsCount: teamsCounter?.value || 0,
-      };
+  const venueCounts = await db
+    .select({
+      homeVenueId: teams.homeVenueId,
+      value: count(),
     })
-  );
+    .from(teams)
+    .groupBy(teams.homeVenueId);
+
+  const venueCountsMap = venueCounts.reduce((acc, v) => {
+    if (v.homeVenueId) acc[v.homeVenueId] = v.value;
+    return acc;
+  }, {} as Record<number, number>);
+
+  const venuesWithCounts = allVenuesRaw.map((venue) => ({
+    id: venue.id,
+    name: venue.name,
+    currentTeamsCount: venueCountsMap[venue.id] || 0,
+  }));
 
   // --- SERVER ACTION: PERSIST TEAM CHANGES & PURGE OLD ASSET ---
   async function updateTeam(prevState: any, formData: FormData) {
