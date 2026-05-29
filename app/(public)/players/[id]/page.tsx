@@ -78,7 +78,8 @@ const getCachedPlayerGames = unstable_cache(
           eq(matchGames.player2PartnerId, playerId)
         )
       )
-      .orderBy(desc(matches.date), desc(matchGames.gameOrder));
+      .orderBy(desc(matches.date), desc(matchGames.gameOrder))
+      .limit(200); // Cap results — OR conditions on 4 cols = full scan without limit
   },
   ["player-games-list"],
   { revalidate: 60, tags: ["matchGames", "matches", "teams"] }
@@ -101,18 +102,18 @@ export default async function PlayerProfilePage({ params }: PageProps) {
   const { id } = await params;
   const playerId = Number(id);
 
-  const player = await getCachedPlayerProfile(playerId);
-
-  if (!player) {
-    return <div className="p-20 text-center font-black uppercase text-slate-400">Player profile sheet unavailable.</div>;
-  }
-
-  // Optimize: Execute caching queries in parallel to drastically improve page speed on cache misses
-  const [allSeasons, rawGames, playerMapRecord] = await Promise.all([
+  // Run all 4 queries in parallel — on cache miss they queue on the single
+  // DB connection, but on cache hit (most requests) they return instantly from memory.
+  const [player, allSeasons, rawGames, playerMapRecord] = await Promise.all([
+    getCachedPlayerProfile(playerId),
     getCachedSeasons(),
     getCachedPlayerGames(playerId),
     getCachedPlayersMap(),
   ]);
+
+  if (!player) {
+    return <div className="p-20 text-center font-black uppercase text-slate-400">Player profile sheet unavailable.</div>;
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 pb-16 text-slate-100">
