@@ -24,10 +24,9 @@ const conn = globalForDb.conn ?? postgres(connectionString || '', {
   max: 1, // High concurrency in serverless is handled by Vercel scaling, not local pooling
   idle_timeout: 20,
   connect_timeout: 10,
-  connection: {
-    // Kill any query that runs longer than 15s — prevents skeleton loader hang
-    statement_timeout: 15000,
-  },
+  // NOTE: statement_timeout cannot be set here — Supavisor (port 6543) strips all
+  // client-side session parameters. Timeout is enforced at the Postgres role level:
+  // ALTER ROLE postgres SET statement_timeout = '15s';
 });
 
 if (process.env.NODE_ENV !== "production") globalForDb.conn = conn;
