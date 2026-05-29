@@ -108,7 +108,6 @@ export default function TeamProfileClient({
                   width={80}
                   height={80}
                   className="object-contain max-w-full max-h-full rounded-xl"
-                  unoptimized
                 />
               </div>
             ) : (

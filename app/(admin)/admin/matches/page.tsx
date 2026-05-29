@@ -1,6 +1,6 @@
 import { db } from "@/src/db";
 import { matches, teams, matchGames, players, seasons, divisions } from "@/src/db/schema";
-import { eq, asc, desc } from "drizzle-orm";
+import { eq, asc, desc, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import MatchDashboard from "./MatchDashboard";
 
@@ -21,27 +21,34 @@ export default async function AdminMatchesPage({ searchParams }: PageProps) {
   const sortOrder = sortParam === "asc" ? asc(matches.date) : desc(matches.date);
 
   // Fetch all matches from DB with division, season, team logos, and home venue relations
-  const allMatches = await db.query.matches.findMany({
-    with: {
-      homeTeam: {
-        with: {
-          venue: true
+  const [
+    allMatches,
+    allSeasons,
+    allDivisions,
+    rawTeams,
+    allPlayersRaw
+  ] = await Promise.all([
+    db.query.matches.findMany({
+      with: {
+        homeTeam: {
+          with: {
+            venue: true
+          }
+        },
+        awayTeam: true,
+        division: {
+          with: {
+            season: true
+          }
         }
       },
-      awayTeam: true,
-      division: {
-        with: {
-          season: true
-        }
-      }
-    },
-    orderBy: sortOrder,
-  });
-
-  const allSeasons = await db.select().from(seasons).orderBy(desc(seasons.startDate));
-  const allDivisions = await db.select().from(divisions).orderBy(asc(divisions.name));
-  const rawTeams = await db.select().from(teams);
-  const allPlayersRaw = await db.select().from(players);
+      orderBy: sortOrder,
+    }),
+    db.select().from(seasons).orderBy(desc(seasons.startDate)),
+    db.select().from(divisions).orderBy(asc(divisions.name)),
+    db.select().from(teams),
+    db.select().from(players)
+  ]);
 
   const activeMatch = allMatches.find((m) => m.id === activeMatchId);
   
@@ -71,32 +78,37 @@ export default async function AdminMatchesPage({ searchParams }: PageProps) {
 
     if (!matchId) return;
 
-    const existing = await db.select().from(matchGames).where(eq(matchGames.matchId, matchId));
-    await db.insert(matchGames).values({
-      matchId,
-      gameOrder: existing.length + 1,
-      gameType,
-      player1Id: p1Id,
-      player1PartnerId: gameType === "double" ? p1PartnerId : null,
-      player2Id: p2Id,
-      player2PartnerId: gameType === "double" ? p2PartnerId : null,
-      player1Score: p1Score,
-      player2Score: p2Score,
+    await db.transaction(async (tx) => {
+      // 1. Fetch current max gameOrder in transaction
+      const [{ maxOrder }] = await tx
+        .select({ maxOrder: sql<number>`COALESCE(MAX(${matchGames.gameOrder}), 0)` })
+        .from(matchGames)
+        .where(eq(matchGames.matchId, matchId));
+
+      // 2. Insert new frame
+      await tx.insert(matchGames).values({
+        matchId,
+        gameOrder: maxOrder + 1,
+        gameType,
+        player1Id: p1Id,
+        player1PartnerId: gameType === "double" ? p1PartnerId : null,
+        player2Id: p2Id,
+        player2PartnerId: gameType === "double" ? p2PartnerId : null,
+        player1Score: p1Score,
+        player2Score: p2Score,
+      });
+
+      // 3. Recalculate score from scratch inside transaction to prevent increment drift
+      const allGames = await tx.select().from(matchGames).where(eq(matchGames.matchId, matchId));
+      const homeScore = allGames.filter(g => (g.player1Score ?? 0) > (g.player2Score ?? 0)).length;
+      const awayScore = allGames.filter(g => (g.player2Score ?? 0) > (g.player1Score ?? 0)).length;
+
+      await tx
+        .update(matches)
+        .set({ homeScore, awayScore })
+        .where(eq(matches.id, matchId));
     });
 
-    const homeIncrement = p1Score > p2Score ? 1 : 0;
-    const awayIncrement = p2Score > p1Score ? 1 : 0;
-
-    const currentMatchRecord = await db.select().from(matches).where(eq(matches.id, matchId));
-    if (currentMatchRecord[0]) {
-      await db
-        .update(matches)
-        .set({
-          homeScore: (currentMatchRecord[0].homeScore || 0) + homeIncrement,
-          awayScore: (currentMatchRecord[0].awayScore || 0) + awayIncrement,
-        })
-        .where(eq(matches.id, matchId));
-    }
     revalidatePath("/admin/matches");
   }
 
@@ -105,33 +117,39 @@ export default async function AdminMatchesPage({ searchParams }: PageProps) {
     const matchId = Number(formData.get("matchId"));
     if (!matchId) return;
 
-    const currentMatch = await db.select().from(matches).where(eq(matches.id, matchId));
-    if (!currentMatch[0] || !currentMatch[0].homeTeamId || !currentMatch[0].awayTeamId) return;
+    await db.transaction(async (tx) => {
+      const [currentMatch] = await tx.select().from(matches).where(eq(matches.id, matchId));
+      if (!currentMatch || !currentMatch.homeTeamId || !currentMatch.awayTeamId) return;
 
-    const homeScore = currentMatch[0].homeScore || 0;
-    const awayScore = currentMatch[0].awayScore || 0;
+      // Prevent race conditions / double point awarding
+      if (currentMatch.status === "completed") return;
 
-    let homePointsAward = 0;
-    let awayPointsAward = 0;
+      const homeScore = currentMatch.homeScore || 0;
+      const awayScore = currentMatch.awayScore || 0;
 
-    if (homeScore > awayScore) homePointsAward = 2;
-    else if (awayScore > homeScore) awayPointsAward = 2;
-    else {
-      homePointsAward = 1;
-      awayPointsAward = 1;
-    }
+      let homePointsAward = 0;
+      let awayPointsAward = 0;
 
-    await db.update(matches).set({ status: "completed" }).where(eq(matches.id, matchId));
+      if (homeScore > awayScore) homePointsAward = 2;
+      else if (awayScore > homeScore) awayPointsAward = 2;
+      else {
+        homePointsAward = 1;
+        awayPointsAward = 1;
+      }
 
-    const homeTeam = await db.select().from(teams).where(eq(teams.id, currentMatch[0].homeTeamId));
-    if (homeTeam[0]) {
-      await db.update(teams).set({ points: (homeTeam[0].points || 0) + homePointsAward }).where(eq(teams.id, homeTeam[0].id));
-    }
+      await tx.update(matches).set({ status: "completed" }).where(eq(matches.id, matchId));
 
-    const awayTeam = await db.select().from(teams).where(eq(teams.id, currentMatch[0].awayTeamId));
-    if (awayTeam[0]) {
-      await db.update(teams).set({ points: (awayTeam[0].points || 0) + awayPointsAward }).where(eq(teams.id, awayTeam[0].id));
-    }
+      const [homeTeam] = await tx.select().from(teams).where(eq(teams.id, currentMatch.homeTeamId));
+      if (homeTeam) {
+        await tx.update(teams).set({ points: (homeTeam.points || 0) + homePointsAward }).where(eq(teams.id, homeTeam.id));
+      }
+
+      const [awayTeam] = await tx.select().from(teams).where(eq(teams.id, currentMatch.awayTeamId));
+      if (awayTeam) {
+        await tx.update(teams).set({ points: (awayTeam.points || 0) + awayPointsAward }).where(eq(teams.id, awayTeam.id));
+      }
+    });
+
     revalidatePath("/admin/matches");
   }
 

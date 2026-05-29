@@ -1,6 +1,6 @@
 import { db } from "@/src/db";
 import { teams, players, matchGames, matches, divisions, seasons } from "@/src/db/schema";
-import { eq, or, asc, desc } from "drizzle-orm";
+import { eq, or, asc, desc, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
@@ -79,13 +79,17 @@ const getCachedTeamMatches = (teamId: number) => unstable_cache(
   { revalidate: 60, tags: ["matches", "teams"] }
 )();
 
-const getCachedMatchGames = unstable_cache(
+const getCachedTeamMatchGames = (matchIds: number[]) => unstable_cache(
   async () => {
-    return db.select().from(matchGames);
+    if (matchIds.length === 0) return [];
+    return db
+      .select()
+      .from(matchGames)
+      .where(inArray(matchGames.matchId, matchIds));
   },
-  ["all-match-games-list"],
+  ["team-match-games", matchIds.sort((a, b) => a - b).join("-")],
   { revalidate: 60, tags: ["matchGames"] }
-);
+)();
 
 export default async function PublicTeamProfilePage({ params }: PageProps) {
   const { id } = await params;
@@ -98,23 +102,23 @@ export default async function PublicTeamProfilePage({ params }: PageProps) {
   }
 
   // Optimize: Execute caching queries in parallel to drastically improve page speed on cache misses
-  const [roster, teamMatches, allGames] = await Promise.all([
+  const [roster, teamMatches] = await Promise.all([
     getCachedRoster(teamId),
     getCachedTeamMatches(teamId),
-    getCachedMatchGames(),
   ]);
 
-  const completedTeamMatchIds = new Set(
-    teamMatches
-      .filter((m) => m.status === "completed")
-      .map((m) => m.id)
-  );
+  const completedTeamMatchIds = teamMatches
+    .filter((m) => m.status === "completed")
+    .map((m) => m.id);
+
+  const teamGames = await getCachedTeamMatchGames(completedTeamMatchIds);
+  const completedTeamMatchIdsSet = new Set(completedTeamMatchIds);
 
   // Calculate live statistics for only the rostered players on this team
   const rosterStats = calculateRosterStats(
     roster,
-    allGames,
-    completedTeamMatchIds
+    teamGames,
+    completedTeamMatchIdsSet
   ).sort((a, b) => Number(b.winPercentage) - Number(a.winPercentage));
 
   return (

@@ -36,7 +36,19 @@ describe("Admin Route Protection Middleware", () => {
     console.log(`\n🚀 [Redirects Test] Starting production Next.js server on port ${port}...`);
     serverProcess = spawn(`npx next start -p ${port}`, {
       shell: true,
-      stdio: 'ignore'
+      stdio: 'pipe'
+    });
+    serverProcess.on('error', (err: any) => {
+      console.error(`[Next.js Server Process Error]`, err);
+    });
+    serverProcess.on('exit', (code: number | null, signal: string | null) => {
+      console.log(`[Next.js Server Process Exit] code=${code} signal=${signal}`);
+    });
+    serverProcess.stdout.on('data', (data: any) => {
+      console.log(`[Next.js Server] ${data.toString().trim()}`);
+    });
+    serverProcess.stderr.on('data', (data: any) => {
+      console.error(`[Next.js Server ERR] ${data.toString().trim()}`);
     });
     // Wait for server to boot up
     await sleep(5000);

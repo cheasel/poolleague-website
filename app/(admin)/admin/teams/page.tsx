@@ -9,47 +9,55 @@ import Image from 'next/image';
 export const dynamic = "force-dynamic";
 
 export default async function AdminTeamsPage() {
-  // 1. Fetch data for the list and the dropdown
-  // We join divisions, seasons, and venues to show details about each team
-  const allTeams = await db
-    .select({
-      id: teams.id,
-      name: teams.name,
-      logoUrl: teams.logoUrl,
-      divisionName: divisions.name,
-      seasonName: seasons.name,
-      homeVenueName: venues.name,
-    })
-    .from(teams)
-    .leftJoin(divisions, eq(teams.divisionId, divisions.id))
-    .leftJoin(seasons, eq(divisions.seasonId, seasons.id))
-    .leftJoin(venues, eq(teams.homeVenueId, venues.id))
-    .orderBy(asc(teams.name));
-
-  const allDivisions = await db
-    .select({
-      id: divisions.id,
-      name: divisions.name,
-      seasonName: seasons.name,
-    })
-    .from(divisions)
-    .leftJoin(seasons, eq(divisions.seasonId, seasons.id))
-    .orderBy(asc(divisions.name));
-
-  // Fetch all venues
-  const allVenuesRaw = await db
-    .select()
-    .from(venues)
-    .orderBy(asc(venues.name));
-
-  // Calculate current teams count per venue
-  const venueCounts = await db
-    .select({
-      homeVenueId: teams.homeVenueId,
-      value: count(),
-    })
-    .from(teams)
-    .groupBy(teams.homeVenueId);
+  const [
+    allTeams,
+    allDivisions,
+    allVenuesRaw,
+    venueCounts,
+    playerCounts
+  ] = await Promise.all([
+    db
+      .select({
+        id: teams.id,
+        name: teams.name,
+        logoUrl: teams.logoUrl,
+        divisionName: divisions.name,
+        seasonName: seasons.name,
+        homeVenueName: venues.name,
+      })
+      .from(teams)
+      .leftJoin(divisions, eq(teams.divisionId, divisions.id))
+      .leftJoin(seasons, eq(divisions.seasonId, seasons.id))
+      .leftJoin(venues, eq(teams.homeVenueId, venues.id))
+      .orderBy(asc(teams.name)),
+    db
+      .select({
+        id: divisions.id,
+        name: divisions.name,
+        seasonName: seasons.name,
+      })
+      .from(divisions)
+      .leftJoin(seasons, eq(divisions.seasonId, seasons.id))
+      .orderBy(asc(divisions.name)),
+    db
+      .select()
+      .from(venues)
+      .orderBy(asc(venues.name)),
+    db
+      .select({
+        homeVenueId: teams.homeVenueId,
+        value: count(),
+      })
+      .from(teams)
+      .groupBy(teams.homeVenueId),
+    db
+      .select({
+        teamId: players.teamId,
+        value: count(),
+      })
+      .from(players)
+      .groupBy(players.teamId)
+  ]);
 
   const venueCountsMap = venueCounts.reduce((acc, v) => {
     if (v.homeVenueId) acc[v.homeVenueId] = v.value;
@@ -61,15 +69,6 @@ export default async function AdminTeamsPage() {
     name: v.name,
     isFull: (venueCountsMap[v.id] || 0) >= 2,
   }));
-
-  // Fetch player counts per team
-  const playerCounts = await db
-    .select({
-      teamId: players.teamId,
-      value: count(),
-    })
-    .from(players)
-    .groupBy(players.teamId);
 
   const playerCountsMap = playerCounts.reduce((acc, p) => {
     if (p.teamId) acc[p.teamId] = p.value;
@@ -208,7 +207,6 @@ export default async function AdminTeamsPage() {
                           width={44}
                           height={44}
                           className="object-contain max-w-full max-h-full rounded-lg"
-                          unoptimized
                         />
                       </div>
                     ) : (

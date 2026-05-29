@@ -91,68 +91,63 @@ async function getTopFormStreaks(seasonId: number, divisionId: number) {
 }
 
 // 🎯 ADDED: Aggregates game/frame level data inside the active season/division context
+const getCachedTopPlayerStats = (seasonId: number, divisionId: number, limit: number = 5) => unstable_cache(
+  async () => {
+    const result = await db.execute(sql`
+      WITH player_wins AS (
+        SELECT 
+          mg.player1_id AS player_id,
+          1 AS is_win
+        FROM match_games mg
+        JOIN matches m ON mg.match_id = m.id
+        WHERE m.status = 'completed'
+          AND m.season_id = ${seasonId}
+          AND m.division_id = ${divisionId}
+          AND mg.player1_score > mg.player2_score
+          AND mg.player1_id IS NOT NULL
+
+        UNION ALL
+
+        SELECT 
+          mg.player2_id AS player_id,
+          1 AS is_win
+        FROM match_games mg
+        JOIN matches m ON mg.match_id = m.id
+        WHERE m.status = 'completed'
+          AND m.season_id = ${seasonId}
+          AND m.division_id = ${divisionId}
+          AND mg.player2_score > mg.player1_score
+          AND mg.player2_id IS NOT NULL
+      )
+      SELECT 
+        pw.player_id AS id,
+        p.name AS name,
+        p.image_url AS image,
+        COALESCE(t.name, 'Independent') AS team,
+        t.logo_url AS "teamLogo",
+        CAST(COUNT(pw.is_win) AS INTEGER) AS wins
+      FROM player_wins pw
+      JOIN players p ON pw.player_id = p.id
+      LEFT JOIN teams t ON p.team_id = t.id
+      GROUP BY pw.player_id, p.name, p.image_url, t.name, t.logo_url
+      ORDER BY wins DESC
+      LIMIT ${limit}
+    `);
+
+    return result.map(r => ({
+      name: String(r.name),
+      team: String(r.team),
+      teamLogo: r.teamLogo ? String(r.teamLogo) : null,
+      wins: Number(r.wins),
+      image: r.image ? String(r.image) : null,
+    }));
+  },
+  ["top-player-stats", String(seasonId), String(divisionId), String(limit)],
+  { revalidate: 300, tags: ["players", "matchGames", "matches"] }
+)();
+
 async function getTopPlayerStats(seasonId: number, divisionId: number, limit: number = 5) {
-  const games = await db.query.matchGames.findMany({
-    with: {
-      match: true,
-      player1: {
-        with: {
-          team: true,
-        },
-      },
-      player2: {
-        with: {
-          team: true,
-        },
-      },
-    },
-  });
-
-  const filteredGames = games.filter(
-    (g) =>
-      g.match &&
-      g.match.status === "completed" &&
-      g.match.seasonId === seasonId &&
-      g.match.divisionId === divisionId
-  );
-
-  const stats: Record<number, { name: string; team: string; teamLogo: string | null; wins: number; image: string | null }> = {};
-
-  filteredGames.forEach((g) => {
-    const p1Id = g.player1Id;
-    const p2Id = g.player2Id;
-    const s1 = g.player1Score ?? 0;
-    const s2 = g.player2Score ?? 0;
-
-    if (p1Id && g.player1) {
-      if (!stats[p1Id]) {
-        stats[p1Id] = {
-          name: g.player1.name,
-          team: g.player1.team?.name || "Independent",
-          teamLogo: g.player1.team?.logoUrl || null,
-          wins: 0,
-          image: g.player1.imageUrl,
-        };
-      }
-      if (s1 > s2) stats[p1Id].wins += 1;
-    }
-    if (p2Id && g.player2) {
-      if (!stats[p2Id]) {
-        stats[p2Id] = {
-          name: g.player2.name,
-          team: g.player2.team?.name || "Independent",
-          teamLogo: g.player2.team?.logoUrl || null,
-          wins: 0,
-          image: g.player2.imageUrl,
-        };
-      }
-      if (s2 > s1) stats[p2Id].wins += 1;
-    }
-  });
-
-  return Object.values(stats)
-    .sort((a, b) => b.wins - a.wins)
-    .slice(0, limit);
+  return getCachedTopPlayerStats(seasonId, divisionId, limit);
 }
 
 const getCachedSeasons = unstable_cache(
@@ -179,11 +174,6 @@ const getCachedTopFormStreaks = (seasonId: number, divisionId: number) => unstab
   { revalidate: 60, tags: ["matches", "teams"] }
 )();
 
-const getCachedTopPlayerStats = (seasonId: number, divisionId: number, limit: number) => unstable_cache(
-  async () => getTopPlayerStats(seasonId, divisionId, limit),
-  ["homepage-top-player-stats", String(seasonId), String(divisionId), String(limit)],
-  { revalidate: 60, tags: ["matchGames", "players", "teams", "matches"] }
-)();
 
 interface PageProps {
   searchParams: Promise<{
@@ -437,7 +427,6 @@ export default async function PublicHomePage({ searchParams }: PageProps) {
                                 width={20}
                                 height={20}
                                 className="object-contain max-w-full max-h-full"
-                                unoptimized
                               />
                             </div>
                           ) : (
@@ -499,7 +488,6 @@ export default async function PublicHomePage({ searchParams }: PageProps) {
                                 width={20}
                                 height={20}
                                 className="object-contain"
-                                unoptimized
                               />
                             </div>
                           ) : (
@@ -520,7 +508,6 @@ export default async function PublicHomePage({ searchParams }: PageProps) {
                                 width={20}
                                 height={20}
                                 className="object-contain"
-                                unoptimized
                               />
                             </div>
                           ) : (

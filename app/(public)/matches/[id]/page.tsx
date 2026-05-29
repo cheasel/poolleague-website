@@ -1,8 +1,9 @@
 import { db } from "@/src/db";
 import { matches, teams, matchGames, divisions, seasons, players } from "@/src/db/schema";
-import { eq, asc, desc, sql } from "drizzle-orm";
+import { eq, asc, desc, sql, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import Link from "next/link";
+import { unstable_cache } from "next/cache";
 import { Calendar, Trophy, Layers, Shield, ArrowLeft, User, HelpCircle } from "lucide-react";
 
 export const revalidate = 60;
@@ -13,59 +14,89 @@ interface PageProps {
   }>;
 }
 
+const getCachedMatchPageData = (matchId: number) => unstable_cache(
+  async () => {
+    const homeTeams = alias(teams, "homeTeams");
+
+    // 1. Fetch complete Match Details with Season and Division hierarchy data
+    const [matchData] = await db
+      .select({
+        id: matches.id,
+        matchDate: matches.date,
+        status: matches.status,
+        homeTeamId: matches.homeTeamId,
+        awayTeamId: matches.awayTeamId,
+        homeTeamScoreTotal: matches.homeScore,
+        awayTeamScoreTotal: matches.awayScore,
+        divisionId: homeTeams.divisionId,
+        divisionName: divisions.name,
+        seasonName: seasons.name,
+      })
+      .from(matches)
+      .leftJoin(homeTeams, eq(matches.homeTeamId, homeTeams.id))
+      .leftJoin(divisions, eq(homeTeams.divisionId, divisions.id))
+      .leftJoin(seasons, eq(divisions.seasonId, seasons.id))
+      .where(eq(matches.id, matchId));
+
+    if (!matchData) return null;
+
+    // 2. Fetch all teams in this specific division to compute live leaderboard ranks
+    const divisionTeams = matchData.divisionId
+      ? await db
+          .select({ id: teams.id, name: teams.name })
+          .from(teams)
+          .where(eq(teams.divisionId, matchData.divisionId))
+          .orderBy(desc(teams.points), desc(sql`${teams.setsWon} - ${teams.setsLost}`), desc(teams.setsWon))
+      : [];
+
+    // 3. Fetch individual frame details
+    const frames = await db
+      .select()
+      .from(matchGames)
+      .where(eq(matchGames.matchId, matchId))
+      .orderBy(asc(matchGames.gameOrder));
+
+    // Collect relevant player IDs
+    const playerIds = [...new Set([
+      ...frames.map(f => f.player1Id),
+      ...frames.map(f => f.player1PartnerId),
+      ...frames.map(f => f.player2Id),
+      ...frames.map(f => f.player2PartnerId),
+    ].filter((id): id is number => id !== null))];
+
+    const relevantPlayers = playerIds.length > 0
+      ? await db.select().from(players).where(inArray(players.id, playerIds))
+      : [];
+
+    return {
+      matchData,
+      divisionTeams,
+      frames,
+      relevantPlayers
+    };
+  },
+  ["match-detail-page", String(matchId)],
+  { revalidate: 60, tags: ["matches", "teams", "divisions", "seasons", "matchGames", "players"] }
+)();
+
 export default async function PublicMatchDetailPage({ params }: PageProps) {
   const { id } = await params;
   const matchId = Number(id);
 
-  const homeTeams = alias(teams, "homeTeams");
-  const awayTeams = alias(teams, "awayTeams");
+  const pageData = await getCachedMatchPageData(matchId);
 
-  // 1. Fetch complete Match Details with Season and Division hierarchy data
-  const [matchData] = await db
-    .select({
-      id: matches.id,
-      matchDate: matches.date,
-      status: matches.status,
-      homeTeamId: matches.homeTeamId,
-      awayTeamId: matches.awayTeamId,
-      homeTeamScoreTotal: matches.homeScore,
-      awayTeamScoreTotal: matches.awayScore,
-      divisionId: homeTeams.divisionId, // Fixed: point to the aliased team table
-      divisionName: divisions.name,
-      seasonName: seasons.name,
-    })
-    .from(matches)
-    // First, join the home team so its division_id is available in scope
-    .leftJoin(homeTeams, eq(matches.homeTeamId, homeTeams.id))
-    // Now we can safely bridge from the home team to the divisions table
-    .leftJoin(divisions, eq(homeTeams.divisionId, divisions.id))
-    // Finally, bring in the season configuration
-    .leftJoin(seasons, eq(divisions.seasonId, seasons.id))
-    .where(eq(matches.id, matchId));
+  if (!pageData || !pageData.matchData) {
+    return <div className="p-20 text-center font-black uppercase text-slate-400">Match details unavailable.</div>;
+  }
 
-  // 2. Fetch all teams in this specific division to compute live leaderboard ranks
-  const divisionTeams = matchData.divisionId
-    ? await db
-        .select({ id: teams.id, name: teams.name })
-        .from(teams)
-        .where(eq(teams.divisionId, matchData.divisionId))
-        .orderBy(desc(teams.points), desc(sql`${teams.setsWon} - ${teams.setsLost}`), desc(teams.setsWon))
-    : [];
+  const { matchData, divisionTeams, frames, relevantPlayers } = pageData;
 
   const homeRank = divisionTeams.findIndex(t => t.id === matchData.homeTeamId) + 1;
   const awayRank = divisionTeams.findIndex(t => t.id === matchData.awayTeamId) + 1;
   const homeTeamName = divisionTeams.find(t => t.id === matchData.homeTeamId)?.name || "Home Team";
   const awayTeamName = divisionTeams.find(t => t.id === matchData.awayTeamId)?.name || "Away Team";
 
-  // 3. Fetch individual frame details accompanied by player name maps
-  const frames = await db
-    .select()
-    .from(matchGames)
-    .where(eq(matchGames.matchId, matchId))
-    .orderBy(asc(matchGames.gameOrder));
-
-  const allPlayersRaw = await db.select().from(players);
-  const playerMap = new Map(allPlayersRaw.map(p => [p.id, p.name]));
+  const playerMap = new Map(relevantPlayers.map(p => [p.id, p.name]));
 
   return (
     <div className="min-h-screen bg-slate-950 pb-16 text-slate-100">

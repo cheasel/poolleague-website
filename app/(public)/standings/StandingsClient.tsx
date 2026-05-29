@@ -208,7 +208,6 @@ export default function StandingsClient({
                                   width={24}
                                   height={24}
                                   className="object-contain max-w-full max-h-full"
-                                  unoptimized
                                 />
                               </div>
                             ) : (
@@ -353,7 +352,6 @@ export default function StandingsClient({
                                   width={24}
                                   height={24}
                                   className="object-contain max-w-full max-h-full"
-                                  unoptimized
                                 />
                               </div>
                             ) : (

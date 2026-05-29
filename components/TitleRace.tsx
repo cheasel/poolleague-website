@@ -11,27 +11,27 @@ interface TitleRaceProps {
 
 async function getTitleRaceStandings(divisionId: number, seasonId: number) {
   // 1. Fetch all completed match records for the target season and division
-  const completedMatches = await db
-    .select({
-      homeTeamId: matches.homeTeamId,
-      awayTeamId: matches.awayTeamId,
-      homeScore: matches.homeScore,
-      awayScore: matches.awayScore,
-    })
-    .from(matches)
-    .where(
-      and(
-        eq(matches.status, "completed"),
-        eq(matches.seasonId, seasonId),
-        eq(matches.divisionId, divisionId)
-      )
-    );
-
-  // 2. Get all teams competing in this division
-  const divisionTeams = await db
-    .select()
-    .from(teams)
-    .where(eq(teams.divisionId, divisionId));
+  const [completedMatches, divisionTeams] = await Promise.all([
+    db
+      .select({
+        homeTeamId: matches.homeTeamId,
+        awayTeamId: matches.awayTeamId,
+        homeScore: matches.homeScore,
+        awayScore: matches.awayScore,
+      })
+      .from(matches)
+      .where(
+        and(
+          eq(matches.status, "completed"),
+          eq(matches.seasonId, seasonId),
+          eq(matches.divisionId, divisionId)
+        )
+      ),
+    db
+      .select()
+      .from(teams)
+      .where(eq(teams.divisionId, divisionId))
+  ]);
 
   // 3. Build an aggregation ledger
   const standingsMap = divisionTeams.reduce((acc, team) => {

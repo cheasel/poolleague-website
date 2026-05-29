@@ -1,6 +1,6 @@
 import { db } from "@/src/db";
 import { teams, matches, seasons, divisions, matchGames } from "@/src/db/schema";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import { unstable_cache } from "next/cache";
 import { Suspense } from "react";
 import TeamStatsClient from "./TeamStatsClient";
@@ -63,7 +63,7 @@ const getCachedTeamStatsData = (selectedSeasonId: number | null, selectedDivisio
             player2Score: matchGames.player2Score,
           })
           .from(matchGames)
-          .where(sql`${matchGames.matchId} IN ${completedMatchIds}`)
+          .where(inArray(matchGames.matchId, completedMatchIds))
       : [];
 
     return calculateTeamStats(
