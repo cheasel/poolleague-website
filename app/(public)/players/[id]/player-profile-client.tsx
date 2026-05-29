@@ -11,6 +11,10 @@ interface GameLog {
   player1PartnerId: number | null;
   player2Id: number | null;
   player2PartnerId: number | null;
+  player1Name: string | null;
+  player1PartnerName: string | null;
+  player2Name: string | null;
+  player2PartnerName: string | null;
   player1Score: number | null;
   player2Score: number | null;
   matchId: number | null;
@@ -29,7 +33,6 @@ interface PlayerProfileClientProps {
   teamName: string;
   games: GameLog[];
   seasons: { id: number; name: string }[];
-  playerMap: Record<number, string>;
 }
 
 export default function PlayerProfileClient({ 
@@ -39,7 +42,6 @@ export default function PlayerProfileClient({
   teamName, 
   games, 
   seasons, 
-  playerMap 
 }: PlayerProfileClientProps) {
   
   const [selectedSeasonId, setSelectedSeasonId] = useState<number | string>(seasons[0]?.id || "all");
@@ -70,7 +72,13 @@ export default function PlayerProfileClient({
           ? (game.player1Id === playerId ? game.player1PartnerId : game.player1Id)
           : (game.player2Id === playerId ? game.player2PartnerId : game.player2Id);
         if (partnerId) {
-          if (!partnerWinsMap[partnerId]) partnerWinsMap[partnerId] = { name: playerMap[partnerId] || "Unknown", wins: 0, total: 0 };
+          const partnerName = isHome
+            ? (game.player1Id === playerId ? game.player1PartnerName : game.player1Name)
+            : (game.player2Id === playerId ? game.player2PartnerName : game.player2Name);
+
+          if (!partnerWinsMap[partnerId]) {
+            partnerWinsMap[partnerId] = { name: partnerName || "Unknown", wins: 0, total: 0 };
+          }
           partnerWinsMap[partnerId].total++;
           if (isWin) partnerWinsMap[partnerId].wins++;
         }
@@ -93,7 +101,7 @@ export default function PlayerProfileClient({
     const totalWins = singlesWins + doublesWins;
     const totalPlayed = totalWins + singlesLosses + doublesLosses;
     return { singlesWins, singlesLosses, doublesWins, doublesLosses, formArray, bestPartner, matchCount: uniqueMatches.size, winPct: totalPlayed > 0 ? ((totalWins / totalPlayed) * 100).toFixed(1) : "0.0" };
-  }, [filteredGames, playerId, playerMap]);
+  }, [filteredGames, playerId]);
 
   return (
     <div className="space-y-8">
@@ -176,11 +184,11 @@ export default function PlayerProfileClient({
             const isWin = isHome ? (game.player1Score! > game.player2Score!) : (game.player2Score! > game.player1Score!);
             let opponentNames: string[] = [];
             if (isHome) {
-              if (game.player2Id) opponentNames.push(playerMap[game.player2Id] || "Unknown");
-              if (game.player2PartnerId) opponentNames.push(playerMap[game.player2PartnerId] || "Unknown");
+              if (game.player2Id) opponentNames.push(game.player2Name || "Unknown");
+              if (game.player2PartnerId) opponentNames.push(game.player2PartnerName || "Unknown");
             } else {
-              if (game.player1Id) opponentNames.push(playerMap[game.player1Id] || "Unknown");
-              if (game.player1PartnerId) opponentNames.push(playerMap[game.player1PartnerId] || "Unknown");
+              if (game.player1Id) opponentNames.push(game.player1Name || "Unknown");
+              if (game.player1PartnerId) opponentNames.push(game.player1PartnerName || "Unknown");
             }
 
             return (

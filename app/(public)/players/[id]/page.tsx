@@ -45,6 +45,10 @@ const getCachedPlayerGames = unstable_cache(
   async (playerId: number) => {
     const homeTeams = alias(teams, "homeTeams");
     const awayTeams = alias(teams, "awayTeams");
+    const p1 = alias(players, "p1");
+    const p1p = alias(players, "p1p");
+    const p2 = alias(players, "p2");
+    const p2p = alias(players, "p2p");
 
     return db
       .select({
@@ -54,6 +58,10 @@ const getCachedPlayerGames = unstable_cache(
         player1PartnerId: matchGames.player1PartnerId,
         player2Id: matchGames.player2Id,
         player2PartnerId: matchGames.player2PartnerId,
+        player1Name: p1.name,
+        player1PartnerName: p1p.name,
+        player2Name: p2.name,
+        player2PartnerName: p2p.name,
         player1Score: matchGames.player1Score,
         player2Score: matchGames.player2Score,
         matchId: matchGames.matchId,
@@ -70,6 +78,10 @@ const getCachedPlayerGames = unstable_cache(
       .leftJoin(awayTeams, eq(matches.awayTeamId, awayTeams.id))
       .leftJoin(divisions, eq(homeTeams.divisionId, divisions.id))
       .leftJoin(seasons, eq(divisions.seasonId, seasons.id))
+      .leftJoin(p1, eq(matchGames.player1Id, p1.id))
+      .leftJoin(p1p, eq(matchGames.player1PartnerId, p1p.id))
+      .leftJoin(p2, eq(matchGames.player2Id, p2.id))
+      .leftJoin(p2p, eq(matchGames.player2PartnerId, p2p.id))
       .where(
         or(
           eq(matchGames.player1Id, playerId),
@@ -82,33 +94,19 @@ const getCachedPlayerGames = unstable_cache(
       .limit(200); // Cap results — OR conditions on 4 cols = full scan without limit
   },
   ["player-games-list"],
-  { revalidate: 60, tags: ["matchGames", "matches", "teams"] }
-);
-
-const getCachedPlayersMap = unstable_cache(
-  async () => {
-    const globalPlayersList = await db.select().from(players);
-    const playerMapRecord: Record<number, string> = {};
-    globalPlayersList.forEach(p => {
-      playerMapRecord[p.id] = p.name;
-    });
-    return playerMapRecord;
-  },
-  ["players-map"],
-  { revalidate: 300, tags: ["players"] }
+  { revalidate: 60, tags: ["matchGames", "matches", "teams", "players"] }
 );
 
 export default async function PlayerProfilePage({ params }: PageProps) {
   const { id } = await params;
   const playerId = Number(id);
 
-  // Run all 4 queries in parallel — on cache miss they queue on the single
+  // Run all 3 queries in parallel — on cache miss they queue on the single
   // DB connection, but on cache hit (most requests) they return instantly from memory.
-  const [player, allSeasons, rawGames, playerMapRecord] = await Promise.all([
+  const [player, allSeasons, rawGames] = await Promise.all([
     getCachedPlayerProfile(playerId),
     getCachedSeasons(),
     getCachedPlayerGames(playerId),
-    getCachedPlayersMap(),
   ]);
 
   if (!player) {
@@ -146,7 +144,6 @@ export default async function PlayerProfilePage({ params }: PageProps) {
           teamName={player.teamName || "Unassigned Agent"}
           games={rawGames as any} 
           seasons={allSeasons}
-          playerMap={playerMapRecord}
         />
       </div>
     </div>

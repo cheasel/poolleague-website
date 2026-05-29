@@ -219,9 +219,11 @@ interface PageProps {
 export default async function PublicStandingsPage({ searchParams }: PageProps) {
   const params = await searchParams;
 
-  // 1. Fetch dropdown lists from cache
-  const allSeasons = await getCachedSeasons();
-  const allDivisions = await getCachedDivisions();
+  // 1. Fetch dropdown lists from cache in parallel
+  const [allSeasons, allDivisions] = await Promise.all([
+    getCachedSeasons(),
+    getCachedDivisions(),
+  ]);
 
   const selectedSeasonId = params.seasonId ? Number(params.seasonId) : (allSeasons[0]?.id || null);
   const selectedDivisionId = params.divisionId ? Number(params.divisionId) : (allDivisions[0]?.id || null);
@@ -233,11 +235,11 @@ export default async function PublicStandingsPage({ searchParams }: PageProps) {
   const currentDivision = activeDivs.find(d => d.id === selectedDivisionId) || activeDivs[0];
   const isTopTier = currentDivision ? (currentDivision.tier === Math.min(...activeDivs.map(d => d.tier))) : true;
 
-  // 2. Fetch computed standings from cache
-  const calculatedStandings = await getCachedStandingsData(selectedSeasonId, selectedDivisionId);
-
-  // 3. Fetch matches list for results & fixtures
-  const allMatchesRaw = await getCachedMatchesForStandings(selectedSeasonId, selectedDivisionId);
+  // 2. Fetch computed standings and matches list from cache in parallel
+  const [calculatedStandings, allMatchesRaw] = await Promise.all([
+    getCachedStandingsData(selectedSeasonId, selectedDivisionId),
+    getCachedMatchesForStandings(selectedSeasonId, selectedDivisionId),
+  ]);
 
   const formattedMatches = allMatchesRaw.map((m) => ({
     id: m.id,
