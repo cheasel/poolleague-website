@@ -218,12 +218,10 @@ export default async function PublicHomePage({ searchParams }: PageProps) {
   const selectedDivisionId = params.divisionId ? Number(params.divisionId) : (allDivisions[0]?.id || 1);
   const currentDivision = allDivisions.find(d => d.id === selectedDivisionId) || allDivisions[0];
 
-  // 4. Fetch metrics for the selected division in parallel (cached)
-  const [recentResults, sortedStreaks, topPlayers] = await Promise.all([
-    getCachedRecentResults(activeSeasonId, selectedDivisionId),
-    getCachedTopFormStreaks(activeSeasonId, selectedDivisionId),
-    getCachedTopPlayerStats(activeSeasonId, selectedDivisionId, 5)
-  ]);
+  // 4. Fetch metrics for the selected division sequentially (cached)
+  const recentResults = await getCachedRecentResults(activeSeasonId, selectedDivisionId);
+  const sortedStreaks = await getCachedTopFormStreaks(activeSeasonId, selectedDivisionId);
+  const topPlayers = await getCachedTopPlayerStats(activeSeasonId, selectedDivisionId, 5);
 
   const leader1 = sortedStreaks[0]?.current > 0 ? sortedStreaks[0] : null;
   const mvpPlayer = topPlayers[0] || null;

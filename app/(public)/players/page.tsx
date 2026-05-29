@@ -117,10 +117,8 @@ const getCachedPlayersData = unstable_cache(
 export default async function PublicPlayersPage({ searchParams }: PageProps) {
   const params = await searchParams;
 
-  const [allSeasons, allDivisions] = await Promise.all([
-    getCachedSeasons(),
-    getCachedDivisions(),
-  ]);
+  const allSeasons = await getCachedSeasons();
+  const allDivisions = await getCachedDivisions();
 
   const selectedSeasonId = params.seasonId ? Number(params.seasonId) : (allSeasons[0]?.id || null);
   const selectedDivisionId = params.divisionId ? Number(params.divisionId) : (allDivisions[0]?.id || null);

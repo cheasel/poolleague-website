@@ -101,13 +101,10 @@ export default async function PlayerProfilePage({ params }: PageProps) {
   const { id } = await params;
   const playerId = Number(id);
 
-  // Run all 3 queries in parallel — on cache miss they queue on the single
-  // DB connection, but on cache hit (most requests) they return instantly from memory.
-  const [player, allSeasons, rawGames] = await Promise.all([
-    getCachedPlayerProfile(playerId),
-    getCachedSeasons(),
-    getCachedPlayerGames(playerId),
-  ]);
+  // Run all 3 queries sequentially to avoid deadlock on cache misses
+  const player = await getCachedPlayerProfile(playerId);
+  const allSeasons = await getCachedSeasons();
+  const rawGames = await getCachedPlayerGames(playerId);
 
   if (!player) {
     return <div className="p-20 text-center font-black uppercase text-slate-400">Player profile sheet unavailable.</div>;
