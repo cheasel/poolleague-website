@@ -31,47 +31,36 @@ interface ActivityItem {
 }
 
 export default async function AdminDashboardPage() {
-  const [
-    [seasonCount],
-    [divisionCount],
-    [teamCount],
-    [playerCount],
-    [activeSeason],
-    [scheduledMatches],
-    [unassignedPlayers],
-    [unassignedTeams],
-    [teamsWithoutPlayers],
-    doubleBookedResult
-  ] = await Promise.all([
-    db.select({ count: count() }).from(seasons),
-    db.select({ count: count() }).from(divisions),
-    db.select({ count: count() }).from(teams),
-    db.select({ count: count() }).from(players),
-    db.select().from(seasons).where(eq(seasons.isActive, true)).limit(1),
-    db.select({ count: count() }).from(matches).where(eq(matches.status, "scheduled")),
-    db.select({ count: count() }).from(players).where(sql`${players.teamId} IS NULL`),
-    db.select({ count: count() }).from(teams).where(sql`${teams.divisionId} IS NULL`),
-    db.select({ count: count() })
-      .from(teams)
-      .where(
-        sql`NOT EXISTS (
-          SELECT 1 FROM ${players} 
-          WHERE ${players.teamId} = ${teams.id}
-        )`
-      ),
-    db.execute(sql`
-      SELECT COUNT(DISTINCT m1.id) as count
-      FROM matches m1
-      JOIN matches m2 ON date(m1.date) = date(m2.date) AND m1.id < m2.id
-      JOIN teams t1 ON m1.home_team_id = t1.id
-      JOIN teams t2 ON m2.home_team_id = t2.id
-      WHERE t1.home_venue_id = t2.home_venue_id 
-        AND m1.status = 'scheduled' 
-        AND m2.status = 'scheduled'
-        AND m1.date IS NOT NULL
-        AND m2.date IS NOT NULL
-    `)
-  ]);
+  // Execute queries sequentially to prevent client-side pipelining deadlocks on Supavisor (max: 1 connection pool)
+  const [seasonCount] = await db.select({ count: count() }).from(seasons);
+  const [divisionCount] = await db.select({ count: count() }).from(divisions);
+  const [teamCount] = await db.select({ count: count() }).from(teams);
+  const [playerCount] = await db.select({ count: count() }).from(players);
+  const [activeSeason] = await db.select().from(seasons).where(eq(seasons.isActive, true)).limit(1);
+  const [scheduledMatches] = await db.select({ count: count() }).from(matches).where(eq(matches.status, "scheduled"));
+  const [unassignedPlayers] = await db.select({ count: count() }).from(players).where(sql`${players.teamId} IS NULL`);
+  const [unassignedTeams] = await db.select({ count: count() }).from(teams).where(sql`${teams.divisionId} IS NULL`);
+  const [teamsWithoutPlayers] = await db
+    .select({ count: count() })
+    .from(teams)
+    .where(
+      sql`NOT EXISTS (
+        SELECT 1 FROM ${players} 
+        WHERE ${players.teamId} = ${teams.id}
+      )`
+    );
+  const doubleBookedResult = await db.execute(sql`
+    SELECT COUNT(DISTINCT m1.id) as count
+    FROM matches m1
+    JOIN matches m2 ON date(m1.date) = date(m2.date) AND m1.id < m2.id
+    JOIN teams t1 ON m1.home_team_id = t1.id
+    JOIN teams t2 ON m2.home_team_id = t2.id
+    WHERE t1.home_venue_id = t2.home_venue_id 
+      AND m1.status = 'scheduled' 
+      AND m2.status = 'scheduled'
+      AND m1.date IS NOT NULL
+      AND m2.date IS NOT NULL
+  `);
 
   const doubleBookedVenuesCount = Number(doubleBookedResult[0]?.count || 0);
 
