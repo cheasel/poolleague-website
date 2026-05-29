@@ -15,8 +15,8 @@ interface PageProps {
   }>;
 }
 
-const getCachedPlayerProfile = (playerId: number) => unstable_cache(
-  async () => {
+const getCachedPlayerProfile = unstable_cache(
+  async (playerId: number) => {
     const [row] = await db
       .select({
         id: players.id,
@@ -29,9 +29,9 @@ const getCachedPlayerProfile = (playerId: number) => unstable_cache(
       .where(eq(players.id, playerId));
     return row || null;
   },
-  ["player-profile", String(playerId)],
+  ["player-profile"],
   { revalidate: 60, tags: ["players", "teams"] }
-)();
+);
 
 const getCachedSeasons = unstable_cache(
   async () => {
@@ -41,8 +41,8 @@ const getCachedSeasons = unstable_cache(
   { revalidate: 300, tags: ["seasons"] }
 );
 
-const getCachedPlayerGames = (playerId: number) => unstable_cache(
-  async () => {
+const getCachedPlayerGames = unstable_cache(
+  async (playerId: number) => {
     const homeTeams = alias(teams, "homeTeams");
     const awayTeams = alias(teams, "awayTeams");
 
@@ -80,9 +80,9 @@ const getCachedPlayerGames = (playerId: number) => unstable_cache(
       )
       .orderBy(desc(matches.date), desc(matchGames.gameOrder));
   },
-  ["player-games-list", String(playerId)],
+  ["player-games-list"],
   { revalidate: 60, tags: ["matchGames", "matches", "teams"] }
-)();
+);
 
 const getCachedPlayersMap = unstable_cache(
   async () => {

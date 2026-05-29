@@ -16,8 +16,8 @@ interface PageProps {
   }>;
 }
 
-const getCachedTeamProfile = (teamId: number) => unstable_cache(
-  async () => {
+const getCachedTeamProfile = unstable_cache(
+  async (teamId: number) => {
     const [row] = await db
       .select({
         id: teams.id,
@@ -32,12 +32,12 @@ const getCachedTeamProfile = (teamId: number) => unstable_cache(
       .where(eq(teams.id, teamId));
     return row || null;
   },
-  ["team-profile", String(teamId)],
+  ["team-profile"],
   { revalidate: 60, tags: ["teams", "divisions", "seasons"] }
-)();
+);
 
-const getCachedRoster = (teamId: number) => unstable_cache(
-  async () => {
+const getCachedRoster = unstable_cache(
+  async (teamId: number) => {
     return db
       .select({
         id: players.id,
@@ -48,12 +48,12 @@ const getCachedRoster = (teamId: number) => unstable_cache(
       .where(eq(players.teamId, teamId))
       .orderBy(asc(players.name));
   },
-  ["team-roster", String(teamId)],
+  ["team-roster"],
   { revalidate: 60, tags: ["players", "teams"] }
-)();
+);
 
-const getCachedTeamMatches = (teamId: number) => unstable_cache(
-  async () => {
+const getCachedTeamMatches = unstable_cache(
+  async (teamId: number) => {
     const homeTeamsAlias = alias(teams, "homeTeamsAlias");
     const awayTeamsAlias = alias(teams, "awayTeamsAlias");
 
@@ -75,21 +75,21 @@ const getCachedTeamMatches = (teamId: number) => unstable_cache(
       .where(or(eq(matches.homeTeamId, teamId), eq(matches.awayTeamId, teamId)))
       .orderBy(desc(matches.date));
   },
-  ["team-matches-list", String(teamId)],
+  ["team-matches-list"],
   { revalidate: 60, tags: ["matches", "teams"] }
-)();
+);
 
-const getCachedTeamMatchGames = (matchIds: number[]) => unstable_cache(
-  async () => {
+const getCachedTeamMatchGames = unstable_cache(
+  async (matchIds: number[]) => {
     if (matchIds.length === 0) return [];
     return db
       .select()
       .from(matchGames)
       .where(inArray(matchGames.matchId, matchIds));
   },
-  ["team-match-games", matchIds.sort((a, b) => a - b).join("-")],
+  ["team-match-games"],
   { revalidate: 60, tags: ["matchGames"] }
-)();
+);
 
 export default async function PublicTeamProfilePage({ params }: PageProps) {
   const { id } = await params;

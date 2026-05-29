@@ -5,8 +5,8 @@ import StandingsClient from "./StandingsClient";
 import { unstable_cache } from "next/cache";
 import { Suspense } from "react";
 
-const getCachedMatchesForStandings = (seasonId: number | null, divisionId: number | null) => unstable_cache(
-  async () => {
+const getCachedMatchesForStandings = unstable_cache(
+  async (seasonId: number | null, divisionId: number | null) => {
     const conditions = [];
     if (seasonId) {
       conditions.push(eq(matches.seasonId, seasonId));
@@ -34,9 +34,9 @@ const getCachedMatchesForStandings = (seasonId: number | null, divisionId: numbe
       .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(asc(matches.weekNumber), asc(matches.date));
   },
-  ["standings-matches-list", String(seasonId), String(divisionId)],
+  ["standings-matches-list"],
   { revalidate: 60, tags: ["matches", "teams"] }
-)();
+);
 
 
 export const revalidate = 60;
@@ -57,8 +57,8 @@ const getCachedDivisions = unstable_cache(
   { revalidate: 300, tags: ["divisions"] }
 );
 
-const getCachedStandingsData = (seasonId: number | null, divisionId: number | null) => unstable_cache(
-  async () => {
+const getCachedStandingsData = unstable_cache(
+  async (seasonId: number | null, divisionId: number | null) => {
     // 2. Build target conditions
     const conditions = [eq(matches.status, "completed")];
     if (seasonId) conditions.push(eq(matches.seasonId, seasonId));
@@ -205,9 +205,9 @@ const getCachedStandingsData = (seasonId: number | null, divisionId: number | nu
 
     return calculatedStandings;
   },
-  ["standings-data", String(seasonId), String(divisionId)],
+  ["standings-data"],
   { revalidate: 60, tags: ["standings"] }
-)();
+);
 
 interface PageProps {
   searchParams: Promise<{
