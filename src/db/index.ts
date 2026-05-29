@@ -24,6 +24,10 @@ const conn = globalForDb.conn ?? postgres(connectionString || '', {
   max: 1, // High concurrency in serverless is handled by Vercel scaling, not local pooling
   idle_timeout: 20,
   connect_timeout: 10,
+  connection: {
+    // Kill any query that runs longer than 15s — prevents skeleton loader hang
+    statement_timeout: 15000,
+  },
 });
 
 if (process.env.NODE_ENV !== "production") globalForDb.conn = conn;
