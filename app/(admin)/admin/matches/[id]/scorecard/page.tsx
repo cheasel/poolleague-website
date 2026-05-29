@@ -1,7 +1,7 @@
 import { db } from "@/src/db";
 import { matches, matchGames, players, teams } from "@/src/db/schema";
 import { eq, asc, or, and } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import RackEntrySystem from "../rack-entry-system";
@@ -64,75 +64,89 @@ export default async function MatchScorecardPage({ params }: PageProps) {
 
     const uploadedRacks = JSON.parse(jsonRaw);
 
-    // 1. Wipe existing match frames to write the new verified state safely
-    await db.delete(matchGames).where(eq(matchGames.matchId, matchId));
+    // Wrap ALL DB operations in a single transaction to prevent partial saves
+    await db.transaction(async (tx) => {
+      // 1. Wipe existing match frames inside the transaction
+      await tx.delete(matchGames).where(eq(matchGames.matchId, matchId));
 
-    let localHomeWins = 0;
-    let localAwayWins = 0;
+      let localHomeWins = 0;
+      let localAwayWins = 0;
 
-    // 2. Iterate and plant the updated dataset rows
-    for (let i = 0; i < uploadedRacks.length; i++) {
-      const rack = uploadedRacks[i];
-      const isHomeWin = rack.winner === "home";
-      
-      if (isHomeWin) localHomeWins++;
-      else if (rack.winner === "away") localAwayWins++;
+      // 2. Insert all updated frames atomically as a batch insert
+      const insertValues = [];
+      for (let i = 0; i < uploadedRacks.length; i++) {
+        const rack = uploadedRacks[i];
+        const isHomeWin = rack.winner === "home";
 
-      await db.insert(matchGames).values({
-        matchId,
-        gameOrder: i + 1,
-        gameType: rack.type,
-        player1Id: rack.homePlayer1Id ? Number(rack.homePlayer1Id) : null,
-        player1PartnerId: rack.type === "double" && rack.homePlayer2Id ? Number(rack.homePlayer2Id) : null,
-        player2Id: rack.awayPlayer1Id ? Number(rack.awayPlayer1Id) : null,
-        player2PartnerId: rack.type === "double" && rack.awayPlayer2Id ? Number(rack.awayPlayer2Id) : null,
-        player1Score: isHomeWin ? 1 : 0, // Fallback schema defaults values safely
-        player2Score: isHomeWin ? 0 : 1,
-      });
-    }
+        if (isHomeWin) localHomeWins++;
+        else if (rack.winner === "away") localAwayWins++;
 
-    // 3. Update top-level match information summary flags
-    await db
-      .update(matches)
-      .set({
-        homeScore: localHomeWins,
-        awayScore: localAwayWins,
-        status: uploadedRacks.length > 0 ? "completed" : "scheduled",
-      })
-      .where(eq(matches.id, matchId));
+        insertValues.push({
+          matchId,
+          gameOrder: i + 1,
+          gameType: rack.type,
+          player1Id: rack.homePlayer1Id ? Number(rack.homePlayer1Id) : null,
+          player1PartnerId: rack.type === "double" && rack.homePlayer2Id ? Number(rack.homePlayer2Id) : null,
+          player2Id: rack.awayPlayer1Id ? Number(rack.awayPlayer1Id) : null,
+          player2PartnerId: rack.type === "double" && rack.awayPlayer2Id ? Number(rack.awayPlayer2Id) : null,
+          player1Score: isHomeWin ? 1 : 0,
+          player2Score: isHomeWin ? 0 : 1,
+        });
+      }
 
-    // 4. Standings calculations engine integration
-    const targetTeamIds = [match.homeTeamId, match.awayTeamId].filter(Boolean) as number[];
-    for (const teamId of targetTeamIds) {
-      const completedMatches = await db
-        .select()
-        .from(matches)
-        .where(
-          and(
-            eq(matches.status, "completed"),
-            or(eq(matches.homeTeamId, teamId), eq(matches.awayTeamId, teamId))
-          )
-        );
+      if (insertValues.length > 0) {
+        await tx.insert(matchGames).values(insertValues);
+      }
 
-      let leaguePoints = 0;
-      completedMatches.forEach((m) => {
-        const isHome = m.homeTeamId === teamId;
-        const hScore = m.homeScore ?? 0;
-        const aScore = m.awayScore ?? 0;
-        if (hScore === aScore) {
-          leaguePoints += 1;
-        } else {
+      // 3. Update top-level match summary (status + score) atomically
+      await tx
+        .update(matches)
+        .set({
+          homeScore: localHomeWins,
+          awayScore: localAwayWins,
+          status: uploadedRacks.length > 0 ? "completed" : "scheduled",
+        })
+        .where(eq(matches.id, matchId));
+
+      // 4. Recalculate and update league points for both teams inside the transaction
+      const targetTeamIds = [match.homeTeamId, match.awayTeamId].filter(Boolean) as number[];
+      for (const teamId of targetTeamIds) {
+        const completedMatches = await tx
+          .select()
+          .from(matches)
+          .where(
+            and(
+              eq(matches.status, "completed"),
+              or(eq(matches.homeTeamId, teamId), eq(matches.awayTeamId, teamId))
+            )
+          );
+
+        let leaguePoints = 0;
+        completedMatches.forEach((m) => {
+          const isHome = m.homeTeamId === teamId;
+          const hScore = m.homeScore ?? 0;
+          const aScore = m.awayScore ?? 0;
           const won = isHome ? hScore > aScore : aScore > hScore;
           if (won) leaguePoints += 2;
-        }
-      });
+        });
 
-      await db.update(teams).set({ points: leaguePoints }).where(eq(teams.id, teamId));
-    }
+        await tx.update(teams).set({ points: leaguePoints }).where(eq(teams.id, teamId));
+      }
+    });
 
-    // Purge edge caches dynamically
+    // Invalidate all affected cache tags so every page reflects the new state
+    revalidateTag("matches");
+    revalidateTag("teams");
+    revalidateTag("standings");
+    revalidateTag("players");
+    revalidateTag("matchGames");
+
+    // Purge specific paths as well for ISR/static pages
     revalidatePath("/");
     revalidatePath("/standings");
+    revalidatePath("/players");
+    revalidatePath("/matches");
+    revalidatePath("/teams");
     revalidatePath(`/admin/matches/${matchId}`);
     revalidatePath(`/admin/matches/${matchId}/scorecard`);
 

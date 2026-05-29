@@ -91,8 +91,10 @@ export default async function PublicMatchDetailPage({ params }: PageProps) {
 
   const { matchData, divisionTeams, frames, relevantPlayers } = pageData;
 
-  const homeRank = divisionTeams.findIndex(t => t.id === matchData.homeTeamId) + 1;
-  const awayRank = divisionTeams.findIndex(t => t.id === matchData.awayTeamId) + 1;
+  const homeRankIdx = divisionTeams.findIndex(t => t.id === matchData.homeTeamId);
+  const awayRankIdx = divisionTeams.findIndex(t => t.id === matchData.awayTeamId);
+  const homeRank = homeRankIdx !== -1 ? homeRankIdx + 1 : null;
+  const awayRank = awayRankIdx !== -1 ? awayRankIdx + 1 : null;
   const homeTeamName = divisionTeams.find(t => t.id === matchData.homeTeamId)?.name || "Home Team";
   const awayTeamName = divisionTeams.find(t => t.id === matchData.awayTeamId)?.name || "Away Team";
 
@@ -140,7 +142,7 @@ export default async function PublicMatchDetailPage({ params }: PageProps) {
             {/* Home Team Panel */}
             <div className="md:col-span-4 text-center md:text-right space-y-1">
               <span className="inline-block px-2.5 py-1 rounded-md bg-slate-950 border border-slate-800 text-slate-500 font-mono text-[10px] font-black uppercase tracking-wider">
-                Rank #{homeRank || '?'}
+                Rank #{homeRank ?? '?'}
               </span>
               <h2 className="text-xl md:text-3xl font-black text-white uppercase tracking-tight truncate">
                 {homeTeamName}
@@ -167,7 +169,7 @@ export default async function PublicMatchDetailPage({ params }: PageProps) {
             {/* Away Team Panel */}
             <div className="md:col-span-4 text-center md:text-left space-y-1">
               <span className="inline-block px-2.5 py-1 rounded-md bg-slate-950 border border-slate-800 text-slate-500 font-mono text-[10px] font-black uppercase tracking-wider">
-                Rank #{awayRank || '?'}
+                Rank #{awayRank ?? '?'}
               </span>
               <h2 className="text-xl md:text-3xl font-black text-white uppercase tracking-tight truncate">
                 {awayTeamName}

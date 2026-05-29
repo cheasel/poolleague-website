@@ -92,17 +92,11 @@ export const db = new Proxy(rawDb, {
     }
 
     if (prop === 'transaction') {
-      return function (transactionCallback: Function, ...args: any[]) {
+      return async function (transactionCallback: Function, ...args: any[]) {
         const wrappedCallback = async (tx: any) => {
           const proxiedTx = new Proxy(tx, {
             get(tTarget, tProp, tReceiver) {
               const tValue = Reflect.get(tTarget, tProp, tReceiver);
-              if (tProp === 'insert' || tProp === 'update' || tProp === 'delete') {
-                return function (...tArgs: any[]) {
-                  const builder = (tValue as Function).apply(tTarget, tArgs);
-                  return wrapBuilder(builder);
-                };
-              }
               if (typeof tValue === 'function') {
                 return tValue.bind(tTarget);
               }
@@ -111,7 +105,9 @@ export const db = new Proxy(rawDb, {
           });
           return transactionCallback(proxiedTx);
         };
-        return (value as Function).call(target, wrappedCallback, ...args);
+        const res = await (value as Function).call(target, wrappedCallback, ...args);
+        invalidatePublicCaches();
+        return res;
       };
     }
 

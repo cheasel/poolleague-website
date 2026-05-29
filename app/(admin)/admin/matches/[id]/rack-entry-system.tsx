@@ -38,7 +38,8 @@ export default function RackEntrySystem({
         homePlayer2Id: String(g.player1PartnerId || ''),
         awayPlayer1Id: String(g.player2Id || ''),
         awayPlayer2Id: String(g.player2PartnerId || ''),
-        winner: g.player1Score > g.player2Score ? 'home' : 'away'
+        // Explicitly resolve winner: only set if one side clearly leads; null otherwise forces admin to re-select
+        winner: g.player1Score > g.player2Score ? 'home' : g.player2Score > g.player1Score ? 'away' : null
       }));
     }
     return [];

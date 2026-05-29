@@ -112,47 +112,6 @@ export default async function AdminMatchesPage({ searchParams }: PageProps) {
     revalidatePath("/admin/matches");
   }
 
-  async function finalizeMatchAction(formData: FormData) {
-    "use server";
-    const matchId = Number(formData.get("matchId"));
-    if (!matchId) return;
-
-    await db.transaction(async (tx) => {
-      const [currentMatch] = await tx.select().from(matches).where(eq(matches.id, matchId));
-      if (!currentMatch || !currentMatch.homeTeamId || !currentMatch.awayTeamId) return;
-
-      // Prevent race conditions / double point awarding
-      if (currentMatch.status === "completed") return;
-
-      const homeScore = currentMatch.homeScore || 0;
-      const awayScore = currentMatch.awayScore || 0;
-
-      let homePointsAward = 0;
-      let awayPointsAward = 0;
-
-      if (homeScore > awayScore) homePointsAward = 2;
-      else if (awayScore > homeScore) awayPointsAward = 2;
-      else {
-        homePointsAward = 1;
-        awayPointsAward = 1;
-      }
-
-      await tx.update(matches).set({ status: "completed" }).where(eq(matches.id, matchId));
-
-      const [homeTeam] = await tx.select().from(teams).where(eq(teams.id, currentMatch.homeTeamId));
-      if (homeTeam) {
-        await tx.update(teams).set({ points: (homeTeam.points || 0) + homePointsAward }).where(eq(teams.id, homeTeam.id));
-      }
-
-      const [awayTeam] = await tx.select().from(teams).where(eq(teams.id, currentMatch.awayTeamId));
-      if (awayTeam) {
-        await tx.update(teams).set({ points: (awayTeam.points || 0) + awayPointsAward }).where(eq(teams.id, awayTeam.id));
-      }
-    });
-
-    revalidatePath("/admin/matches");
-  }
-
   return (
     <MatchDashboard
       activeMatchId={activeMatchId}
@@ -164,7 +123,6 @@ export default async function AdminMatchesPage({ searchParams }: PageProps) {
       currentMatchGames={currentMatchGames}
       allPlayersRaw={allPlayersRaw}
       addFrameAction={addFrameAction}
-      finalizeMatchAction={finalizeMatchAction}
       seasons={allSeasons}
       divisions={allDivisions}
     />

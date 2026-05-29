@@ -60,7 +60,6 @@ interface MatchDashboardProps {
   currentMatchGames: any[];
   allPlayersRaw: any[];
   addFrameAction: (formData: FormData) => Promise<void>;
-  finalizeMatchAction: (formData: FormData) => Promise<void>;
   seasons: SeasonRow[];
   divisions: DivisionRow[];
 }

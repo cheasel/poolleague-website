@@ -180,4 +180,52 @@ describe("Stats Calculator Utilities", () => {
     assert.strictEqual(alice.matchesPlayed, 1); // Only played in match 101, missed 102
     assert.strictEqual(alice.matchPlayPercentage, "50.0"); // 1 out of 2 completed matches
   });
+
+  // Test Bug 4 regression: frames from non-completed matches must NOT be counted
+  test("should NOT count frames from non-completed (live/scheduled) matches in calculateRosterStats", () => {
+    const mockRoster: RosterPlayer[] = [
+      { id: 10, name: "Alice", imageUrl: null },
+    ];
+
+    // Only match 101 is "completed"
+    const completedTeamMatchIds = new Set([101]);
+
+    const mockGames: RosterGame[] = [
+      // Game 1: Alice plays in completed match 101 — SHOULD count
+      {
+        matchId: 101,
+        gameType: "single",
+        player1Id: 10,
+        player2Id: 20,
+        player1PartnerId: null,
+        player2PartnerId: null,
+        player1Score: 1,
+        player2Score: 0,
+      },
+      // Game 2: Alice also plays in live/scheduled match 999 — should NOT count
+      {
+        matchId: 999,
+        gameType: "single",
+        player1Id: 10,
+        player2Id: 30,
+        player1PartnerId: null,
+        player2PartnerId: null,
+        player1Score: 0,
+        player2Score: 1, // Alice would lose this, but it should be ignored
+      },
+    ];
+
+    const results = calculateRosterStats(mockRoster, mockGames, completedTeamMatchIds);
+    const alice = results.find((p) => p.id === 10);
+
+    assert.ok(alice);
+    // Only completed-match frame should count — 1 singles win, not 1 win + 1 loss
+    assert.strictEqual(alice.singlesPlayed, 1);
+    assert.strictEqual(alice.singlesWins, 1);
+    assert.strictEqual(alice.singlesLosses, 0);
+    assert.strictEqual(alice.totalPlayed, 1);
+    assert.strictEqual(alice.totalWins, 1);
+    assert.strictEqual(alice.winPercentage, "100.0");
+    assert.strictEqual(alice.matchesPlayed, 1);
+  });
 });

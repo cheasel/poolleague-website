@@ -275,14 +275,15 @@ export function calculateRosterStats(
 
     allGames.forEach((game) => {
       if (!game.matchId) return;
+      // Only count frames from completed matches to avoid inflating stats with live/scheduled data
+      if (!completedTeamMatchIds.has(game.matchId)) return;
+
       const isHome = game.player1Id === player.id || game.player1PartnerId === player.id;
       const isAway = game.player2Id === player.id || game.player2PartnerId === player.id;
       
       if (!isHome && !isAway) return;
 
-      if (completedTeamMatchIds.has(game.matchId)) {
-        playedMatchIds.add(game.matchId);
-      }
+      playedMatchIds.add(game.matchId);
 
       const playerWon = isHome 
         ? (Number(game.player1Score || 0) > Number(game.player2Score || 0)) 

@@ -43,17 +43,11 @@ function createMockDbProxy(rawDb: any, onInvalidate: () => void) {
       }
 
       if (prop === 'transaction') {
-        return function (transactionCallback: Function, ...args: any[]) {
+        return async function (transactionCallback: Function, ...args: any[]) {
           const wrappedCallback = async (tx: any) => {
             const proxiedTx = new Proxy(tx, {
               get(tTarget, tProp, tReceiver) {
                 const tValue = Reflect.get(tTarget, tProp, tReceiver);
-                if (tProp === 'insert' || tProp === 'update' || tProp === 'delete') {
-                  return function (...tArgs: any[]) {
-                    const builder = (tValue as Function).apply(tTarget, tArgs);
-                    return wrapBuilder(builder);
-                  };
-                }
                 if (typeof tValue === 'function') {
                   return tValue.bind(tTarget);
                 }
@@ -62,7 +56,9 @@ function createMockDbProxy(rawDb: any, onInvalidate: () => void) {
             });
             return transactionCallback(proxiedTx);
           };
-          return (value as Function).call(target, wrappedCallback, ...args);
+          const res = await (value as Function).call(target, wrappedCallback, ...args);
+          onInvalidate();
+          return res;
         };
       }
 
@@ -122,7 +118,7 @@ describe("Database Cache Invalidation Proxy Wrapper", () => {
     assert.strictEqual(invalidateCalledCount, 1);
   });
 
-  test("should handle transactions and propagate invalidation calls within transaction scope", async () => {
+  test("should handle transactions and trigger invalidation callback exactly once after transaction completes", async () => {
     let invalidateCalledCount = 0;
     const mockTxBuilder = {
       execute: async () => {
@@ -130,7 +126,8 @@ describe("Database Cache Invalidation Proxy Wrapper", () => {
       }
     };
     const mockTx = {
-      delete: () => mockTxBuilder
+      delete: () => mockTxBuilder,
+      insert: () => mockTxBuilder,
     };
     const mockRawDb = {
       transaction: async (callback: Function) => {
@@ -143,9 +140,10 @@ describe("Database Cache Invalidation Proxy Wrapper", () => {
     });
 
     await proxiedDb.transaction(async (tx: any) => {
-      const builder = tx.delete();
-      const result = await builder.execute();
-      assert.deepStrictEqual(result, { updated: true });
+      const builder1 = tx.delete();
+      await builder1.execute();
+      const builder2 = tx.insert();
+      await builder2.execute();
     });
 
     assert.strictEqual(invalidateCalledCount, 1);

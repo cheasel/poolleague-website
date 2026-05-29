@@ -1,6 +1,6 @@
 import { db } from "@/src/db";
 import { teams, divisions, seasons, venues, players } from "@/src/db/schema";
-import { eq, asc, count } from "drizzle-orm";
+import { eq, asc, count, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { Trophy, Users, Hash, Plus, Trash2, Pencil, MapPin } from "lucide-react";
 import Link from 'next/link';
@@ -114,8 +114,11 @@ export default async function AdminTeamsPage() {
   async function deleteTeam(formData: FormData) {
     "use server";
     const id = Number(formData.get("id"));
+    // Explicitly null out player team assignments before deleting to prevent orphaned records
+    await db.update(players).set({ teamId: null }).where(eq(players.teamId, id));
     await db.delete(teams).where(eq(teams.id, id));
     revalidatePath("/admin/teams");
+    revalidatePath("/admin/players");
     revalidatePath("/standings");
   }
 

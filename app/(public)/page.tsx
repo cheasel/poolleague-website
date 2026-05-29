@@ -118,6 +118,32 @@ const getCachedTopPlayerStats = (seasonId: number, divisionId: number, limit: nu
           AND m.division_id = ${divisionId}
           AND mg.player2_score > mg.player1_score
           AND mg.player2_id IS NOT NULL
+
+        UNION ALL
+
+        SELECT
+          mg.player1_partner_id AS player_id,
+          1 AS is_win
+        FROM match_games mg
+        JOIN matches m ON mg.match_id = m.id
+        WHERE m.status = 'completed'
+          AND m.season_id = ${seasonId}
+          AND m.division_id = ${divisionId}
+          AND mg.player1_score > mg.player2_score
+          AND mg.player1_partner_id IS NOT NULL
+
+        UNION ALL
+
+        SELECT
+          mg.player2_partner_id AS player_id,
+          1 AS is_win
+        FROM match_games mg
+        JOIN matches m ON mg.match_id = m.id
+        WHERE m.status = 'completed'
+          AND m.season_id = ${seasonId}
+          AND m.division_id = ${divisionId}
+          AND mg.player2_score > mg.player1_score
+          AND mg.player2_partner_id IS NOT NULL
       )
       SELECT 
         pw.player_id AS id,
