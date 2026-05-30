@@ -109,26 +109,41 @@ export default async function AdminMatchesPage({ searchParams }: PageProps) {
     "use server";
     const seasonId = Number(formData.get("seasonId"));
     const divisionId = Number(formData.get("divisionId"));
-    const homeTeamId = Number(formData.get("homeTeamId"));
-    const awayTeamId = Number(formData.get("awayTeamId"));
     const weekNumber = Number(formData.get("weekNumber") || 1);
     const matchDateStr = formData.get("matchDate") as string;
 
-    if (!seasonId || !divisionId || !homeTeamId || !awayTeamId || !matchDateStr) {
+    const homeTeamIds = formData.getAll("homeTeamId").map(Number);
+    const awayTeamIds = formData.getAll("awayTeamId").map(Number);
+
+    if (!seasonId || !divisionId || !matchDateStr || homeTeamIds.length === 0 || awayTeamIds.length === 0) {
       return;
     }
 
-    await db.insert(matches).values({
-      seasonId,
-      divisionId,
-      homeTeamId,
-      awayTeamId,
-      weekNumber,
-      date: new Date(`${matchDateStr}T20:00:00`),
-      status: "scheduled",
-      homeScore: 0,
-      awayScore: 0,
-    });
+    const insertValues = [];
+    const matchDate = new Date(`${matchDateStr}T20:00:00`);
+
+    for (let i = 0; i < homeTeamIds.length; i++) {
+      const homeTeamId = homeTeamIds[i];
+      const awayTeamId = awayTeamIds[i];
+
+      if (homeTeamId && awayTeamId) {
+        insertValues.push({
+          seasonId,
+          divisionId,
+          homeTeamId,
+          awayTeamId,
+          weekNumber,
+          date: matchDate,
+          status: "scheduled" as const,
+          homeScore: 0,
+          awayScore: 0,
+        });
+      }
+    }
+
+    if (insertValues.length > 0) {
+      await db.insert(matches).values(insertValues);
+    }
 
     revalidatePath("/admin/matches");
   }
