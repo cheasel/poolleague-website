@@ -3,7 +3,7 @@
 import { useRef, useState, useEffect } from 'react';
 
 interface Props {
-  teams: { id: number; name: string }[];
+  teams: { id: number; name: string; divisionId: number | null }[];
   seasons: { id: number; name: string }[];
   divisions: { id: number; name: string; seasonId: number | null }[];
   action: (formData: FormData) => Promise<void>;
@@ -15,14 +15,37 @@ export default function AddMatchForm({ teams, seasons, divisions, action }: Prop
   // Dynamic local state to filter divisions by season
   const [selectedSeasonId, setSelectedSeasonId] = useState(seasons[0]?.id?.toString() || '');
   const [filteredDivisions, setFilteredDivisions] = useState<typeof divisions>([]);
+  
+  // Dynamic local state to filter teams by division
+  const [selectedDivisionId, setSelectedDivisionId] = useState<string>('');
+  const [filteredTeams, setFilteredTeams] = useState<typeof teams>([]);
 
+  // 1. Filter divisions when season changes
   useEffect(() => {
     if (selectedSeasonId) {
-      setFilteredDivisions(divisions.filter(d => d.seasonId?.toString() === selectedSeasonId));
+      const nextDivisions = divisions.filter(d => d.seasonId?.toString() === selectedSeasonId);
+      setFilteredDivisions(nextDivisions);
+      
+      // Auto-select the first division in the filtered list
+      if (nextDivisions[0]) {
+        setSelectedDivisionId(nextDivisions[0].id.toString());
+      } else {
+        setSelectedDivisionId('');
+      }
     } else {
       setFilteredDivisions([]);
+      setSelectedDivisionId('');
     }
   }, [selectedSeasonId, divisions]);
+
+  // 2. Filter teams when division changes
+  useEffect(() => {
+    if (selectedDivisionId) {
+      setFilteredTeams(teams.filter(t => t.divisionId?.toString() === selectedDivisionId));
+    } else {
+      setFilteredTeams([]);
+    }
+  }, [selectedDivisionId, teams]);
 
   return (
     <form 
@@ -59,6 +82,8 @@ export default function AddMatchForm({ teams, seasons, divisions, action }: Prop
           <label className="text-[10px] font-black uppercase tracking-widest text-slate-600 ml-2">League Division</label>
           <select 
             name="divisionId" 
+            value={selectedDivisionId}
+            onChange={(e) => setSelectedDivisionId(e.target.value)}
             required 
             className="w-full p-3.5 bg-slate-950 border border-slate-800 rounded-xl font-bold text-xs uppercase text-white outline-none focus:border-indigo-500 transition-all shadow-inner"
           >
@@ -78,7 +103,11 @@ export default function AddMatchForm({ teams, seasons, divisions, action }: Prop
             required 
             className="w-full p-3.5 bg-slate-950 border border-slate-800 rounded-xl font-bold text-xs uppercase text-white outline-none focus:border-indigo-500 transition-all shadow-inner"
           >
-            {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+            {filteredTeams.length > 0 ? (
+              filteredTeams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)
+            ) : (
+              <option value="">No Teams Found</option>
+            )}
           </select>
         </div>
 
@@ -90,7 +119,11 @@ export default function AddMatchForm({ teams, seasons, divisions, action }: Prop
             required 
             className="w-full p-3.5 bg-slate-950 border border-slate-800 rounded-xl font-bold text-xs uppercase text-white outline-none focus:border-indigo-500 transition-all shadow-inner"
           >
-            {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+            {filteredTeams.length > 0 ? (
+              filteredTeams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)
+            ) : (
+              <option value="">No Teams Found</option>
+            )}
           </select>
         </div>
 

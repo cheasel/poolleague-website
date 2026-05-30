@@ -49,6 +49,7 @@ interface MatchWithRelations {
 interface TeamRow {
   id: number;
   name: string;
+  divisionId: number | null;
 }
 
 interface MatchDashboardProps {
