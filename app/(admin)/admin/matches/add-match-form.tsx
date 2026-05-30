@@ -22,8 +22,8 @@ export default function AddMatchForm({ teams, seasons, divisions, action }: Prop
   const [filteredTeams, setFilteredTeams] = useState<typeof teams>([]);
 
   // State to track multiple matchup rows (Home vs Away pairings)
-  const [matchups, setMatchups] = useState<Array<{ id: string }>>([
-    { id: 'initial-row' }
+  const [matchups, setMatchups] = useState<Array<{ id: string; homeTeamId: string; awayTeamId: string }>>([
+    { id: 'initial-row', homeTeamId: '', awayTeamId: '' }
   ]);
 
   // 1. Filter divisions when season changes
@@ -47,14 +47,37 @@ export default function AddMatchForm({ teams, seasons, divisions, action }: Prop
   // 2. Filter teams when division changes
   useEffect(() => {
     if (selectedDivisionId) {
-      setFilteredTeams(teams.filter(t => t.divisionId?.toString() === selectedDivisionId));
+      const activeTeams = teams.filter(t => t.divisionId?.toString() === selectedDivisionId);
+      setFilteredTeams(activeTeams);
+      
+      // Auto-populate the initial row with the first two teams of the division
+      if (activeTeams.length >= 2) {
+        setMatchups([
+          { 
+            id: 'initial-row', 
+            homeTeamId: activeTeams[0].id.toString(), 
+            awayTeamId: activeTeams[1].id.toString() 
+          }
+        ]);
+      } else {
+        setMatchups([{ id: 'initial-row', homeTeamId: '', awayTeamId: '' }]);
+      }
     } else {
       setFilteredTeams([]);
+      setMatchups([{ id: 'initial-row', homeTeamId: '', awayTeamId: '' }]);
     }
   }, [selectedDivisionId, teams]);
 
   const addMatchupRow = () => {
-    setMatchups([...matchups, { id: 'row-' + Date.now() + '-' + Math.random().toString(36).slice(2, 5) }]);
+    if (filteredTeams.length >= 2) {
+      // Find a default pairing that is not yet selected, or default to first/second
+      const nextHome = filteredTeams[0].id.toString();
+      const nextAway = filteredTeams[1].id.toString();
+      setMatchups([
+        ...matchups,
+        { id: 'row-' + Date.now() + '-' + Math.random().toString(36).slice(2, 5), homeTeamId: nextHome, awayTeamId: nextAway }
+      ]);
+    }
   };
 
   const removeMatchupRow = (id: string) => {
@@ -63,14 +86,43 @@ export default function AddMatchForm({ teams, seasons, divisions, action }: Prop
     }
   };
 
+  const handleHomeChange = (rowId: string, value: string) => {
+    setMatchups(prev => prev.map(m => m.id === rowId ? { ...m, homeTeamId: value } : m));
+  };
+
+  const handleAwayChange = (rowId: string, value: string) => {
+    setMatchups(prev => prev.map(m => m.id === rowId ? { ...m, awayTeamId: value } : m));
+  };
+
+  // Validation: Check for duplicate matchups in the current form (Home vs Away regardless of order)
+  const hasDuplicateMatchups = () => {
+    const keys = matchups
+      .filter(m => m.homeTeamId && m.awayTeamId)
+      .map(m => [m.homeTeamId, m.awayTeamId].sort((a, b) => a.localeCompare(b)).join('-'));
+    return keys.length !== new Set(keys).size;
+  };
+
+  const isFormInvalid = hasDuplicateMatchups() || filteredTeams.length < 2;
+
   return (
     <form 
       ref={formRef}
       action={async (formData) => {
+        if (isFormInvalid) return;
         await action(formData);
         formRef.current?.reset();
         // Reset matchups back to a single row
-        setMatchups([{ id: 'reset-row-' + Date.now() }]);
+        if (filteredTeams.length >= 2) {
+          setMatchups([
+            { 
+              id: 'reset-row-' + Date.now(), 
+              homeTeamId: filteredTeams[0].id.toString(), 
+              awayTeamId: filteredTeams[1].id.toString() 
+            }
+          ]);
+        } else {
+          setMatchups([{ id: 'reset-row-' + Date.now(), homeTeamId: '', awayTeamId: '' }]);
+        }
         // Reset local selected season
         if (seasons[0]) {
           setSelectedSeasonId(seasons[0].id.toString());
@@ -149,62 +201,73 @@ export default function AddMatchForm({ teams, seasons, divisions, action }: Prop
         </div>
 
         <div className="space-y-4.5">
-          {matchups.map((row, index) => (
-            <div 
-              key={row.id} 
-              className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr_auto] gap-4 items-center bg-slate-950/40 p-4 border border-slate-900 rounded-2xl transition-colors hover:border-slate-850"
-            >
-              {/* Home Team */}
-              <div className="space-y-1.5">
-                <label className="text-[8px] font-black uppercase tracking-widest text-slate-600 ml-1.5">Home Club</label>
-                <select 
-                  name="homeTeamId" 
-                  required 
-                  className="w-full p-3.5 bg-slate-950 border border-slate-800/85 rounded-xl font-bold text-xs uppercase text-white outline-none focus:border-indigo-500 transition-all shadow-inner cursor-pointer"
-                >
-                  {filteredTeams.length > 0 ? (
-                    filteredTeams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)
-                  ) : (
-                    <option value="">No Teams Found</option>
-                  )}
-                </select>
-              </div>
+          {matchups.map((row, index) => {
+            // Rule 1: A team cannot play itself. 
+            // We filter out the selected Home team from the Away team options (and vice-versa)
+            const homeOptions = filteredTeams.filter(t => t.id.toString() !== row.awayTeamId);
+            const awayOptions = filteredTeams.filter(t => t.id.toString() !== row.homeTeamId);
 
-              {/* VS Divider Text */}
-              <div className="text-center font-black uppercase tracking-widest text-slate-700 text-[10px] md:pt-4">
-                vs
-              </div>
+            return (
+              <div 
+                key={row.id} 
+                className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr_auto] gap-4 items-center bg-slate-950/40 p-4 border border-slate-900 rounded-2xl transition-colors hover:border-slate-850"
+              >
+                {/* Home Team */}
+                <div className="space-y-1.5">
+                  <label className="text-[8px] font-black uppercase tracking-widest text-slate-600 ml-1.5">Home Club</label>
+                  <select 
+                    name="homeTeamId" 
+                    value={row.homeTeamId}
+                    onChange={(e) => handleHomeChange(row.id, e.target.value)}
+                    required 
+                    className="w-full p-3.5 bg-slate-950 border border-slate-800/85 rounded-xl font-bold text-xs uppercase text-white outline-none focus:border-indigo-500 transition-all shadow-inner cursor-pointer"
+                  >
+                    {homeOptions.length > 0 ? (
+                      homeOptions.map(t => <option key={t.id} value={t.id}>{t.name}</option>)
+                    ) : (
+                      <option value="">No Teams Found</option>
+                    )}
+                  </select>
+                </div>
 
-              {/* Away Team */}
-              <div className="space-y-1.5">
-                <label className="text-[8px] font-black uppercase tracking-widest text-slate-600 ml-1.5">Away Club</label>
-                <select 
-                  name="awayTeamId" 
-                  required 
-                  className="w-full p-3.5 bg-slate-950 border border-slate-800/85 rounded-xl font-bold text-xs uppercase text-white outline-none focus:border-indigo-500 transition-all shadow-inner cursor-pointer"
-                >
-                  {filteredTeams.length > 0 ? (
-                    filteredTeams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)
-                  ) : (
-                    <option value="">No Teams Found</option>
-                  )}
-                </select>
-              </div>
+                {/* VS Divider Text */}
+                <div className="text-center font-black uppercase tracking-widest text-slate-700 text-[10px] md:pt-4">
+                  vs
+                </div>
 
-              {/* Remove Row Button */}
-              <div className="flex justify-end md:pt-4">
-                <button
-                  type="button"
-                  title="Remove matchup row"
-                  onClick={() => removeMatchupRow(row.id)}
-                  disabled={matchups.length === 1}
-                  className="w-11 h-11 rounded-xl bg-slate-950 hover:bg-red-950/20 hover:text-red-400 border border-slate-850 flex items-center justify-center transition-colors text-slate-600 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-slate-600 cursor-pointer"
-                >
-                  <Trash2 className="w-4.5 h-4.5" />
-                </button>
+                {/* Away Team */}
+                <div className="space-y-1.5">
+                  <label className="text-[8px] font-black uppercase tracking-widest text-slate-600 ml-1.5">Away Club</label>
+                  <select 
+                    name="awayTeamId" 
+                    value={row.awayTeamId}
+                    onChange={(e) => handleAwayChange(row.id, e.target.value)}
+                    required 
+                    className="w-full p-3.5 bg-slate-950 border border-slate-800/85 rounded-xl font-bold text-xs uppercase text-white outline-none focus:border-indigo-500 transition-all shadow-inner cursor-pointer"
+                  >
+                    {awayOptions.length > 0 ? (
+                      awayOptions.map(t => <option key={t.id} value={t.id}>{t.name}</option>)
+                    ) : (
+                      <option value="">No Teams Found</option>
+                    )}
+                  </select>
+                </div>
+
+                {/* Remove Row Button */}
+                <div className="flex justify-end md:pt-4">
+                  <button
+                    type="button"
+                    title="Remove matchup row"
+                    onClick={() => removeMatchupRow(row.id)}
+                    disabled={matchups.length === 1}
+                    className="w-11 h-11 rounded-xl bg-slate-950 hover:bg-red-950/20 hover:text-red-400 border border-slate-850 flex items-center justify-center transition-colors text-slate-600 disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-slate-600 cursor-pointer"
+                  >
+                    <Trash2 className="w-4.5 h-4.5" />
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Add Matchup Row Button */}
@@ -212,17 +275,28 @@ export default function AddMatchForm({ teams, seasons, divisions, action }: Prop
           <button
             type="button"
             onClick={addMatchupRow}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-950 hover:bg-slate-900 border border-slate-850 text-indigo-400 rounded-xl font-black text-[10px] uppercase tracking-wider transition-all shadow-md cursor-pointer"
+            disabled={filteredTeams.length < 2}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-950 hover:bg-slate-900 border border-slate-850 text-indigo-400 rounded-xl font-black text-[10px] uppercase tracking-wider transition-all shadow-md cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Plus className="w-4 h-4" /> Add Matchup Row
           </button>
         </div>
       </div>
 
+      {/* VALIDATION ERRORS BANNER */}
+      {hasDuplicateMatchups() && (
+        <div className="p-4 bg-red-950/20 border border-red-900/40 rounded-2xl flex gap-3 text-red-400 relative z-10 shadow-inner">
+          <span className="text-[10px] font-black uppercase tracking-widest leading-relaxed">
+            ⚠️ Error: Duplicate matchups detected in this batch. Every pairing must be unique.
+          </span>
+        </div>
+      )}
+
       <div className="pt-4 relative z-10 flex justify-end">
         <button 
           type="submit" 
-          className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-4.5 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all shadow-lg shadow-indigo-900/20 active:scale-95 flex items-center justify-center gap-2"
+          disabled={isFormInvalid}
+          className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-4.5 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all shadow-lg shadow-indigo-900/20 active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Execute Batch Insertion
         </button>

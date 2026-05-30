@@ -119,26 +119,56 @@ export default async function AdminMatchesPage({ searchParams }: PageProps) {
       return;
     }
 
-    const insertValues = [];
     const matchDate = new Date(`${matchDateStr}T20:00:00`);
+
+    // 1. Fetch existing matches for this division and week to check duplicates on the database level
+    const existingMatches = await db.query.matches.findMany({
+      where: (m, { and, eq }) => and(
+        eq(m.divisionId, divisionId),
+        eq(m.weekNumber, weekNumber)
+      )
+    });
+
+    const insertValues = [];
+    const seenMatchups = new Set<string>();
 
     for (let i = 0; i < homeTeamIds.length; i++) {
       const homeTeamId = homeTeamIds[i];
       const awayTeamId = awayTeamIds[i];
 
-      if (homeTeamId && awayTeamId) {
-        insertValues.push({
-          seasonId,
-          divisionId,
-          homeTeamId,
-          awayTeamId,
-          weekNumber,
-          date: matchDate,
-          status: "scheduled" as const,
-          homeScore: 0,
-          awayScore: 0,
-        });
-      }
+      if (!homeTeamId || !awayTeamId) continue;
+
+      // Rule 1: Same team can't play each other
+      if (homeTeamId === awayTeamId) continue;
+
+      // Rule 2a: Deduplicate within the current batch (order-independent matchup check)
+      const matchupKey = [homeTeamId, awayTeamId].sort((a, b) => a - b).join('-');
+      if (seenMatchups.has(matchupKey)) continue;
+      seenMatchups.add(matchupKey);
+
+      // Rule 2b: Check duplicates against existing database records for the same division/week (order-independent)
+      const isDuplicate = existingMatches.some(em => {
+        const emHome = em.homeTeamId;
+        const emAway = em.awayTeamId;
+        return (
+          (emHome === homeTeamId && emAway === awayTeamId) ||
+          (emHome === awayTeamId && emAway === homeTeamId)
+        );
+      });
+
+      if (isDuplicate) continue;
+
+      insertValues.push({
+        seasonId,
+        divisionId,
+        homeTeamId,
+        awayTeamId,
+        weekNumber,
+        date: matchDate,
+        status: "scheduled" as const,
+        homeScore: 0,
+        awayScore: 0,
+      });
     }
 
     if (insertValues.length > 0) {
