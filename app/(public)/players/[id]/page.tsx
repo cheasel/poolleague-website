@@ -101,10 +101,13 @@ export default async function PlayerProfilePage({ params }: PageProps) {
   const { id } = await params;
   const playerId = Number(id);
 
-  // Run all 3 queries sequentially to avoid deadlock on cache misses
-  const player = await getCachedPlayerProfile(playerId);
-  const allSeasons = await getCachedSeasons();
-  const rawGames = await getCachedPlayerGames(playerId);
+  // Run all 3 queries in parallel — on cache miss they queue on the single
+  // DB connection, but on cache hit (most requests) they return instantly from memory.
+  const [player, allSeasons, rawGames] = await Promise.all([
+    getCachedPlayerProfile(playerId),
+    getCachedSeasons(),
+    getCachedPlayerGames(playerId),
+  ]);
 
   if (!player) {
     return <div className="p-20 text-center font-black uppercase text-slate-400">Player profile sheet unavailable.</div>;
@@ -112,16 +115,16 @@ export default async function PlayerProfilePage({ params }: PageProps) {
 
   return (
     <div className="min-h-screen bg-slate-950 pb-16 text-slate-100">
-      
+
       {/* HERO SECTION */}
       <div className="relative overflow-hidden bg-slate-950 border-b border-slate-900/60">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#0f172a_1px,transparent_1px),linear-gradient(to_bottom,#0f172a_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-60 pointer-events-none" />
-        
+
         <div className="max-w-6xl mx-auto px-4 py-8 relative z-10 space-y-6">
           <Link href="/players" prefetch={false} className="inline-flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-indigo-400 transition-all">
             <ArrowLeft className="w-4 h-4" /> Return to Analytics Leaderboard
           </Link>
-          
+
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400 block mb-1">Competitor Profile</span>
@@ -139,7 +142,7 @@ export default async function PlayerProfilePage({ params }: PageProps) {
           playerName={player.name}
           imageUrl={player.imageUrl}
           teamName={player.teamName || "Unassigned Agent"}
-          games={rawGames as any} 
+          games={rawGames as any}
           seasons={allSeasons}
         />
       </div>
