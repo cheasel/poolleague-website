@@ -105,6 +105,34 @@ export default async function AdminMatchesPage({ searchParams }: PageProps) {
     revalidatePath("/admin/matches");
   }
 
+  async function addMatchAction(formData: FormData) {
+    "use server";
+    const seasonId = Number(formData.get("seasonId"));
+    const divisionId = Number(formData.get("divisionId"));
+    const homeTeamId = Number(formData.get("homeTeamId"));
+    const awayTeamId = Number(formData.get("awayTeamId"));
+    const weekNumber = Number(formData.get("weekNumber") || 1);
+    const matchDateStr = formData.get("matchDate") as string;
+
+    if (!seasonId || !divisionId || !homeTeamId || !awayTeamId || !matchDateStr) {
+      return;
+    }
+
+    await db.insert(matches).values({
+      seasonId,
+      divisionId,
+      homeTeamId,
+      awayTeamId,
+      weekNumber,
+      date: new Date(matchDateStr),
+      status: "scheduled",
+      homeScore: 0,
+      awayScore: 0,
+    });
+
+    revalidatePath("/admin/matches");
+  }
+
   return (
     <MatchDashboard
       activeMatchId={activeMatchId}
@@ -116,6 +144,7 @@ export default async function AdminMatchesPage({ searchParams }: PageProps) {
       currentMatchGames={currentMatchGames}
       allPlayersRaw={allPlayersRaw}
       addFrameAction={addFrameAction}
+      addMatchAction={addMatchAction}
       seasons={allSeasons}
       divisions={allDivisions}
     />

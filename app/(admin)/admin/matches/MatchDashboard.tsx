@@ -5,6 +5,7 @@ import { Calendar, CheckSquare, Plus, Search, Eye, MapPin, Shield, Filter } from
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import AddMatchForm from './add-match-form';
 
 interface SeasonRow {
   id: number;
@@ -60,6 +61,7 @@ interface MatchDashboardProps {
   currentMatchGames: any[];
   allPlayersRaw: any[];
   addFrameAction: (formData: FormData) => Promise<void>;
+  addMatchAction: (formData: FormData) => Promise<void>;
   seasons: SeasonRow[];
   divisions: DivisionRow[];
 }
@@ -69,13 +71,15 @@ export default function MatchDashboard({
   rawTeams,
   sortParam,
   seasons,
-  divisions
+  divisions,
+  addMatchAction
 }: MatchDashboardProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'fixtures' | 'results'>('fixtures');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSeasonId, setSelectedSeasonId] = useState<string>("all");
   const [selectedDivisionId, setSelectedDivisionId] = useState<string>("all");
+  const [isAddOpen, setIsAddOpen] = useState(false);
 
   const handleSeasonChange = (seasonId: string) => {
     setSelectedSeasonId(seasonId);
@@ -147,12 +151,18 @@ export default function MatchDashboard({
             </p>
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={toggleSort}
               className="px-3 py-2.5 bg-slate-900 border border-slate-800 text-slate-400 font-mono text-[10px] uppercase font-black tracking-wider rounded-xl hover:text-white transition-all cursor-pointer"
             >
               Date Sort: {sortParam.toUpperCase()}
+            </button>
+            <button
+              onClick={() => setIsAddOpen(!isAddOpen)}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-white rounded-xl font-black text-xs uppercase tracking-wider transition-all shadow-lg cursor-pointer"
+            >
+              <Plus className="w-4 h-4 text-indigo-400" /> {isAddOpen ? 'Close Form' : 'Add Match'}
             </button>
             <Link
               href="/admin/matches/generator"
@@ -162,6 +172,20 @@ export default function MatchDashboard({
             </Link>
           </div>
         </div>
+
+        {isAddOpen && (
+          <div className="animate-in fade-in slide-in-from-top-4 duration-250">
+            <AddMatchForm 
+              teams={rawTeams} 
+              seasons={seasons} 
+              divisions={divisions} 
+              action={async (formData) => {
+                await addMatchAction(formData);
+                setIsAddOpen(false);
+              }} 
+            />
+          </div>
+        )}
 
         {/* CONTROLS BAR CONTAINER WITH DROPDOWN FILTERS */}
         <div className="space-y-4 bg-slate-900/40 border border-slate-900 p-4 rounded-3xl">

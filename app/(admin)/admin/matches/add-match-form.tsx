@@ -1,15 +1,28 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 
 interface Props {
   teams: { id: number; name: string }[];
   seasons: { id: number; name: string }[];
+  divisions: { id: number; name: string; seasonId: number | null }[];
   action: (formData: FormData) => Promise<void>;
 }
 
-export default function AddMatchForm({ teams, seasons, action }: Props) {
+export default function AddMatchForm({ teams, seasons, divisions, action }: Props) {
   const formRef = useRef<HTMLFormElement>(null);
+  
+  // Dynamic local state to filter divisions by season
+  const [selectedSeasonId, setSelectedSeasonId] = useState(seasons[0]?.id?.toString() || '');
+  const [filteredDivisions, setFilteredDivisions] = useState<typeof divisions>([]);
+
+  useEffect(() => {
+    if (selectedSeasonId) {
+      setFilteredDivisions(divisions.filter(d => d.seasonId?.toString() === selectedSeasonId));
+    } else {
+      setFilteredDivisions([]);
+    }
+  }, [selectedSeasonId, divisions]);
 
   return (
     <form 
@@ -17,21 +30,43 @@ export default function AddMatchForm({ teams, seasons, action }: Props) {
       action={async (formData) => {
         await action(formData);
         formRef.current?.reset();
+        // Reset local selected season to trigger correct filtered list state
+        if (seasons[0]) {
+          setSelectedSeasonId(seasons[0].id.toString());
+        }
       }}
       className="bg-slate-900/40 backdrop-blur-md p-8 rounded-[2rem] border border-slate-900 shadow-2xl mb-12 relative overflow-hidden group hover:border-slate-800 transition-all"
     >
       <div className="absolute top-0 right-0 w-64 h-full bg-indigo-600/5 blur-[100px] rounded-full pointer-events-none"></div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 relative z-10">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6 relative z-10">
         {/* Season Select */}
         <div className="space-y-2">
           <label className="text-[10px] font-black uppercase tracking-widest text-slate-600 ml-2">Season Block</label>
           <select 
             name="seasonId" 
+            value={selectedSeasonId}
+            onChange={(e) => setSelectedSeasonId(e.target.value)}
             required 
             className="w-full p-3.5 bg-slate-950 border border-slate-800 rounded-xl font-bold text-xs uppercase text-white outline-none focus:border-indigo-500 transition-all shadow-inner"
           >
             {seasons.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+        </div>
+
+        {/* Division Select */}
+        <div className="space-y-2">
+          <label className="text-[10px] font-black uppercase tracking-widest text-slate-600 ml-2">League Division</label>
+          <select 
+            name="divisionId" 
+            required 
+            className="w-full p-3.5 bg-slate-950 border border-slate-800 rounded-xl font-bold text-xs uppercase text-white outline-none focus:border-indigo-500 transition-all shadow-inner"
+          >
+            {filteredDivisions.length > 0 ? (
+              filteredDivisions.map(d => <option key={d.id} value={d.id}>{d.name}</option>)
+            ) : (
+              <option value="">No Divisions</option>
+            )}
           </select>
         </div>
 
@@ -57,6 +92,19 @@ export default function AddMatchForm({ teams, seasons, action }: Props) {
           >
             {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
           </select>
+        </div>
+
+        {/* Week Number */}
+        <div className="space-y-2">
+          <label className="text-[10px] font-black uppercase tracking-widest text-slate-600 ml-2">Week Number</label>
+          <input 
+            name="weekNumber" 
+            type="number" 
+            min="1"
+            defaultValue="1"
+            required 
+            className="w-full p-3.5 bg-slate-950 border border-slate-800 rounded-xl font-bold text-xs text-white uppercase outline-none focus:border-indigo-500 transition-all shadow-inner" 
+          />
         </div>
 
         {/* Match Date */}
