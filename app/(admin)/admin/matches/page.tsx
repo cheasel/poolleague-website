@@ -124,7 +124,7 @@ export default async function AdminMatchesPage({ searchParams }: PageProps) {
       homeTeamId,
       awayTeamId,
       weekNumber,
-      date: new Date(matchDateStr),
+      date: new Date(`${matchDateStr}T20:00:00`),
       status: "scheduled",
       homeScore: 0,
       awayScore: 0,

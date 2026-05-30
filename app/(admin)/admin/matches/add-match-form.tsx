@@ -142,10 +142,10 @@ export default function AddMatchForm({ teams, seasons, divisions, action }: Prop
 
         {/* Match Date */}
         <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase tracking-widest text-slate-600 ml-2">Event Timestamp</label>
+          <label className="text-[10px] font-black uppercase tracking-widest text-slate-600 ml-2">Match Date (8:00 PM)</label>
           <input 
             name="matchDate" 
-            type="datetime-local" 
+            type="date" 
             required 
             className="w-full p-3.5 bg-slate-950 border border-slate-800 rounded-xl font-bold text-xs text-white uppercase outline-none focus:border-indigo-500 transition-all shadow-inner" 
           />
