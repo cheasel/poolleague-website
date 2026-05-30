@@ -10,11 +10,14 @@ export async function updateSession(request: NextRequest) {
   const isAdminPage = pathname.startsWith('/admin')
   const isLoginPage = pathname === '/login'
 
-  // OPTIMIZATION: Skip Supabase auth entirely for public routes.
-  // The getUser() call makes an external HTTP request to Supabase auth servers,
-  // which adds latency and can hang on slow mobile connections. Public pages
-  // (standings, players, teams, matches) don't need authentication at all.
-  if (!isAdminPage && !isLoginPage) {
+  // OPTIMIZATION: Skip Supabase auth entirely for Next.js prefetch requests and public routes.
+  // Next.js prefetch requests are triggered automatically for any <Link> on the screen.
+  // Skipping them prevents hitting GoTrue rate limits and connection pooling issues.
+  // The session will still be validated when the user actually navigates (clicks the link).
+  const isPrefetch = request.headers.get('x-middleware-prefetch') === '1' || 
+                     request.headers.get('purpose') === 'prefetch'
+
+  if (isPrefetch || (!isAdminPage && !isLoginPage)) {
     return supabaseResponse
   }
 
