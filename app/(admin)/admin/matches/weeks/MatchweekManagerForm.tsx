@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Calendar, Filter, Save, Undo, AlertTriangle, AlertCircle, ArrowLeft, Sliders } from "lucide-react";
+import { Calendar, Filter, Save, Undo, AlertTriangle, AlertCircle, ArrowLeft, Sliders, GripVertical } from "lucide-react";
 import Link from "next/link";
 
 interface SeasonRow {
@@ -57,6 +57,46 @@ export default function MatchweekManagerForm({
     setWeeks(initialWeekData);
     setSaveSuccess(false);
   }, [initialWeekData]);
+
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    e.dataTransfer.setData("text/plain", index.toString());
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (dragOverIndex !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, targetIndex: number) => {
+    e.preventDefault();
+    setDragOverIndex(null);
+    
+    const sourceIndexStr = e.dataTransfer.getData("text/plain");
+    const sourceIndex = parseInt(sourceIndexStr, 10);
+    
+    if (isNaN(sourceIndex) || sourceIndex === targetIndex) return;
+
+    const updatedWeeks = [...weeks];
+    const [draggedItem] = updatedWeeks.splice(sourceIndex, 1);
+    updatedWeeks.splice(targetIndex, 0, draggedItem);
+
+    // Auto re-index all weeks 1-indexed to keep uniqueness and preserve sequence
+    const reindexedWeeks = updatedWeeks.map((item, idx) => ({
+      ...item,
+      weekNumber: idx + 1,
+    }));
+
+    setWeeks(reindexedWeeks);
+  };
 
   const handleSeasonChange = (seasonId: string) => {
     setSelectedSeasonId(seasonId);
@@ -230,6 +270,7 @@ export default function MatchweekManagerForm({
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="border-b border-slate-900/80 bg-slate-950/80 text-[10px] font-black uppercase tracking-widest text-slate-500">
+                      <th className="p-4 w-12 text-center"></th>
                       <th className="p-4 w-28 text-center">Week Number</th>
                       <th className="p-4 w-48">Scheduled Date</th>
                       <th className="p-4">Week Matches Preview</th>
@@ -242,8 +283,23 @@ export default function MatchweekManagerForm({
                       return (
                         <tr 
                           key={week.originalWeek}
-                          className="hover:bg-slate-900/20 transition-colors"
+                          draggable={!isPending}
+                          onDragStart={(e) => handleDragStart(e, idx)}
+                          onDragOver={(e) => handleDragOver(e, idx)}
+                          onDragLeave={handleDragLeave}
+                          onDragEnd={handleDragLeave}
+                          onDrop={(e) => handleDrop(e, idx)}
+                          className={`transition-all duration-200 ${
+                            isPending ? "opacity-50 pointer-events-none" : ""
+                          } ${
+                            dragOverIndex === idx 
+                              ? "border-t-2 border-t-indigo-500 bg-indigo-950/20" 
+                              : "hover:bg-slate-900/20"
+                          }`}
                         >
+                          <td className="p-4 text-center cursor-grab active:cursor-grabbing text-slate-600 hover:text-slate-400 transition-colors">
+                            <GripVertical className="w-4 h-4 mx-auto" />
+                          </td>
                           <td className="p-4 text-center">
                             <input
                               type="number"
