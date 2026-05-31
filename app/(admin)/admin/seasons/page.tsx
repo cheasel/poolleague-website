@@ -1,5 +1,5 @@
 import { db } from "@/src/db";
-import { seasons } from "@/src/db/schema";
+import { seasons, divisions, teamRegistrations } from "@/src/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { History, Plus, Calendar, Trash2, ToggleLeft,Edit2 } from "lucide-react";
@@ -19,6 +19,7 @@ export default async function AdminSeasonsPage() {
     const name = formData.get("seasonName") as string;
     const startStr = formData.get("startDate") as string;
     const endStr = formData.get("endDate") as string;
+    const clonePrevious = formData.get("clonePrevious") === "true";
 
     if (!name || name.trim() === "" || !startStr) return;
 
@@ -33,11 +34,63 @@ export default async function AdminSeasonsPage() {
       }
     }
 
-    await db.insert(seasons).values({
-      name: name.trim(),
-      startDate,
-      endDate,
-      isActive: false,
+    await db.transaction(async (tx) => {
+      // 1. Fetch latest season before inserting new one
+      const [latestSeason] = await tx
+        .select()
+        .from(seasons)
+        .orderBy(desc(seasons.startDate), desc(seasons.id))
+        .limit(1);
+
+      // 2. Insert new season
+      const [newSeason] = await tx
+        .insert(seasons)
+        .values({
+          name: name.trim(),
+          startDate,
+          endDate,
+          isActive: false,
+        })
+        .returning();
+
+      // 3. Clone if requested
+      if (clonePrevious && latestSeason && newSeason) {
+        // Fetch divisions from latest season
+        const oldDivisions = await tx
+          .select()
+          .from(divisions)
+          .where(eq(divisions.seasonId, latestSeason.id));
+
+        for (const oldDiv of oldDivisions) {
+          // Insert matching division for new season
+          const [newDiv] = await tx
+            .insert(divisions)
+            .values({
+              name: oldDiv.name,
+              tier: oldDiv.tier,
+              seasonId: newSeason.id,
+            })
+            .returning();
+
+          if (newDiv) {
+            // Fetch team registrations from old division
+            const oldRegs = await tx
+              .select()
+              .from(teamRegistrations)
+              .where(eq(teamRegistrations.divisionId, oldDiv.id));
+
+            if (oldRegs.length > 0) {
+              await tx.insert(teamRegistrations).values(
+                oldRegs.map((reg) => ({
+                  teamId: reg.teamId,
+                  seasonId: newSeason.id,
+                  divisionId: newDiv.id,
+                }))
+              );
+            }
+          }
+        }
+      }
     });
 
     revalidatePath("/admin/seasons");
@@ -181,9 +234,23 @@ export default async function AdminSeasonsPage() {
               />
             </div>
 
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-black uppercase tracking-wider text-slate-600 ml-1">Clone Divisions & Teams</label>
+              <div className="relative">
+                <select
+                  name="clonePrevious"
+                  className="w-full p-3.5 bg-slate-950 border border-slate-800 focus:border-rose-500 rounded-xl outline-none font-bold text-white text-xs appearance-none pr-10 cursor-pointer"
+                >
+                  <option value="true">Clone divisions & teams from latest season</option>
+                  <option value="false">Start fresh (Empty Season)</option>
+                </select>
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500 text-xs">▼</div>
+              </div>
+            </div>
+
             <button 
               type="submit" 
-              className="w-full mt-2 inline-flex items-center justify-center gap-1.5 bg-rose-600 hover:bg-rose-500 text-white font-black uppercase tracking-widest text-[10px] py-4 px-4 rounded-xl transition-all shadow-lg shadow-rose-900/20"
+              className="w-full mt-2 inline-flex items-center justify-center gap-1.5 bg-rose-600 hover:bg-rose-500 text-white font-black uppercase tracking-widest text-[10px] py-4 px-4 rounded-xl transition-all shadow-lg shadow-rose-900/20 cursor-pointer"
             >
               <Plus className="w-4 h-4 stroke-[2.5]" /> Launch Season Block
             </button>
