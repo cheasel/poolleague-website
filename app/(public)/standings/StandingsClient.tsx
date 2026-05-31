@@ -52,7 +52,7 @@ interface StandingsClientProps {
   fixturesByWeek: {
     weekNumber: number;
     matches: MatchRow[];
-  } | null;
+  }[];
   isTopTier?: boolean;
 }
 
@@ -63,7 +63,7 @@ export default function StandingsClient({
   selectedSeasonId,
   selectedDivisionId,
   resultsByWeek = [],
-  fixturesByWeek = null,
+  fixturesByWeek = [],
   isTopTier = true
 }: StandingsClientProps) {
   const router = useRouter();
@@ -489,39 +489,43 @@ export default function StandingsClient({
               </Link>
             </div>
 
-            {!fixturesByWeek || fixturesByWeek.matches.length === 0 ? (
+            {fixturesByWeek.length === 0 ? (
               <p className="text-xs font-medium text-slate-500 py-12 text-center border border-dashed border-slate-800 rounded-2xl">
                 No upcoming match fixtures scheduled.
               </p>
             ) : (
-              <div className="space-y-3">
-                <span className="inline-flex items-center bg-slate-950/60 border border-slate-800 text-[10px] text-slate-400 px-2 py-0.5 rounded-full font-black uppercase tracking-wider">
-                  Week {fixturesByWeek.weekNumber}
-                </span>
-                <div className="divide-y divide-slate-800/40 border border-slate-900 bg-slate-950/20 rounded-2xl overflow-hidden">
-                  {fixturesByWeek.matches.map((match) => (
-                    <Link
-                      key={match.id}
-                      href={`/matches/${match.id}`}
-                      className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-slate-900/30 transition-colors group/fixture"
-                    >
-                      <div className="flex-1 flex items-center justify-between sm:justify-center gap-4 w-full">
-                        <div className="text-right flex-1 font-black text-slate-300 uppercase tracking-tight text-xs truncate group-hover/fixture:text-indigo-400 transition-colors">
-                          {match.homeTeam}
-                        </div>
-                        <div className="bg-slate-950 text-slate-500 border border-slate-800 rounded-lg px-2.5 py-1 font-bold text-[9px] uppercase tracking-widest flex items-center gap-0.5 shadow-inner shrink-0">
-                          VS
-                        </div>
-                        <div className="text-left flex-1 font-black text-slate-300 uppercase tracking-tight text-xs truncate group-hover/fixture:text-indigo-400 transition-colors">
-                          {match.awayTeam}
-                        </div>
-                      </div>
-                      <div className="text-[10px] font-semibold text-slate-500 font-mono text-center sm:text-right shrink-0 mt-1 sm:mt-0">
-                        {match.date}
-                      </div>
-                    </Link>
-                  ))}
-                </div>
+              <div className="space-y-6">
+                {fixturesByWeek.map((week) => (
+                  <div key={week.weekNumber} className="space-y-3">
+                    <span className="inline-flex items-center bg-slate-950/60 border border-slate-800 text-[10px] text-slate-400 px-2 py-0.5 rounded-full font-black uppercase tracking-wider">
+                      Week {week.weekNumber}
+                    </span>
+                    <div className="divide-y divide-slate-800/40 border border-slate-900 bg-slate-950/20 rounded-2xl overflow-hidden">
+                      {week.matches.map((match) => (
+                        <Link
+                          key={match.id}
+                          href={`/matches/${match.id}`}
+                          className="p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 hover:bg-slate-900/30 transition-colors group/fixture"
+                        >
+                          <div className="flex-1 flex items-center justify-between sm:justify-center gap-4 w-full">
+                            <div className="text-right flex-1 font-black text-slate-300 uppercase tracking-tight text-xs truncate group-hover/fixture:text-indigo-400 transition-colors">
+                              {match.homeTeam}
+                            </div>
+                            <div className="bg-slate-950 text-slate-500 border border-slate-800 rounded-lg px-2.5 py-1 font-bold text-[9px] uppercase tracking-widest flex items-center gap-0.5 shadow-inner shrink-0">
+                              VS
+                            </div>
+                            <div className="text-left flex-1 font-black text-slate-300 uppercase tracking-tight text-xs truncate group-hover/fixture:text-indigo-400 transition-colors">
+                              {match.awayTeam}
+                            </div>
+                          </div>
+                          <div className="text-[10px] font-semibold text-slate-500 font-mono text-center sm:text-right shrink-0 mt-1 sm:mt-0">
+                            {match.date}
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>

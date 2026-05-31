@@ -259,13 +259,13 @@ export default async function PublicStandingsPage({ searchParams }: PageProps) {
     matches: completed.filter(m => m.weekNumber === weekNum)
   }));
 
-  // Get next matchday with upcoming matches
+  // Get next 2 matchdays with upcoming matches
   const upcomingWeeks = Array.from(new Set(upcoming.map(m => m.weekNumber))).sort((a, b) => a - b);
-  const nextWeek = upcomingWeeks[0] ?? null;
-  const fixturesByWeek = nextWeek !== null ? {
-    weekNumber: nextWeek,
-    matches: upcoming.filter(m => m.weekNumber === nextWeek)
-  } : null;
+  const next2Weeks = upcomingWeeks.slice(0, 2);
+  const fixturesByWeek = next2Weeks.map(weekNum => ({
+    weekNumber: weekNum,
+    matches: upcoming.filter(m => m.weekNumber === weekNum)
+  }));
 
   return (
     <div className="min-h-screen bg-slate-950 pb-16 text-slate-100">
