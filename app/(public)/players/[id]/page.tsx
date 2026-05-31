@@ -22,15 +22,13 @@ const getCachedPlayerProfile = unstable_cache(
         id: players.id,
         name: players.name,
         imageUrl: players.imageUrl,
-        teamName: teams.name,
       })
       .from(players)
-      .leftJoin(teams, eq(players.teamId, teams.id))
       .where(eq(players.id, playerId));
     return row || null;
   },
   ["player-profile"],
-  { revalidate: 60, tags: ["players", "teams"] }
+  { revalidate: 60, tags: ["players"] }
 );
 
 const getCachedPlayerMemberships = unstable_cache(
@@ -91,7 +89,7 @@ const getCachedPlayerGames = unstable_cache(
       .leftJoin(matches, eq(matchGames.matchId, matches.id))
       .leftJoin(homeTeams, eq(matches.homeTeamId, homeTeams.id))
       .leftJoin(awayTeams, eq(matches.awayTeamId, awayTeams.id))
-      .leftJoin(divisions, eq(homeTeams.divisionId, divisions.id))
+      .leftJoin(divisions, eq(matches.divisionId, divisions.id))
       .leftJoin(seasons, eq(divisions.seasonId, seasons.id))
       .leftJoin(p1, eq(matchGames.player1Id, p1.id))
       .leftJoin(p1p, eq(matchGames.player1PartnerId, p1p.id))
@@ -154,7 +152,7 @@ export default async function PlayerProfilePage({ params }: PageProps) {
           playerId={playerId}
           playerName={player.name}
           imageUrl={player.imageUrl}
-          teamName={player.teamName || "Unassigned Agent"}
+          teamName="Unassigned Agent"
           games={rawGames as any}
           seasons={allSeasons}
           memberships={memberships}

@@ -139,31 +139,6 @@ export default async function MatchScorecardPage({ params }: PageProps) {
           status: uploadedRacks.length > 0 ? "completed" : "scheduled",
         })
         .where(eq(matches.id, matchId));
-
-      // 4. Recalculate and update league points for both teams inside the transaction
-      const targetTeamIds = [match.homeTeamId, match.awayTeamId].filter(Boolean) as number[];
-      for (const teamId of targetTeamIds) {
-        const completedMatches = await tx
-          .select()
-          .from(matches)
-          .where(
-            and(
-              eq(matches.status, "completed"),
-              or(eq(matches.homeTeamId, teamId), eq(matches.awayTeamId, teamId))
-            )
-          );
-
-        let leaguePoints = 0;
-        completedMatches.forEach((m) => {
-          const isHome = m.homeTeamId === teamId;
-          const hScore = m.homeScore ?? 0;
-          const aScore = m.awayScore ?? 0;
-          const won = isHome ? hScore > aScore : aScore > hScore;
-          if (won) leaguePoints += 2;
-        });
-
-        await tx.update(teams).set({ points: leaguePoints }).where(eq(teams.id, teamId));
-      }
     });
 
     // Invalidate all affected cache tags so every page reflects the new state

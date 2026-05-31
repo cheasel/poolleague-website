@@ -1,5 +1,5 @@
 import { db } from "@/src/db";
-import { players, teams, seasons, teamMemberships } from "@/src/db/schema";
+import { players, teams, seasons, teamMemberships, teamRegistrations } from "@/src/db/schema";
 import { eq, asc, and, desc, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { Plus } from "lucide-react";
@@ -64,18 +64,26 @@ export default async function AdminPlayersPage({ searchParams }: PageProps) {
         .insert(players)
         .values({
           name,
-          teamId: teamId || null,
         })
         .returning();
 
       // If team and season are specified, insert season membership
       if (insertedPlayer && teamId && seasonId) {
-        const [team] = await tx.select().from(teams).where(eq(teams.id, teamId));
+        const [reg] = await tx
+          .select()
+          .from(teamRegistrations)
+          .where(
+            and(
+              eq(teamRegistrations.teamId, teamId),
+              eq(teamRegistrations.seasonId, seasonId)
+            )
+          );
+
         await tx.insert(teamMemberships).values({
           playerId: insertedPlayer.id,
           teamId,
           seasonId,
-          divisionId: team?.divisionId || null,
+          divisionId: reg?.divisionId || null,
         });
       }
     });
@@ -117,20 +125,23 @@ export default async function AdminPlayersPage({ searchParams }: PageProps) {
 
       // Create new membership if team is selected
       if (teamId) {
-        const [team] = await tx.select().from(teams).where(eq(teams.id, teamId));
+        const [reg] = await tx
+          .select()
+          .from(teamRegistrations)
+          .where(
+            and(
+              eq(teamRegistrations.teamId, teamId),
+              eq(teamRegistrations.seasonId, seasonId)
+            )
+          );
+
         await tx.insert(teamMemberships).values({
           playerId,
           teamId,
           seasonId,
-          divisionId: team?.divisionId || null,
+          divisionId: reg?.divisionId || null,
         });
       }
-
-      // Sync global current teamId
-      await tx
-        .update(players)
-        .set({ teamId: teamId || null })
-        .where(eq(players.id, playerId));
     });
 
     revalidatePath("/admin/players");

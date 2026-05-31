@@ -1,5 +1,5 @@
 import { db } from "@/src/db";
-import { matches, teams, matchGames, players, seasons, divisions } from "@/src/db/schema";
+import { matches, teams, matchGames, players, seasons, divisions, teamMemberships, teamRegistrations } from "@/src/db/schema";
 import { eq, asc, desc, sql, inArray, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import MatchDashboard from "./MatchDashboard";
@@ -40,8 +40,15 @@ export default async function AdminMatchesPage({ searchParams }: PageProps) {
 
   const allSeasons = await db.select().from(seasons).orderBy(desc(seasons.startDate));
   const allDivisions = await db.select().from(divisions).orderBy(asc(divisions.name));
-  const rawTeams = await db.select().from(teams);
-  const allPlayersRaw = await db.select().from(players);
+  const rawTeams = await db
+    .select({
+      id: teams.id,
+      name: teams.name,
+      divisionId: teamRegistrations.divisionId,
+      homeVenueId: teams.homeVenueId,
+    })
+    .from(teamRegistrations)
+    .innerJoin(teams, eq(teamRegistrations.teamId, teams.id));
 
   const activeMatch = allMatches.find((m) => m.id === activeMatchId);
   
@@ -49,10 +56,40 @@ export default async function AdminMatchesPage({ searchParams }: PageProps) {
   let availableAwayPlayers: any[] = [];
   let currentMatchGames: any[] = [];
 
-  if (activeMatch && activeMatch.homeTeamId && activeMatch.awayTeamId) {
-    availableHomePlayers = allPlayersRaw.filter(p => p.teamId === activeMatch.homeTeamId);
-    availableAwayPlayers = allPlayersRaw.filter(p => p.teamId === activeMatch.awayTeamId);
-    currentMatchGames = await db.select().from(matchGames).where(eq(matchGames.matchId, activeMatch.id)).orderBy(asc(matchGames.gameOrder));
+  if (activeMatch && activeMatch.homeTeamId && activeMatch.awayTeamId && activeMatch.seasonId) {
+    availableHomePlayers = await db
+      .select({
+        id: players.id,
+        name: players.name,
+      })
+      .from(teamMemberships)
+      .innerJoin(players, eq(teamMemberships.playerId, players.id))
+      .where(
+        and(
+          eq(teamMemberships.teamId, activeMatch.homeTeamId),
+          eq(teamMemberships.seasonId, activeMatch.seasonId)
+        )
+      );
+
+    availableAwayPlayers = await db
+      .select({
+        id: players.id,
+        name: players.name,
+      })
+      .from(teamMemberships)
+      .innerJoin(players, eq(teamMemberships.playerId, players.id))
+      .where(
+        and(
+          eq(teamMemberships.teamId, activeMatch.awayTeamId),
+          eq(teamMemberships.seasonId, activeMatch.seasonId)
+        )
+      );
+
+    currentMatchGames = await db
+      .select()
+      .from(matchGames)
+      .where(eq(matchGames.matchId, activeMatch.id))
+      .orderBy(asc(matchGames.gameOrder));
   }
 
   // Server Actions passed cleanly across the wire boundary
@@ -225,7 +262,6 @@ export default async function AdminMatchesPage({ searchParams }: PageProps) {
       availableHomePlayers={availableHomePlayers}
       availableAwayPlayers={availableAwayPlayers}
       currentMatchGames={currentMatchGames}
-      allPlayersRaw={allPlayersRaw}
       addFrameAction={addFrameAction}
       addMatchAction={addMatchAction}
       clearDivisionScheduleAction={clearDivisionScheduleAction}

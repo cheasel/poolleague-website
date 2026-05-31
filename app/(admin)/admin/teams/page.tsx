@@ -1,5 +1,5 @@
 import { db } from "@/src/db";
-import { teams, divisions, seasons, venues, players, teamRegistrations } from "@/src/db/schema";
+import { teams, divisions, seasons, venues, players, teamRegistrations, teamMemberships } from "@/src/db/schema";
 import { eq, asc, desc, count, sql, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { Trophy, Users, Hash, Plus, Trash2, Pencil, MapPin } from "lucide-react";
@@ -74,11 +74,12 @@ export default async function AdminTeamsPage({ searchParams }: PageProps) {
 
   const playerCounts = await db
     .select({
-      teamId: players.teamId,
+      teamId: teamMemberships.teamId,
       value: count(),
     })
-    .from(players)
-    .groupBy(players.teamId);
+    .from(teamMemberships)
+    .where(selectedSeasonId ? eq(teamMemberships.seasonId, selectedSeasonId) : undefined)
+    .groupBy(teamMemberships.teamId);
 
   const venueCountsMap = venueCounts.reduce((acc, v) => {
     if (v.homeVenueId) acc[v.homeVenueId] = v.value;
@@ -137,11 +138,7 @@ export default async function AdminTeamsPage({ searchParams }: PageProps) {
           .insert(teams)
           .values({
             name: name.trim(),
-            divisionId,
             homeVenueId,
-            points: 0,
-            setsWon: 0,
-            setsLost: 0,
           })
           .returning();
 
@@ -151,9 +148,7 @@ export default async function AdminTeamsPage({ searchParams }: PageProps) {
       } else {
         // Associate existing team
         if (homeVenueId !== null) {
-          await tx.update(teams).set({ homeVenueId, divisionId }).where(eq(teams.id, targetTeamId));
-        } else {
-          await tx.update(teams).set({ divisionId }).where(eq(teams.id, targetTeamId));
+          await tx.update(teams).set({ homeVenueId }).where(eq(teams.id, targetTeamId));
         }
       }
 
@@ -184,8 +179,9 @@ export default async function AdminTeamsPage({ searchParams }: PageProps) {
   async function deleteTeam(formData: FormData) {
     "use server";
     const id = Number(formData.get("id"));
-    // Explicitly null out player team assignments before deleting to prevent orphaned records
-    await db.update(players).set({ teamId: null }).where(eq(players.teamId, id));
+    // Explicitly delete registrations and memberships for this team before deletion
+    await db.delete(teamMemberships).where(eq(teamMemberships.teamId, id));
+    await db.delete(teamRegistrations).where(eq(teamRegistrations.teamId, id));
     await db.delete(teams).where(eq(teams.id, id));
     revalidatePath("/admin/teams");
     revalidatePath("/admin/players");

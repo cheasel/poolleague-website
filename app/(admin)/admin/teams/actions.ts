@@ -1,13 +1,14 @@
 "use server";
 
 import { db } from "@/src/db";
-import { teams } from "@/src/db/schema";
+import { teams, divisions, teamRegistrations } from "@/src/db/schema";
 import { supabaseStorage } from "@/src/lib/supabase-storage";
 import { revalidatePath } from "next/cache";
+import { eq } from "drizzle-orm";
 
 export async function createTeamAction(formData: FormData) {
   const name = formData.get("name") as string;
-  const divisionId = Number(formData.get("divisionId"));
+  const divisionId = formData.get("divisionId") ? Number(formData.get("divisionId")) : null;
   const logoFile = formData.get("logo") as File;
 
   let publicLogoUrl: string | null = null;
@@ -39,14 +40,24 @@ export async function createTeamAction(formData: FormData) {
     publicLogoUrl = linkData.publicUrl;
   }
 
-  // Insert cleanly into Drizzle
-  await db.insert(teams).values({
-    name,
-    divisionId: divisionId || null,
-    logoUrl: publicLogoUrl, // Maps to your schema logoUrl string column
-    points: 0,
-    setsWon: 0,
-    setsLost: 0,
+  // Insert cleanly using transaction to guarantee registration
+  await db.transaction(async (tx) => {
+    const [insertedTeam] = await tx.insert(teams).values({
+      name,
+      logoUrl: publicLogoUrl, // Maps to your schema logoUrl string column
+    }).returning();
+
+    if (insertedTeam && divisionId) {
+      // Find division season
+      const [div] = await tx.select().from(divisions).where(eq(divisions.id, divisionId));
+      if (div && div.seasonId) {
+        await tx.insert(teamRegistrations).values({
+          teamId: insertedTeam.id,
+          seasonId: div.seasonId,
+          divisionId,
+        });
+      }
+    }
   });
 
   revalidatePath("/admin/teams");

@@ -1,6 +1,6 @@
 import { db } from "@/src/db";
-import { players, teams } from "@/src/db/schema";
-import { eq } from "drizzle-orm";
+import { players, teams, seasons, teamMemberships, teamRegistrations } from "@/src/db/schema";
+import { eq, and, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { supabaseAdmin } from "@/src/lib/supabase-storage"; 
@@ -16,16 +16,43 @@ export default async function EditPlayerPage({ params }: PageProps) {
   const resolvedParams = await params;
   const playerId = Number(resolvedParams.id);
 
+  // Fetch active/latest season
+  const activeSeasons = await db.select().from(seasons).where(eq(seasons.isActive, true)).limit(1);
+  let targetSeason = activeSeasons[0];
+  if (!targetSeason) {
+    const allSeasons = await db.select().from(seasons).orderBy(desc(seasons.startDate)).limit(1);
+    targetSeason = allSeasons[0];
+  }
+
   // 1. Fetch current player profile data
-  const [player] = await db
+  const [playerRaw] = await db
     .select()
     .from(players)
     .where(eq(players.id, playerId))
     .limit(1);
 
-  if (!player) {
+  if (!playerRaw) {
     redirect("/admin/players");
   }
+
+  // Fetch their team membership for this season
+  const [membership] = targetSeason 
+    ? await db
+        .select()
+        .from(teamMemberships)
+        .where(
+          and(
+            eq(teamMemberships.playerId, playerId),
+            eq(teamMemberships.seasonId, targetSeason.id)
+          )
+        )
+        .limit(1)
+    : [];
+
+  const player = {
+    ...playerRaw,
+    teamId: membership?.teamId || null,
+  };
 
   // 2. Fetch teams list for selection dropdown options
   const activeTeams = await db.select().from(teams);
@@ -116,15 +143,58 @@ export default async function EditPlayerPage({ params }: PageProps) {
         console.log("⚠️ No updated target image file provided. Retaining fallback URL asset state.");
       }
 
+      // Fetch active/latest season
+      const activeSeasons = await db.select().from(seasons).where(eq(seasons.isActive, true)).limit(1);
+      let targetSeason = activeSeasons[0];
+      if (!targetSeason) {
+        const allSeasons = await db.select().from(seasons).orderBy(desc(seasons.startDate)).limit(1);
+        targetSeason = allSeasons[0];
+      }
+
       // 3. Sync changes into database schema infrastructure
-      await db
-        .update(players)
-        .set({
-          name: updatedName,
-          teamId: targetTeamId,
-          imageUrl: finalImageUrl, 
-        })
-        .where(eq(players.id, targetPlayerId));
+      await db.transaction(async (tx) => {
+        // Update name and imageUrl in players table
+        await tx
+          .update(players)
+          .set({
+            name: updatedName,
+            imageUrl: finalImageUrl, 
+          })
+          .where(eq(players.id, targetPlayerId));
+
+        if (targetSeason) {
+          // Wipe old membership for this season
+          await tx
+            .delete(teamMemberships)
+            .where(
+              and(
+                eq(teamMemberships.playerId, targetPlayerId),
+                eq(teamMemberships.seasonId, targetSeason.id)
+              )
+            );
+
+          // Create new membership if team is selected
+          if (targetTeamId) {
+            const [reg] = await tx
+              .select()
+              .from(teamRegistrations)
+              .where(
+                and(
+                  eq(teamRegistrations.teamId, targetTeamId),
+                  eq(teamRegistrations.seasonId, targetSeason.id)
+                )
+              );
+
+            await tx.insert(teamMemberships).values({
+              playerId: targetPlayerId,
+              teamId: targetTeamId,
+              seasonId: targetSeason.id,
+              divisionId: reg?.divisionId || null,
+              isCaptain: false,
+            });
+          }
+        }
+      });
 
       console.log("💾 Database synchronization sequence updated cleanly.");
 

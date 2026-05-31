@@ -11,8 +11,8 @@ async function run() {
       .from(teams)
       .where(
         sql`NOT EXISTS (
-          SELECT 1 FROM ${players} 
-          WHERE ${players.teamId} = ${teams.id}
+          SELECT 1 FROM team_memberships 
+          WHERE team_memberships.team_id = ${teams.id}
         )`
       );
     console.log("Teams without players:", teamsWithoutPlayers);

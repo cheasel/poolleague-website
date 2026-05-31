@@ -37,15 +37,9 @@ export const teams = pgTable("teams", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
   homeVenueId: integer("home_venue_id"), 
-  divisionId: integer("division_id").references(() => divisions.id),
-  points: integer("points").default(0).notNull(),
-  setsWon: integer("sets_won").default(0).notNull(),
-  setsLost: integer("sets_lost").default(0).notNull(),
   logoUrl: text("logo_url"),
   createdAt: timestamp("created_at").defaultNow(),
-}, (table) => [
-  index('teams_division_idx').on(table.divisionId),
-]);
+});
 
 export const teamRegistrations = pgTable("team_registrations", {
   id: serial("id").primaryKey(),
@@ -60,11 +54,8 @@ export const teamRegistrations = pgTable("team_registrations", {
 export const players = pgTable("players", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
-  teamId: integer("team_id").references(() => teams.id, { onDelete: "set null" }),
   imageUrl: text("image_url"), 
-}, (table) => [
-  index('players_team_idx').on(table.teamId),
-]);
+});
 
 // 3. The Flexible Membership Table
 export const teamMemberships = pgTable('team_memberships', {
@@ -134,15 +125,12 @@ export const seasonsRelations = relations(seasons, ({ many }) => ({
 
 export const divisionsRelations = relations(divisions, ({ one, many }) => ({
   season: one(seasons, { fields: [divisions.seasonId], references: [seasons.id] }),
-  teams: many(teams),
   teamRegistrations: many(teamRegistrations),
   matches: many(matches),
 }));
 
 export const teamsRelations = relations(teams, ({ one, many }) => ({
-  division: one(divisions, { fields: [teams.divisionId], references: [divisions.id] }),
   venue: one(venues, { fields: [teams.homeVenueId], references: [venues.id] }),
-  players: many(players),
   homeMatches: many(matches, { relationName: "homeMatches" }),
   awayMatches: many(matches, { relationName: "awayMatches" }),
   registrations: many(teamRegistrations),
@@ -159,7 +147,6 @@ export const venuesRelations = relations(venues, ({ many }) => ({
 }));
 
 export const playersRelations = relations(players, ({ one, many }) => ({
-  team: one(teams, { fields: [players.teamId], references: [teams.id] }),
   memberships: many(teamMemberships),
   matchGamesAsPlayer1: many(matchGames, { relationName: "player1" }),
   matchGamesAsPlayer1Partner: many(matchGames, { relationName: "player1Partner" }),

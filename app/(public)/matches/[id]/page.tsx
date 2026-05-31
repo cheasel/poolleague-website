@@ -1,6 +1,6 @@
 import { db } from "@/src/db";
 import { matches, teams, matchGames, divisions, seasons, players, teamRegistrations } from "@/src/db/schema";
-import { eq, asc, desc, sql, inArray } from "drizzle-orm";
+import { eq, asc, desc, sql, inArray, and } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import Link from "next/link";
 import { unstable_cache } from "next/cache";
@@ -30,6 +30,7 @@ const getCachedMatchPageData = unstable_cache(
         awayTeamScoreTotal: matches.awayScore,
         divisionId: matches.divisionId,
         divisionName: divisions.name,
+        seasonId: matches.seasonId,
         seasonName: seasons.name,
       })
       .from(matches)
@@ -46,8 +47,61 @@ const getCachedMatchPageData = unstable_cache(
           .from(teamRegistrations)
           .innerJoin(teams, eq(teamRegistrations.teamId, teams.id))
           .where(eq(teamRegistrations.divisionId, matchData.divisionId))
-          .orderBy(desc(teams.points), desc(sql`${teams.setsWon} - ${teams.setsLost}`), desc(teams.setsWon))
       : [];
+
+    if (matchData.divisionId && matchData.seasonId && divisionTeams.length > 0) {
+      const completedMatches = await db
+        .select({
+          homeTeamId: matches.homeTeamId,
+          awayTeamId: matches.awayTeamId,
+          homeScore: matches.homeScore,
+          awayScore: matches.awayScore,
+        })
+        .from(matches)
+        .where(
+          and(
+            eq(matches.status, "completed"),
+            eq(matches.seasonId, matchData.seasonId),
+            eq(matches.divisionId, matchData.divisionId)
+          )
+        );
+
+      const statsMap = new Map<number, { points: number; diff: number; won: number }>();
+      divisionTeams.forEach(t => {
+        statsMap.set(t.id, { points: 0, diff: 0, won: 0 });
+      });
+
+      completedMatches.forEach(m => {
+        const home = statsMap.get(m.homeTeamId!);
+        const away = statsMap.get(m.awayTeamId!);
+        if (!home || !away) return;
+
+        const hScore = Number(m.homeScore || 0);
+        const aScore = Number(m.awayScore || 0);
+
+        home.diff += (hScore - aScore);
+        home.won += hScore;
+        away.diff += (aScore - hScore);
+        away.won += aScore;
+
+        if (hScore > aScore) {
+          home.points += 2;
+        } else if (hScore < aScore) {
+          away.points += 2;
+        } else {
+          home.points += 1;
+          away.points += 1;
+        }
+      });
+
+      divisionTeams.sort((a, b) => {
+        const sa = statsMap.get(a.id)!;
+        const sb = statsMap.get(b.id)!;
+        if (sa.points !== sb.points) return sb.points - sa.points;
+        if (sa.diff !== sb.diff) return sb.diff - sa.diff;
+        return sb.won - sa.won;
+      });
+    }
 
     // 3. Fetch individual frame details
     const frames = await db

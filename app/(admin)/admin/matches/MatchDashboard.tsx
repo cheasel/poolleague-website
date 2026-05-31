@@ -61,7 +61,6 @@ interface MatchDashboardProps {
   availableHomePlayers: any[];
   availableAwayPlayers: any[];
   currentMatchGames: any[];
-  allPlayersRaw: any[];
   addFrameAction: (formData: FormData) => Promise<void>;
   addMatchAction: (formData: FormData) => Promise<void>;
   clearDivisionScheduleAction: (divisionId: number) => Promise<void>;
