@@ -498,64 +498,68 @@ export default async function PublicHomePage({ searchParams }: PageProps) {
                   No completed matches recorded inside the system yet.
                 </p>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-3">
                   {recentResults.map((match) => (
                     <div 
                       key={match.id} 
-                      className="bg-slate-900/40 border border-slate-900 p-4 rounded-2xl flex flex-col justify-between hover:border-slate-800 transition-colors group/match shadow-md"
+                      className="bg-slate-900/40 border border-slate-900 p-4 rounded-2xl flex flex-col md:flex-row md:items-center justify-between hover:border-slate-800 transition-colors group/match shadow-md gap-4"
                     >
-                      <div className="text-[9px] font-bold uppercase tracking-widest text-slate-500 text-center border-b border-slate-850 pb-2 mb-2">
-                        Official Result
-                      </div>
-                      
-                      <div className="flex items-center justify-between gap-2 py-2">
-                        <div className="flex-1 flex items-center justify-end gap-1.5 min-w-0">
-                          <span className="font-black text-slate-200 uppercase tracking-tight text-xs truncate group-hover/match:text-indigo-400 transition-colors">
+                      <div className="flex-1 flex items-center justify-between md:justify-start gap-4">
+                        {/* Home Team */}
+                        <div className="flex-1 flex items-center justify-end gap-3 min-w-0">
+                          <span className="font-black text-slate-200 uppercase tracking-tight text-xs sm:text-sm truncate group-hover/match:text-indigo-400 transition-colors text-right">
                             {match.homeTeamName}
                           </span>
                           {match.homeTeamLogo ? (
-                            <div className="w-5 h-5 rounded bg-slate-950 border border-slate-850 p-0.5 flex items-center justify-center shrink-0">
+                            <div className="w-6 h-6 rounded bg-slate-950 border border-slate-850 p-0.5 flex items-center justify-center shrink-0">
                               <Image
                                 src={match.homeTeamLogo}
                                 alt={match.homeTeamName}
-                                width={20}
-                                height={20}
+                                width={24}
+                                height={24}
                                 className="object-contain"
                               />
                             </div>
                           ) : (
-                            <div className="w-5 h-5 rounded bg-indigo-950/40 border border-indigo-900/20 flex items-center justify-center font-black text-[8px] text-indigo-400 shrink-0">
+                            <div className="w-6 h-6 rounded bg-indigo-950/40 border border-indigo-900/20 flex items-center justify-center font-black text-[9px] text-indigo-400 shrink-0">
                               {match.homeTeamName.substring(0, 2).toUpperCase()}
                             </div>
                           )}
                         </div>
-                        <div className="bg-slate-950 text-indigo-400 border border-slate-850 font-mono font-black text-xs px-2 py-1 rounded-lg shrink-0 shadow-inner">
+
+                        {/* Score Box */}
+                        <div className="bg-slate-950 text-indigo-400 border border-slate-850 font-mono font-black text-xs sm:text-sm px-3.5 py-1.5 rounded-xl shrink-0 shadow-inner min-w-[70px] text-center">
                           {match.homeScore} - {match.awayScore}
                         </div>
-                        <div className="flex-1 flex items-center justify-start gap-1.5 min-w-0">
+
+                        {/* Away Team */}
+                        <div className="flex-1 flex items-center justify-start gap-3 min-w-0">
                           {match.awayTeamLogo ? (
-                            <div className="w-5 h-5 rounded bg-slate-950 border border-slate-850 p-0.5 flex items-center justify-center shrink-0">
+                            <div className="w-6 h-6 rounded bg-slate-950 border border-slate-850 p-0.5 flex items-center justify-center shrink-0">
                               <Image
                                 src={match.awayTeamLogo}
                                 alt={match.awayTeamName}
-                                width={20}
-                                height={20}
+                                width={24}
+                                height={24}
                                 className="object-contain"
                               />
                             </div>
                           ) : (
-                            <div className="w-5 h-5 rounded bg-indigo-950/40 border border-indigo-900/20 flex items-center justify-center font-black text-[8px] text-indigo-400 shrink-0">
+                            <div className="w-6 h-6 rounded bg-indigo-950/40 border border-indigo-900/20 flex items-center justify-center font-black text-[9px] text-indigo-400 shrink-0">
                               {match.awayTeamName.substring(0, 2).toUpperCase()}
                             </div>
                           )}
-                          <span className="font-black text-slate-200 uppercase tracking-tight text-xs truncate group-hover/match:text-indigo-400 transition-colors">
+                          <span className="font-black text-slate-200 uppercase tracking-tight text-xs sm:text-sm truncate group-hover/match:text-indigo-400 transition-colors">
                             {match.awayTeamName}
                           </span>
                         </div>
                       </div>
 
-                      <div className="text-center mt-2 pt-2 border-t border-slate-850 text-[9px] font-bold text-slate-500 uppercase tracking-wide">
-                        {match.date ? new Date(match.date).toLocaleDateString("en-GB", { day: '2-digit', month: 'short' }) : "Completed"}
+                      {/* Date / Metadata Info */}
+                      <div className="text-center md:text-right shrink-0 md:pl-4 md:border-l md:border-slate-850/60">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider bg-slate-950/40 px-3 py-1.5 rounded-lg border border-slate-850/60 md:border-0 md:bg-transparent md:p-0">
+                          {match.date ? new Date(match.date).toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' }) : "Completed"}
+                        </span>
                       </div>
                     </div>
                   ))}
