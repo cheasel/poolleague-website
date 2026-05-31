@@ -33,6 +33,7 @@ interface PlayerProfileClientProps {
   teamName: string;
   games: GameLog[];
   seasons: { id: number; name: string }[];
+  memberships?: { seasonId: number | null; teamName: string | null }[];
 }
 
 export default function PlayerProfileClient({ 
@@ -42,6 +43,7 @@ export default function PlayerProfileClient({
   teamName, 
   games, 
   seasons, 
+  memberships = [],
 }: PlayerProfileClientProps) {
   
   const [selectedSeasonId, setSelectedSeasonId] = useState<number | string>(seasons[0]?.id || "all");
@@ -50,6 +52,18 @@ export default function PlayerProfileClient({
     if (selectedSeasonId === "all") return games;
     return games.filter(g => g.seasonId === Number(selectedSeasonId));
   }, [games, selectedSeasonId]);
+
+  const currentTeamName = useMemo(() => {
+    if (selectedSeasonId === "all") {
+      if (memberships && memberships.length > 0) {
+        const latest = memberships[memberships.length - 1];
+        return latest?.teamName || "Unassigned Agent";
+      }
+      return teamName;
+    }
+    const found = memberships?.find(m => m.seasonId === Number(selectedSeasonId));
+    return found?.teamName || "Unassigned Agent";
+  }, [selectedSeasonId, memberships, teamName]);
 
   const stats = useMemo(() => {
     let singlesWins = 0;
@@ -123,7 +137,7 @@ export default function PlayerProfileClient({
 
             <div className="space-y-4">
               <div className="flex flex-wrap items-center gap-4 mb-2">
-                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-400">{teamName}</span>
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-indigo-400">{currentTeamName}</span>
                 <select
                   value={selectedSeasonId}
                   onChange={(e) => setSelectedSeasonId(e.target.value)}

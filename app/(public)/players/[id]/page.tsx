@@ -1,5 +1,5 @@
 import { db } from "@/src/db";
-import { players, matchGames, matches, teams, divisions, seasons } from "@/src/db/schema";
+import { players, matchGames, matches, teams, divisions, seasons, teamMemberships } from "@/src/db/schema";
 import { eq, desc, or } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import Link from "next/link";
@@ -30,6 +30,21 @@ const getCachedPlayerProfile = unstable_cache(
     return row || null;
   },
   ["player-profile"],
+  { revalidate: 60, tags: ["players", "teams"] }
+);
+
+const getCachedPlayerMemberships = unstable_cache(
+  async (playerId: number) => {
+    return db
+      .select({
+        seasonId: teamMemberships.seasonId,
+        teamName: teams.name,
+      })
+      .from(teamMemberships)
+      .leftJoin(teams, eq(teamMemberships.teamId, teams.id))
+      .where(eq(teamMemberships.playerId, playerId));
+  },
+  ["player-memberships"],
   { revalidate: 60, tags: ["players", "teams"] }
 );
 
@@ -101,10 +116,11 @@ export default async function PlayerProfilePage({ params }: PageProps) {
   const { id } = await params;
   const playerId = Number(id);
 
-  // Run all 3 queries sequentially to avoid deadlock on cache misses
+  // Run all queries sequentially to avoid deadlock on cache misses
   const player = await getCachedPlayerProfile(playerId);
   const allSeasons = await getCachedSeasons();
   const rawGames = await getCachedPlayerGames(playerId);
+  const memberships = await getCachedPlayerMemberships(playerId);
 
   if (!player) {
     return <div className="p-20 text-center font-black uppercase text-slate-400">Player profile sheet unavailable.</div>;
@@ -141,6 +157,7 @@ export default async function PlayerProfilePage({ params }: PageProps) {
           teamName={player.teamName || "Unassigned Agent"}
           games={rawGames as any}
           seasons={allSeasons}
+          memberships={memberships}
         />
       </div>
     </div>

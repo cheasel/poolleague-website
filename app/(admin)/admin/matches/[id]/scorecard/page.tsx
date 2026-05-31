@@ -1,5 +1,5 @@
 import { db } from "@/src/db";
-import { matches, matchGames, players, teams } from "@/src/db/schema";
+import { matches, matchGames, players, teams, teamMemberships } from "@/src/db/schema";
 import { eq, asc, or, and } from "drizzle-orm";
 import { revalidatePath, revalidateTag } from "next/cache";
 import Link from "next/link";
@@ -26,6 +26,7 @@ export default async function MatchScorecardPage({ params }: PageProps) {
       homeTeamName: teams.name,
       homeTeamScoreTotal: matches.homeScore,
       awayTeamScoreTotal: matches.awayScore,
+      seasonId: matches.seasonId,
     })
     .from(matches)
     .leftJoin(teams, eq(matches.homeTeamId, teams.id))
@@ -41,12 +42,43 @@ export default async function MatchScorecardPage({ params }: PageProps) {
     : [null];
   const awayTeamName = awayTeam?.name || "Away Club";
 
-  // Fetch players for selection drops
-  const homePlayers = match.homeTeamId
-    ? await db.select().from(players).where(eq(players.teamId, match.homeTeamId)).orderBy(asc(players.name))
+  // Fetch players for selection drops using season memberships
+  const homePlayers = match.homeTeamId && match.seasonId
+    ? await db
+        .select({
+          id: players.id,
+          name: players.name,
+          teamId: teamMemberships.teamId,
+          imageUrl: players.imageUrl,
+        })
+        .from(teamMemberships)
+        .leftJoin(players, eq(teamMemberships.playerId, players.id))
+        .where(
+          and(
+            eq(teamMemberships.teamId, match.homeTeamId),
+            eq(teamMemberships.seasonId, match.seasonId)
+          )
+        )
+        .orderBy(asc(players.name))
     : [];
-  const awayPlayers = match.awayTeamId
-    ? await db.select().from(players).where(eq(players.teamId, match.awayTeamId)).orderBy(asc(players.name))
+
+  const awayPlayers = match.awayTeamId && match.seasonId
+    ? await db
+        .select({
+          id: players.id,
+          name: players.name,
+          teamId: teamMemberships.teamId,
+          imageUrl: players.imageUrl,
+        })
+        .from(teamMemberships)
+        .leftJoin(players, eq(teamMemberships.playerId, players.id))
+        .where(
+          and(
+            eq(teamMemberships.teamId, match.awayTeamId),
+            eq(teamMemberships.seasonId, match.seasonId)
+          )
+        )
+        .orderBy(asc(players.name))
     : [];
 
   // Fetch any existing frames to populate form on reload
@@ -185,8 +217,18 @@ export default async function MatchScorecardPage({ params }: PageProps) {
 
       {/* Render the core interactive UI client component layer */}
       <RackEntrySystem 
-        homePlayers={homePlayers} 
-        awayPlayers={awayPlayers} 
+        homePlayers={homePlayers.filter(p => p.id !== null && p.name !== null).map(p => ({
+          id: p.id!,
+          name: p.name!,
+          teamId: p.teamId,
+          imageUrl: p.imageUrl,
+        }))} 
+        awayPlayers={awayPlayers.filter(p => p.id !== null && p.name !== null).map(p => ({
+          id: p.id!,
+          name: p.name!,
+          teamId: p.teamId,
+          imageUrl: p.imageUrl,
+        }))} 
         initialGames={existingFrames} 
         onSave={saveFullScorecardAction} 
       />

@@ -1,48 +1,90 @@
 import { db } from "@/src/db";
-import { players, teams } from "@/src/db/schema";
-import { eq, asc } from "drizzle-orm";
+import { players, teams, seasons, teamMemberships } from "@/src/db/schema";
+import { eq, asc, and, desc, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { Plus } from "lucide-react";
 import PlayersList from "./players-list";
+import { syncMemberships } from "@/src/utils/sync-memberships";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminPlayersPage() {
-  // 1. Fetch data for the list
+interface PageProps {
+  searchParams: Promise<{
+    seasonId?: string;
+  }>;
+}
+
+export default async function AdminPlayersPage({ searchParams }: PageProps) {
+  // Ensure team memberships are synchronized
+  await syncMemberships();
+
+  const params = await searchParams;
+
+  // 1. Fetch all seasons to support dropdown
+  const allSeasons = await db.select().from(seasons).orderBy(desc(seasons.startDate));
+  const selectedSeasonId = params.seasonId ? Number(params.seasonId) : (allSeasons[0]?.id || null);
+
+  // 2. Fetch players joined with teamMemberships for the selected season
   const allPlayers = await db
     .select({
       id: players.id,
       name: players.name,
       imageUrl: players.imageUrl,
       teamName: teams.name,
-      teamId: players.teamId,
+      teamId: teamMemberships.teamId,
       teamLogoUrl: teams.logoUrl,
     })
     .from(players)
-    .leftJoin(teams, eq(players.teamId, teams.id))
+    .leftJoin(
+      teamMemberships,
+      and(
+        eq(players.id, teamMemberships.playerId),
+        selectedSeasonId ? eq(teamMemberships.seasonId, selectedSeasonId) : sql`1=0`
+      )
+    )
+    .leftJoin(teams, eq(teamMemberships.teamId, teams.id))
     .orderBy(asc(players.name));
 
   const allTeams = await db.select().from(teams).orderBy(asc(teams.name));
 
-  // 2. Server Action to add a player
+  // 3. Server Action to add a player
   async function addPlayer(formData: FormData) {
     "use server";
     const name = formData.get("name") as string;
     const teamIdVal = formData.get("teamId");
     const teamId = teamIdVal ? Number(teamIdVal) : null;
+    const seasonIdVal = formData.get("seasonId");
+    const seasonId = seasonIdVal ? Number(seasonIdVal) : null;
 
     if (!name) return;
 
-    await db.insert(players).values({
-      name,
-      teamId: teamId || null,
+    await db.transaction(async (tx) => {
+      // Create player record
+      const [insertedPlayer] = await tx
+        .insert(players)
+        .values({
+          name,
+          teamId: teamId || null,
+        })
+        .returning();
+
+      // If team and season are specified, insert season membership
+      if (insertedPlayer && teamId && seasonId) {
+        const [team] = await tx.select().from(teams).where(eq(teams.id, teamId));
+        await tx.insert(teamMemberships).values({
+          playerId: insertedPlayer.id,
+          teamId,
+          seasonId,
+          divisionId: team?.divisionId || null,
+        });
+      }
     });
 
     revalidatePath("/admin/players");
     revalidatePath("/players");
   }
 
-  // 3. Server Action to delete a player
+  // 4. Server Action to delete a player
   async function deletePlayer(formData: FormData) {
     "use server";
     const id = Number(formData.get("id"));
@@ -51,17 +93,45 @@ export default async function AdminPlayersPage() {
     revalidatePath("/players");
   }
 
-  // 4. Server Action to change a player's team inline
+  // 5. Server Action to change a player's team inline
   async function changePlayerTeam(formData: FormData) {
     "use server";
     const playerId = Number(formData.get("playerId"));
     const teamIdVal = formData.get("teamId");
     const teamId = teamIdVal ? Number(teamIdVal) : null;
+    const seasonIdVal = formData.get("seasonId");
+    const seasonId = seasonIdVal ? Number(seasonIdVal) : null;
 
-    await db
-      .update(players)
-      .set({ teamId })
-      .where(eq(players.id, playerId));
+    if (!playerId || !seasonId) return;
+
+    await db.transaction(async (tx) => {
+      // Wipe old membership for this season
+      await tx
+        .delete(teamMemberships)
+        .where(
+          and(
+            eq(teamMemberships.playerId, playerId),
+            eq(teamMemberships.seasonId, seasonId)
+          )
+        );
+
+      // Create new membership if team is selected
+      if (teamId) {
+        const [team] = await tx.select().from(teams).where(eq(teams.id, teamId));
+        await tx.insert(teamMemberships).values({
+          playerId,
+          teamId,
+          seasonId,
+          divisionId: team?.divisionId || null,
+        });
+      }
+
+      // Sync global current teamId
+      await tx
+        .update(players)
+        .set({ teamId: teamId || null })
+        .where(eq(players.id, playerId));
+    });
 
     revalidatePath("/admin/players");
     revalidatePath("/players");
@@ -79,6 +149,7 @@ export default async function AdminPlayersPage() {
         {/* Add Player Form */}
         <div className="bg-slate-900/40 rounded-[2.5rem] p-8 shadow-2xl border border-slate-900">
           <form action={addPlayer} className="grid grid-cols-1 md:grid-cols-12 gap-6 items-end">
+            <input type="hidden" name="seasonId" value={selectedSeasonId || ""} />
             <div className="md:col-span-5 space-y-2">
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-600 ml-2">Competitor Name</label>
               <input 
@@ -116,6 +187,8 @@ export default async function AdminPlayersPage() {
         <PlayersList 
           initialPlayers={allPlayers}
           teams={allTeams}
+          seasons={allSeasons.map(s => ({ id: s.id, name: s.name }))}
+          selectedSeasonId={selectedSeasonId || undefined}
           deletePlayerAction={deletePlayer}
           changePlayerTeamAction={changePlayerTeam}
         />

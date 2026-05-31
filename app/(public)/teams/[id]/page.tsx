@@ -1,6 +1,6 @@
 import { db } from "@/src/db";
-import { teams, players, matchGames, matches, divisions, seasons } from "@/src/db/schema";
-import { eq, or, asc, desc, inArray } from "drizzle-orm";
+import { teams, players, matchGames, matches, divisions, seasons, teamMemberships } from "@/src/db/schema";
+import { eq, or, and, asc, desc, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
@@ -25,6 +25,7 @@ const getCachedTeamProfile = unstable_cache(
         logoUrl: teams.logoUrl,
         divisionName: divisions.name,
         seasonName: seasons.name,
+        seasonId: seasons.id,
       })
       .from(teams)
       .leftJoin(divisions, eq(teams.divisionId, divisions.id))
@@ -37,19 +38,25 @@ const getCachedTeamProfile = unstable_cache(
 );
 
 const getCachedRoster = unstable_cache(
-  async (teamId: number) => {
+  async (teamId: number, seasonId: number) => {
     return db
       .select({
         id: players.id,
         name: players.name,
         imageUrl: players.imageUrl,
       })
-      .from(players)
-      .where(eq(players.teamId, teamId))
+      .from(teamMemberships)
+      .leftJoin(players, eq(teamMemberships.playerId, players.id))
+      .where(
+        and(
+          eq(teamMemberships.teamId, teamId),
+          eq(teamMemberships.seasonId, seasonId)
+        )
+      )
       .orderBy(asc(players.name));
   },
   ["team-roster"],
-  { revalidate: 60, tags: ["players", "teams"] }
+  { revalidate: 60, tags: ["players", "teams", "teamMemberships"] }
 );
 
 const getCachedTeamMatches = unstable_cache(
@@ -102,7 +109,8 @@ export default async function PublicTeamProfilePage({ params }: PageProps) {
   }
 
   // Execute caching queries sequentially to prevent client-side deadlock on cache misses
-  const roster = await getCachedRoster(teamId);
+  // Execute caching queries sequentially to prevent client-side deadlock on cache misses
+  const rosterRaw = await getCachedRoster(teamId, team.seasonId || 0);
   const teamMatches = await getCachedTeamMatches(teamId);
 
   const completedTeamMatchIds = teamMatches
@@ -111,6 +119,14 @@ export default async function PublicTeamProfilePage({ params }: PageProps) {
 
   const teamGames = await getCachedTeamMatchGames(completedTeamMatchIds);
   const completedTeamMatchIdsSet = new Set(completedTeamMatchIds);
+
+  const roster = rosterRaw
+    .filter((p) => p.id !== null && p.name !== null)
+    .map((p) => ({
+      id: p.id!,
+      name: p.name!,
+      imageUrl: p.imageUrl,
+    }));
 
   // Calculate live statistics for only the rostered players on this team
   const rosterStats = calculateRosterStats(

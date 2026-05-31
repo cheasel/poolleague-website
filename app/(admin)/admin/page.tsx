@@ -1,5 +1,5 @@
 import { db } from "@/src/db";
-import { seasons, divisions, teams, players, matches } from "@/src/db/schema";
+import { seasons, divisions, teams, players, matches, teamMemberships } from "@/src/db/schema";
 import { sql, eq, count, and, desc } from "drizzle-orm";
 import Link from "next/link";
 import { 
@@ -38,17 +38,50 @@ export default async function AdminDashboardPage() {
   const [playerCount] = await db.select({ count: count() }).from(players);
   const [activeSeason] = await db.select().from(seasons).where(eq(seasons.isActive, true)).limit(1);
   const [scheduledMatches] = await db.select({ count: count() }).from(matches).where(eq(matches.status, "scheduled"));
-  const [unassignedPlayers] = await db.select({ count: count() }).from(players).where(sql`${players.teamId} IS NULL`);
+
+  // Fetch active or latest season for season-specific health checks
+  let currentSeason = activeSeason;
+  if (!currentSeason) {
+    const [latestSeason] = await db.select().from(seasons).orderBy(desc(seasons.startDate)).limit(1);
+    currentSeason = latestSeason;
+  }
+
+  // Count players who do not have a team membership in the current season
+  const unassignedPlayersCountResult = currentSeason
+    ? await db
+        .select({ count: count() })
+        .from(players)
+        .where(
+          sql`NOT EXISTS (
+            SELECT 1 FROM ${teamMemberships}
+            WHERE ${teamMemberships.playerId} = ${players.id}
+              AND ${teamMemberships.seasonId} = ${currentSeason.id}
+          )`
+        )
+    : [{ count: 0 }];
+  const unassignedPlayers = unassignedPlayersCountResult[0] || { count: 0 };
+
   const [unassignedTeams] = await db.select({ count: count() }).from(teams).where(sql`${teams.divisionId} IS NULL`);
-  const [teamsWithoutPlayers] = await db
-    .select({ count: count() })
-    .from(teams)
-    .where(
-      sql`NOT EXISTS (
-        SELECT 1 FROM ${players} 
-        WHERE ${players.teamId} = ${teams.id}
-      )`
-    );
+
+  // Count active teams in the current season with zero player memberships
+  const teamsWithoutPlayersCountResult = currentSeason
+    ? await db
+        .select({ count: count() })
+        .from(teams)
+        .innerJoin(divisions, eq(teams.divisionId, divisions.id))
+        .where(
+          and(
+            eq(divisions.seasonId, currentSeason.id),
+            sql`NOT EXISTS (
+              SELECT 1 FROM ${teamMemberships}
+              WHERE ${teamMemberships.teamId} = ${teams.id}
+                AND ${teamMemberships.seasonId} = ${currentSeason.id}
+            )`
+          )
+        )
+    : [{ count: 0 }];
+  const teamsWithoutPlayers = teamsWithoutPlayersCountResult[0] || { count: 0 };
+
   const doubleBookedResult = await db.execute(sql`
     SELECT COUNT(DISTINCT m1.id) as count
     FROM matches m1
@@ -115,10 +148,17 @@ export default async function AdminDashboardPage() {
     .select({
       id: players.id,
       name: players.name,
-      teamName: sql<string | null>`t.name`,
+      teamName: teams.name,
     })
     .from(players)
-    .leftJoin(sql`teams t`, eq(players.teamId, sql`t.id`))
+    .leftJoin(
+      teamMemberships,
+      and(
+        eq(players.id, teamMemberships.playerId),
+        currentSeason ? eq(teamMemberships.seasonId, currentSeason.id) : sql`1=0`
+      )
+    )
+    .leftJoin(teams, eq(teamMemberships.teamId, teams.id))
     .orderBy(desc(players.id))
     .limit(3);
 

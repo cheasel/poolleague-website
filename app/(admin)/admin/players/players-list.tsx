@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { User, Trash2, Pencil, Shield, Search, Check, Loader2 } from "lucide-react";
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 
 interface Player {
   id: number;
@@ -22,6 +23,8 @@ interface Team {
 interface PlayersListProps {
   initialPlayers: Player[];
   teams: Team[];
+  seasons: { id: number; name: string }[];
+  selectedSeasonId?: number;
   deletePlayerAction: (formData: FormData) => Promise<void>;
   changePlayerTeamAction: (formData: FormData) => Promise<void>;
 }
@@ -29,14 +32,30 @@ interface PlayersListProps {
 export default function PlayersList({ 
   initialPlayers, 
   teams, 
+  seasons,
+  selectedSeasonId,
   deletePlayerAction, 
   changePlayerTeamAction 
 }: PlayersListProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
   const [searchQuery, setSearchQuery] = useState("");
   const [teamFilter, setTeamFilter] = useState("all");
   const [updatingId, setUpdatingId] = useState<number | null>(null);
   const [successId, setSuccessId] = useState<number | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  const handleSeasonChange = (seasonIdVal: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (seasonIdVal) {
+      params.set('seasonId', seasonIdVal);
+    } else {
+      params.delete('seasonId');
+    }
+    router.push(`${pathname}?${params.toString()}`);
+  };
 
   const handleTeamChange = async (playerId: number, teamIdVal: string) => {
     setUpdatingId(playerId);
@@ -46,6 +65,9 @@ export default function PlayersList({
     formData.append("playerId", playerId.toString());
     if (teamIdVal) {
       formData.append("teamId", teamIdVal);
+    }
+    if (selectedSeasonId) {
+      formData.append("seasonId", selectedSeasonId.toString());
     }
 
     startTransition(async () => {
@@ -115,21 +137,38 @@ export default function PlayersList({
           />
         </div>
 
-        <div className="flex items-center gap-3 w-full md:w-auto justify-end">
-          <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 whitespace-nowrap hidden sm:inline">Filter By Squad:</label>
-          <select
-            value={teamFilter}
-            onChange={(e) => setTeamFilter(e.target.value)}
-            className="w-full sm:w-56 p-3 bg-slate-950 border border-slate-800 rounded-xl focus:border-indigo-500 outline-none font-bold text-white text-xs appearance-none cursor-pointer"
-          >
-            <option value="all">Show All Competitors</option>
-            <option value="free-agent">Free Agents Only</option>
-            {teams.map((team) => (
-              <option key={team.id} value={team.id.toString()}>
-                {team.name}
-              </option>
-            ))}
-          </select>
+        <div className="flex flex-wrap items-center gap-4 w-full md:w-auto justify-end">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 whitespace-nowrap hidden sm:inline">Season:</label>
+            <select
+              value={selectedSeasonId || ""}
+              onChange={(e) => handleSeasonChange(e.target.value)}
+              className="w-full sm:w-44 p-3 bg-slate-950 border border-slate-800 rounded-xl focus:border-indigo-500 outline-none font-bold text-white text-xs appearance-none cursor-pointer"
+            >
+              {seasons.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500 whitespace-nowrap hidden sm:inline">Filter By Squad:</label>
+            <select
+              value={teamFilter}
+              onChange={(e) => setTeamFilter(e.target.value)}
+              className="w-full sm:w-56 p-3 bg-slate-950 border border-slate-800 rounded-xl focus:border-indigo-500 outline-none font-bold text-white text-xs appearance-none cursor-pointer"
+            >
+              <option value="all">Show All Competitors</option>
+              <option value="free-agent">Free Agents Only</option>
+              {teams.map((team) => (
+                <option key={team.id} value={team.id.toString()}>
+                  {team.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
