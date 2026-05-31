@@ -242,14 +242,15 @@ export default async function PublicHomePage({ searchParams }: PageProps) {
           </Badge>
 
           <h1 className="text-4xl sm:text-6xl font-black text-white uppercase tracking-tighter italic leading-[0.9] max-w-3xl">
-            LEAGUE PERFORMANCE <br />
+            Lanna Pool Club <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-500 drop-shadow-sm">
-              ANALYTICS HUBS
+              League Arena
             </span>
           </h1>
 
           <p className="text-slate-400 font-medium text-xs sm:text-sm max-w-xl leading-relaxed">
-            Track real-time frame MVPs, active team win streaks, aggregate statistics tables, and verified match results.
+            Lanna Pool Club is a friendly community pool league organized by local bars in Chiang Mai, Thailand. 
+            Open to all players, whether competitive or just playing for fun. Track standings, scores, and player statistics!
           </p>
 
           <div className="flex flex-wrap gap-3 pt-2">

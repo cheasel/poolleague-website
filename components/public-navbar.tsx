@@ -36,7 +36,7 @@ export default function PublicNavbar() {
               <BarChart3 className="w-5 h-5 text-white" />
             </div>
             <span className="font-black text-white uppercase tracking-tighter text-lg">
-              Pool<span className="text-indigo-400">League</span>
+              Lanna Pool <span className="text-indigo-400">Club</span>
             </span>
           </Link>
 
@@ -114,11 +114,19 @@ export default function PublicNavbar() {
             </Link>
           </div>
 
-          {/* Desktop Admin Quick Link */}
-          <div className="hidden md:block">
+          {/* Desktop Admin Quick Link & Facebook */}
+          <div className="hidden md:flex items-center gap-4">
+            <a 
+              href="https://www.facebook.com/LannaPoolClub"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[10px] font-black text-slate-400 hover:text-indigo-400 uppercase tracking-widest transition-colors"
+            >
+              Facebook
+            </a>
             <Link 
               href="/admin" 
-              className="text-[10px] font-black text-slate-400 border border-slate-800 px-3 py-1.5 rounded-lg hover:bg-white hover:text-slate-950 hover:border-white transition-all uppercase tracking-widest"
+              className="text-[10px] font-black text-slate-400 border border-slate-800 px-3 py-1.5 rounded-lg hover:bg-white hover:text-slate-950 hover:border-white transition-all uppercase tracking-widest animate-in duration-200"
             >
               Admin
             </Link>
@@ -204,7 +212,15 @@ export default function PublicNavbar() {
             Matches
           </Link>
           
-          <div className="pt-4 mt-2 border-t border-slate-900 px-4">
+          <div className="pt-4 mt-2 border-t border-slate-900 px-4 space-y-3">
+            <a 
+              href="https://www.facebook.com/LannaPoolClub"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex justify-center text-center text-xs font-black text-indigo-400 border border-indigo-950 px-3 py-3 rounded-xl hover:bg-slate-900 transition-all uppercase tracking-widest"
+            >
+              Facebook Page
+            </a>
             <Link 
               href="/admin" 
               onClick={() => setIsOpen(false)}

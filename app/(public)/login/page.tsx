@@ -41,9 +41,9 @@ export default function LoginPage() {
           </div>
 
           <h1 className="text-3xl sm:text-4xl font-black text-white uppercase tracking-tighter italic leading-none">
-            Pool
+            Lanna Pool
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-500">
-              League
+              Club
             </span>
           </h1>
           <p className="text-slate-500 font-medium text-xs">
@@ -90,7 +90,7 @@ export default function LoginPage() {
                   <input
                     type="email"
                     name="email"
-                    placeholder="admin@poolleague.com"
+                    placeholder="admin@lannapoolclub.com"
                     required
                     autoComplete="email"
                     className="w-full p-3.5 pl-11 bg-slate-950 border border-slate-800 rounded-xl font-bold text-sm text-white outline-none focus:border-indigo-500 transition-all shadow-inner placeholder:text-slate-700"

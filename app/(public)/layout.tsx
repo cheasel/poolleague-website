@@ -15,9 +15,19 @@ export default function PublicLayout({
       
       {/* 🎯 CHANGED: Darkened footer styles to seamlessly blend with the canvas */}
       <footer className="py-12 border-t border-slate-900 bg-slate-950">
-        <div className="max-w-7xl mx-auto px-4 text-center">
+        <div className="max-w-7xl mx-auto px-4 text-center space-y-4">
+          <div className="flex justify-center gap-6">
+            <a 
+              href="https://www.facebook.com/LannaPoolClub"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs font-bold text-indigo-400 hover:text-indigo-300 uppercase tracking-widest transition-colors"
+            >
+              Facebook Page
+            </a>
+          </div>
           <p className="text-xs font-bold text-slate-500 uppercase tracking-[0.3em]">
-            © 2026 Pool League Analytics System
+            © 2026 Lanna Pool Club Analytics
           </p>
         </div>
       </footer>

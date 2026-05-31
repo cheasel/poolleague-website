@@ -87,7 +87,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               <Sparkles className="w-5 h-5 stroke-[2.5]" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-base font-black text-white uppercase tracking-tighter italic leading-none truncate">PoolLeague</h2>
+              <h2 className="text-base font-black text-white uppercase tracking-tighter italic leading-none truncate">Lanna Pool Club</h2>
               <span className="text-[9px] font-black uppercase tracking-wider text-indigo-400 mt-1 block truncate">Arena Matrix v1.6</span>
             </div>
           </div>
