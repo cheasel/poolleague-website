@@ -1,5 +1,5 @@
 import { db } from "@/src/db";
-import { matches, teams, matchGames, divisions, seasons, players } from "@/src/db/schema";
+import { matches, teams, matchGames, divisions, seasons, players, teamRegistrations } from "@/src/db/schema";
 import { eq, asc, desc, sql, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import Link from "next/link";
@@ -28,14 +28,13 @@ const getCachedMatchPageData = unstable_cache(
         awayTeamId: matches.awayTeamId,
         homeTeamScoreTotal: matches.homeScore,
         awayTeamScoreTotal: matches.awayScore,
-        divisionId: homeTeams.divisionId,
+        divisionId: matches.divisionId,
         divisionName: divisions.name,
         seasonName: seasons.name,
       })
       .from(matches)
-      .leftJoin(homeTeams, eq(matches.homeTeamId, homeTeams.id))
-      .leftJoin(divisions, eq(homeTeams.divisionId, divisions.id))
-      .leftJoin(seasons, eq(divisions.seasonId, seasons.id))
+      .leftJoin(divisions, eq(matches.divisionId, divisions.id))
+      .leftJoin(seasons, eq(matches.seasonId, seasons.id))
       .where(eq(matches.id, matchId));
 
     if (!matchData) return null;
@@ -44,8 +43,9 @@ const getCachedMatchPageData = unstable_cache(
     const divisionTeams = matchData.divisionId
       ? await db
           .select({ id: teams.id, name: teams.name })
-          .from(teams)
-          .where(eq(teams.divisionId, matchData.divisionId))
+          .from(teamRegistrations)
+          .innerJoin(teams, eq(teamRegistrations.teamId, teams.id))
+          .where(eq(teamRegistrations.divisionId, matchData.divisionId))
           .orderBy(desc(teams.points), desc(sql`${teams.setsWon} - ${teams.setsLost}`), desc(teams.setsWon))
       : [];
 

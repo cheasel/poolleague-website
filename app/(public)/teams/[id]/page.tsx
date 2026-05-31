@@ -1,5 +1,5 @@
 import { db } from "@/src/db";
-import { teams, players, matchGames, matches, divisions, seasons, teamMemberships } from "@/src/db/schema";
+import { teams, players, matchGames, matches, divisions, seasons, teamMemberships, teamRegistrations } from "@/src/db/schema";
 import { eq, or, and, asc, desc, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import Link from "next/link";
@@ -18,7 +18,7 @@ interface PageProps {
 
 const getCachedTeamProfile = unstable_cache(
   async (teamId: number) => {
-    const [row] = await db
+    const rows = await db
       .select({
         id: teams.id,
         name: teams.name,
@@ -28,10 +28,12 @@ const getCachedTeamProfile = unstable_cache(
         seasonId: seasons.id,
       })
       .from(teams)
-      .leftJoin(divisions, eq(teams.divisionId, divisions.id))
-      .leftJoin(seasons, eq(divisions.seasonId, seasons.id))
-      .where(eq(teams.id, teamId));
-    return row || null;
+      .leftJoin(teamRegistrations, eq(teams.id, teamRegistrations.teamId))
+      .leftJoin(divisions, eq(teamRegistrations.divisionId, divisions.id))
+      .leftJoin(seasons, eq(teamRegistrations.seasonId, seasons.id))
+      .where(eq(teams.id, teamId))
+      .orderBy(desc(seasons.startDate));
+    return rows[0] || null;
   },
   ["team-profile"],
   { revalidate: 60, tags: ["teams", "divisions", "seasons"] }

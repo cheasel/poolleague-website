@@ -1,5 +1,5 @@
 import { db } from "@/src/db";
-import { teams, divisions, matches, seasons } from "@/src/db/schema";
+import { teams, divisions, matches, seasons, teamRegistrations } from "@/src/db/schema";
 import { eq, asc, and, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -78,11 +78,23 @@ export default async function MatchScheduleGeneratorPage({ searchParams }: Gener
       redirect(`/admin/matches/generator?error=completed_matches&divisionId=${divisionId}`);
     }
 
+    // Fetch division to map seasonId
+    const [div] = await db.select().from(divisions).where(eq(divisions.id, divisionId));
+    if (!div) return;
+    const seasonId = div.seasonId;
+    if (!seasonId) return;
+
     // 1. Pull all teams assigned to this specific division bracket with their home venue
     const divisionTeams = await db
       .select({ id: teams.id, name: teams.name, homeVenueId: teams.homeVenueId })
-      .from(teams)
-      .where(eq(teams.divisionId, divisionId));
+      .from(teamRegistrations)
+      .innerJoin(teams, eq(teamRegistrations.teamId, teams.id))
+      .where(
+        and(
+          eq(teamRegistrations.divisionId, divisionId),
+          eq(teamRegistrations.seasonId, seasonId)
+        )
+      );
 
     if (divisionTeams.length < 2) return;
 

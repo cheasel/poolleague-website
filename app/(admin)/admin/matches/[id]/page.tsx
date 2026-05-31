@@ -40,7 +40,7 @@ export default async function AdminMatchDetailPage({ params }: PageProps) {
     .from(matches)
     .leftJoin(homeTeamsAlias, eq(matches.homeTeamId, homeTeamsAlias.id))
     .leftJoin(awayTeamsAlias, eq(matches.awayTeamId, awayTeamsAlias.id))
-    .leftJoin(divisions, eq(homeTeamsAlias.divisionId, divisions.id))
+    .leftJoin(divisions, eq(matches.divisionId, divisions.id))
     .where(eq(matches.id, matchId));
 
   if (!match) {

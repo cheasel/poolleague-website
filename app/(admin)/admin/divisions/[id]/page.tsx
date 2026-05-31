@@ -1,5 +1,5 @@
 import { db } from "@/src/db";
-import { divisions, seasons, teams } from "@/src/db/schema";
+import { divisions, seasons, teams, teamRegistrations } from "@/src/db/schema";
 import { eq, asc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -28,11 +28,16 @@ export default async function EditDivisionPage({ params }: PageProps) {
   // 2. Fetch all seasons for the Season Selector
   const allSeasons = await db.select().from(seasons).orderBy(asc(seasons.name));
 
-  // 3. Fetch teams assigned to THIS division currently
+  // 3. Fetch teams assigned to THIS division currently via registrations
   const divisionTeams = await db
-    .select()
-    .from(teams)
-    .where(eq(teams.divisionId, divisionId))
+    .select({
+      id: teams.id,
+      name: teams.name,
+      logoUrl: teams.logoUrl,
+    })
+    .from(teamRegistrations)
+    .innerJoin(teams, eq(teamRegistrations.teamId, teams.id))
+    .where(eq(teamRegistrations.divisionId, divisionId))
     .orderBy(asc(teams.name));
 
   // --- MUTATION: UPDATE DIVISION SETTINGS ---

@@ -1,5 +1,5 @@
 import { db } from "@/src/db";
-import { teams, matches, seasons, divisions } from "@/src/db/schema";
+import { teams, matches, seasons, divisions, teamRegistrations } from "@/src/db/schema";
 import { eq, sql, desc, and, asc } from "drizzle-orm";
 import StandingsClient from "./StandingsClient";
 import { unstable_cache } from "next/cache";
@@ -79,9 +79,23 @@ const getCachedStandingsData = unstable_cache(
       .orderBy(desc(matches.date), desc(matches.id));
 
     // 4. Fetch teams assigned to the selected division scope
-    const divisionTeams = divisionId 
-      ? await db.select().from(teams).where(eq(teams.divisionId, divisionId))
-      : await db.select().from(teams);
+    const regConditions = [];
+    if (divisionId) {
+      regConditions.push(eq(teamRegistrations.divisionId, divisionId));
+    }
+    if (seasonId) {
+      regConditions.push(eq(teamRegistrations.seasonId, seasonId));
+    }
+
+    const divisionTeams = await db
+      .select({
+        id: teams.id,
+        name: teams.name,
+        logoUrl: teams.logoUrl,
+      })
+      .from(teamRegistrations)
+      .innerJoin(teams, eq(teamRegistrations.teamId, teams.id))
+      .where(regConditions.length > 0 ? and(...regConditions) : undefined);
 
     // Initialize form list for each team
     const formMap = divisionTeams.reduce((acc, team) => {

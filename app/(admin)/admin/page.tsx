@@ -1,7 +1,9 @@
 import { db } from "@/src/db";
-import { seasons, divisions, teams, players, matches, teamMemberships } from "@/src/db/schema";
+import { seasons, divisions, teams, players, matches, teamMemberships, teamRegistrations } from "@/src/db/schema";
 import { sql, eq, count, and, desc } from "drizzle-orm";
 import Link from "next/link";
+import { syncMemberships } from "@/src/utils/sync-memberships";
+import { syncTeamRegistrations } from "@/src/utils/sync-team-registrations";
 import { 
   Trophy, 
   Layers, 
@@ -31,6 +33,10 @@ interface ActivityItem {
 }
 
 export default async function AdminDashboardPage() {
+  // Ensure database state is synchronized
+  await syncMemberships();
+  await syncTeamRegistrations();
+
   // Execute queries sequentially to prevent client-side pipelining deadlocks on Supavisor (max: 1 connection pool)
   const [seasonCount] = await db.select({ count: count() }).from(seasons);
   const [divisionCount] = await db.select({ count: count() }).from(divisions);
@@ -61,20 +67,32 @@ export default async function AdminDashboardPage() {
     : [{ count: 0 }];
   const unassignedPlayers = unassignedPlayersCountResult[0] || { count: 0 };
 
-  const [unassignedTeams] = await db.select({ count: count() }).from(teams).where(sql`${teams.divisionId} IS NULL`);
+  // Count teams that are not registered in the current season
+  const unassignedTeamsCountResult = currentSeason
+    ? await db
+        .select({ count: count() })
+        .from(teams)
+        .where(
+          sql`NOT EXISTS (
+            SELECT 1 FROM ${teamRegistrations}
+            WHERE ${teamRegistrations.teamId} = ${teams.id}
+              AND ${teamRegistrations.seasonId} = ${currentSeason.id}
+          )`
+        )
+    : [{ count: 0 }];
+  const unassignedTeams = unassignedTeamsCountResult[0] || { count: 0 };
 
   // Count active teams in the current season with zero player memberships
   const teamsWithoutPlayersCountResult = currentSeason
     ? await db
         .select({ count: count() })
-        .from(teams)
-        .innerJoin(divisions, eq(teams.divisionId, divisions.id))
+        .from(teamRegistrations)
         .where(
           and(
-            eq(divisions.seasonId, currentSeason.id),
+            eq(teamRegistrations.seasonId, currentSeason.id),
             sql`NOT EXISTS (
               SELECT 1 FROM ${teamMemberships}
-              WHERE ${teamMemberships.teamId} = ${teams.id}
+              WHERE ${teamMemberships.teamId} = ${teamRegistrations.teamId}
                 AND ${teamMemberships.seasonId} = ${currentSeason.id}
             )`
           )

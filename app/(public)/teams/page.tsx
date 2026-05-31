@@ -1,5 +1,5 @@
 import { db } from "@/src/db";
-import { teams, matches, seasons, divisions, matchGames } from "@/src/db/schema";
+import { teams, matches, seasons, divisions, matchGames, teamRegistrations } from "@/src/db/schema";
 import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import { unstable_cache } from "next/cache";
 import { Suspense } from "react";
@@ -50,9 +50,23 @@ const getCachedTeamStatsData = unstable_cache(
 
     const completedMatchIds = completedMatches.map((m) => m.id);
 
-    const baseTeams = selectedDivisionId
-      ? await db.select().from(teams).where(eq(teams.divisionId, selectedDivisionId))
-      : await db.select().from(teams);
+    const regConditions = [];
+    if (selectedDivisionId) {
+      regConditions.push(eq(teamRegistrations.divisionId, selectedDivisionId));
+    }
+    if (selectedSeasonId) {
+      regConditions.push(eq(teamRegistrations.seasonId, selectedSeasonId));
+    }
+
+    const baseTeams = await db
+      .select({
+        id: teams.id,
+        name: teams.name,
+        logoUrl: teams.logoUrl,
+      })
+      .from(teamRegistrations)
+      .innerJoin(teams, eq(teamRegistrations.teamId, teams.id))
+      .where(regConditions.length > 0 ? and(...regConditions) : undefined);
 
     const gamesPlayed = completedMatchIds.length > 0
       ? await db

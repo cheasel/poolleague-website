@@ -47,6 +47,16 @@ export const teams = pgTable("teams", {
   index('teams_division_idx').on(table.divisionId),
 ]);
 
+export const teamRegistrations = pgTable("team_registrations", {
+  id: serial("id").primaryKey(),
+  teamId: integer("team_id").references(() => teams.id, { onDelete: "cascade" }),
+  seasonId: integer("season_id").references(() => seasons.id, { onDelete: "cascade" }),
+  divisionId: integer("division_id").references(() => divisions.id, { onDelete: "cascade" }),
+}, (table) => [
+  index('team_registrations_team_idx').on(table.teamId),
+  index('team_registrations_season_division_idx').on(table.seasonId, table.divisionId),
+]);
+
 export const players = pgTable("players", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
@@ -119,11 +129,13 @@ export const profiles = pgTable('profiles', {
 export const seasonsRelations = relations(seasons, ({ many }) => ({
   divisions: many(divisions),
   matches: many(matches),
+  teamRegistrations: many(teamRegistrations),
 }));
 
 export const divisionsRelations = relations(divisions, ({ one, many }) => ({
   season: one(seasons, { fields: [divisions.seasonId], references: [seasons.id] }),
   teams: many(teams),
+  teamRegistrations: many(teamRegistrations),
   matches: many(matches),
 }));
 
@@ -133,6 +145,13 @@ export const teamsRelations = relations(teams, ({ one, many }) => ({
   players: many(players),
   homeMatches: many(matches, { relationName: "homeMatches" }),
   awayMatches: many(matches, { relationName: "awayMatches" }),
+  registrations: many(teamRegistrations),
+}));
+
+export const teamRegistrationsRelations = relations(teamRegistrations, ({ one }) => ({
+  team: one(teams, { fields: [teamRegistrations.teamId], references: [teams.id] }),
+  season: one(seasons, { fields: [teamRegistrations.seasonId], references: [seasons.id] }),
+  division: one(divisions, { fields: [teamRegistrations.divisionId], references: [divisions.id] }),
 }));
 
 export const venuesRelations = relations(venues, ({ many }) => ({

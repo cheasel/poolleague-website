@@ -1,5 +1,5 @@
 import { db } from "@/src/db";
-import { divisions, teams, seasons } from "@/src/db/schema";
+import { divisions, teams, seasons, teamRegistrations } from "@/src/db/schema";
 import { eq, asc, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { Plus, FolderTree } from "lucide-react";
@@ -8,14 +8,29 @@ import DivisionsList from "./divisions-list";
 export const dynamic = "force-dynamic";
 
 export default async function AdminDivisionsPage() {
-  // 1. Fetch all divisions ranked by tier level with their season split and team relation metrics
-  const allDivisions = await db.query.divisions.findMany({
+  // 1. Fetch all divisions ranked by tier level with their season split and team relation metrics via registrations
+  const allDivisionsRaw = await db.query.divisions.findMany({
     with: {
       season: true,
-      teams: true,
+      teamRegistrations: {
+        with: {
+          team: true,
+        }
+      },
     },
     orderBy: asc(divisions.tier),
   });
+
+  const allDivisions = allDivisionsRaw.map((d) => ({
+    id: d.id,
+    name: d.name,
+    tier: d.tier,
+    seasonId: d.seasonId,
+    season: d.season,
+    teams: d.teamRegistrations
+      .map((r) => r.team)
+      .filter((t): t is NonNullable<typeof t> => t !== null),
+  }));
 
   // 2. Fetch all seasons for the Creation Dropdown selection options
   const allSeasons = await db.select().from(seasons).orderBy(desc(seasons.startDate));
@@ -52,11 +67,11 @@ export default async function AdminDivisionsPage() {
 
     const divisionId = Number(divisionIdStr);
 
-    // 🛡️ GUARD: Verify if any teams are actively bound to this division tier
+    // 🛡️ GUARD: Verify if any teams are actively registered to this division tier
     const assignedTeams = await db
       .select()
-      .from(teams)
-      .where(eq(teams.divisionId, divisionId));
+      .from(teamRegistrations)
+      .where(eq(teamRegistrations.divisionId, divisionId));
 
     if (assignedTeams.length > 0) {
       console.warn(`⚠️ Aborted deletion: Division ID ${divisionId} contains active team relations.`);

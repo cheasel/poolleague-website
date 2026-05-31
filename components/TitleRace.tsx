@@ -1,5 +1,5 @@
 import { db } from "@/src/db";
-import { teams, matches } from "@/src/db/schema";
+import { teams, matches, teamRegistrations } from "@/src/db/schema";
 import { eq, and } from "drizzle-orm";
 import { unstable_cache } from "next/cache";
 
@@ -28,9 +28,18 @@ async function getTitleRaceStandings(divisionId: number, seasonId: number) {
     );
 
   const divisionTeams = await db
-    .select()
-    .from(teams)
-    .where(eq(teams.divisionId, divisionId));
+    .select({
+      id: teams.id,
+      name: teams.name,
+    })
+    .from(teamRegistrations)
+    .innerJoin(teams, eq(teamRegistrations.teamId, teams.id))
+    .where(
+      and(
+        eq(teamRegistrations.divisionId, divisionId),
+        eq(teamRegistrations.seasonId, seasonId)
+      )
+    );
 
   // 3. Build an aggregation ledger
   const standingsMap = divisionTeams.reduce((acc, team) => {

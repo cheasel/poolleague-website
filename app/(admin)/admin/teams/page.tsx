@@ -1,14 +1,32 @@
 import { db } from "@/src/db";
-import { teams, divisions, seasons, venues, players } from "@/src/db/schema";
-import { eq, asc, count, sql } from "drizzle-orm";
+import { teams, divisions, seasons, venues, players, teamRegistrations } from "@/src/db/schema";
+import { eq, asc, desc, count, sql, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { Trophy, Users, Hash, Plus, Trash2, Pencil, MapPin } from "lucide-react";
 import Link from 'next/link';
 import Image from 'next/image';
+import SeasonSelector from "./SeasonSelector";
+import { syncTeamRegistrations } from "@/src/utils/sync-team-registrations";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminTeamsPage() {
+interface PageProps {
+  searchParams: Promise<{
+    seasonId?: string;
+  }>;
+}
+
+export default async function AdminTeamsPage({ searchParams }: PageProps) {
+  // Ensure team division registrations are synchronized
+  await syncTeamRegistrations();
+
+  const params = await searchParams;
+
+  // 1. Fetch all seasons to support dropdown
+  const allSeasons = await db.select().from(seasons).orderBy(desc(seasons.startDate));
+  const selectedSeasonId = params.seasonId ? Number(params.seasonId) : (allSeasons[0]?.id || null);
+
+  // 2. Fetch all teams registered for the selected season
   const allTeams = await db
     .select({
       id: teams.id,
@@ -19,11 +37,17 @@ export default async function AdminTeamsPage() {
       homeVenueName: venues.name,
     })
     .from(teams)
-    .leftJoin(divisions, eq(teams.divisionId, divisions.id))
-    .leftJoin(seasons, eq(divisions.seasonId, seasons.id))
+    .leftJoin(teamRegistrations, eq(teams.id, teamRegistrations.teamId))
+    .leftJoin(divisions, eq(teamRegistrations.divisionId, divisions.id))
+    .leftJoin(seasons, eq(teamRegistrations.seasonId, seasons.id))
     .leftJoin(venues, eq(teams.homeVenueId, venues.id))
+    .where(selectedSeasonId ? eq(teamRegistrations.seasonId, selectedSeasonId) : undefined)
     .orderBy(asc(teams.name));
 
+  // 3. Fetch all teams in the system to support selecting an existing team
+  const systemTeams = await db.select().from(teams).orderBy(asc(teams.name));
+
+  // 4. Fetch divisions for the selected season only to restrict registration options
   const allDivisions = await db
     .select({
       id: divisions.id,
@@ -32,6 +56,7 @@ export default async function AdminTeamsPage() {
     })
     .from(divisions)
     .leftJoin(seasons, eq(divisions.seasonId, seasons.id))
+    .where(selectedSeasonId ? eq(divisions.seasonId, selectedSeasonId) : undefined)
     .orderBy(asc(divisions.name));
 
   const allVenuesRaw = await db
@@ -71,42 +96,91 @@ export default async function AdminTeamsPage() {
     return acc;
   }, {} as Record<number, number>);
 
-  // 2. Server Action to add a team
+  // 5. Server Action to register/add a team
   async function addTeam(formData: FormData) {
     "use server";
+    const existingTeamIdVal = formData.get("existingTeamId");
+    const existingTeamId = existingTeamIdVal ? Number(existingTeamIdVal) : null;
     const name = formData.get("name") as string;
     const divisionId = Number(formData.get("divisionId"));
     const venueIdInput = formData.get("homeVenueId");
     const homeVenueId = venueIdInput ? Number(venueIdInput) : null;
 
-    if (!name || !divisionId) return;
+    if (!divisionId) return;
 
-    // Validate venue capacity limit
-    if (homeVenueId) {
-      const [tenantCount] = await db
-        .select({ value: count() })
-        .from(teams)
-        .where(eq(teams.homeVenueId, homeVenueId));
-      if (tenantCount && tenantCount.value >= 2) {
-        console.warn("⚠️ Aborted team creation: Selected Venue already has 2 home teams.");
-        return;
+    // Fetch division to map season
+    const [div] = await db.select().from(divisions).where(eq(divisions.id, divisionId));
+    if (!div) return;
+    const seasonId = div.seasonId;
+    if (!seasonId) return;
+
+    let targetTeamId = existingTeamId;
+
+    await db.transaction(async (tx) => {
+      if (!targetTeamId) {
+        // Register brand new team globally
+        if (!name || name.trim() === "") return;
+
+        // Validate venue capacity limit
+        if (homeVenueId) {
+          const [tenantCount] = await tx
+            .select({ value: count() })
+            .from(teams)
+            .where(eq(teams.homeVenueId, homeVenueId));
+          if (tenantCount && tenantCount.value >= 2) {
+            console.warn("⚠️ Aborted team creation: Selected Venue already has 2 home teams.");
+            return;
+          }
+        }
+
+        const [newTeam] = await tx
+          .insert(teams)
+          .values({
+            name: name.trim(),
+            divisionId,
+            homeVenueId,
+            points: 0,
+            setsWon: 0,
+            setsLost: 0,
+          })
+          .returning();
+
+        if (newTeam) {
+          targetTeamId = newTeam.id;
+        }
+      } else {
+        // Associate existing team
+        if (homeVenueId !== null) {
+          await tx.update(teams).set({ homeVenueId, divisionId }).where(eq(teams.id, targetTeamId));
+        } else {
+          await tx.update(teams).set({ divisionId }).where(eq(teams.id, targetTeamId));
+        }
       }
-    }
 
-    await db.insert(teams).values({
-      name: name.trim(),
-      divisionId,
-      homeVenueId,
-      points: 0,
-      setsWon: 0,
-      setsLost: 0,
+      if (targetTeamId) {
+        // Save division registration for this season
+        await tx
+          .delete(teamRegistrations)
+          .where(
+            and(
+              eq(teamRegistrations.teamId, targetTeamId),
+              eq(teamRegistrations.seasonId, seasonId)
+            )
+          );
+
+        await tx.insert(teamRegistrations).values({
+          teamId: targetTeamId,
+          seasonId,
+          divisionId,
+        });
+      }
     });
 
     revalidatePath("/admin/teams");
     revalidatePath("/standings");
   }
 
-  // 3. Server Action to delete a team
+  // 6. Server Action to delete a team
   async function deleteTeam(formData: FormData) {
     "use server";
     const id = Number(formData.get("id"));
@@ -121,26 +195,45 @@ export default async function AdminTeamsPage() {
   return (
     <div className="min-h-screen bg-slate-950 p-6 md:p-12 text-slate-200">
       <div className="max-w-4xl mx-auto space-y-10">
-        <header className="border-b border-slate-900 pb-8">
-          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400 block mb-1">Database Operations</span>
-          <h1 className="text-4xl font-black text-white uppercase tracking-tighter italic">Team <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-500">Management</span></h1>
-          <p className="text-slate-500 font-medium text-xs mt-1">Register new teams, assign home arenas, and configure division brackets.</p>
+        <header className="border-b border-slate-900 pb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+          <div>
+            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400 block mb-1">Database Operations</span>
+            <h1 className="text-4xl font-black text-white uppercase tracking-tighter italic">Team <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-500">Management</span></h1>
+            <p className="text-slate-500 font-medium text-xs mt-1">Register new teams, assign home arenas, and configure division brackets.</p>
+          </div>
+          <div className="shrink-0">
+            <SeasonSelector seasons={allSeasons} selectedSeasonId={selectedSeasonId} />
+          </div>
         </header>
 
         {/* Add Team Form */}
         <div className="bg-slate-900/40 rounded-[2.5rem] p-8 shadow-2xl border border-slate-900">
           <form action={addTeam} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-            <div className="md:col-span-4 space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-600 ml-2">Team Name</label>
+            <div className="md:col-span-3 space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-600 ml-2">New Team Name</label>
               <input 
                 name="name" 
                 placeholder="Enter Team Name..." 
-                required 
                 className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-indigo-500 outline-none font-bold text-white placeholder:text-slate-800 transition-all shadow-inner text-xs"
               />
             </div>
 
             <div className="md:col-span-3 space-y-2">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-600 ml-2">Or Existing Team</label>
+              <select 
+                name="existingTeamId" 
+                className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-indigo-500 outline-none font-bold text-white appearance-none transition-all shadow-inner text-xs cursor-pointer"
+              >
+                <option value="">-- New Team --</option>
+                {systemTeams.map((team) => (
+                  <option key={team.id} value={team.id} className="bg-slate-950 text-slate-200">
+                    {team.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="md:col-span-2 space-y-2">
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-600 ml-2">Assign Division</label>
               <select 
                 name="divisionId" 
@@ -156,7 +249,7 @@ export default async function AdminTeamsPage() {
               </select>
             </div>
 
-            <div className="md:col-span-3 space-y-2">
+            <div className="md:col-span-2 space-y-2">
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-600 ml-2">Home Venue (Optional)</label>
               <select 
                 name="homeVenueId" 
