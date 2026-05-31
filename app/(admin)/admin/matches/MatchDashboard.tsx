@@ -50,6 +50,7 @@ interface TeamRow {
   id: number;
   name: string;
   divisionId: number | null;
+  homeVenueId: number | null;
 }
 
 interface MatchDashboardProps {

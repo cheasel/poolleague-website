@@ -1,6 +1,6 @@
 import { db } from "@/src/db";
 import { matches, teams, matchGames, players, seasons, divisions } from "@/src/db/schema";
-import { eq, asc, desc, sql } from "drizzle-orm";
+import { eq, asc, desc, sql, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import MatchDashboard from "./MatchDashboard";
 
@@ -129,6 +129,14 @@ export default async function AdminMatchesPage({ searchParams }: PageProps) {
       )
     });
 
+    // Enforce Rule 1: Fetch venues of all involved teams to verify they are assigned
+    const involvedTeamIds = Array.from(new Set([...homeTeamIds, ...awayTeamIds]));
+    const teamVenues = await db
+      .select({ id: teams.id, homeVenueId: teams.homeVenueId })
+      .from(teams)
+      .where(inArray(teams.id, involvedTeamIds));
+    const teamVenueMap = new Map(teamVenues.map(t => [t.id, t.homeVenueId]));
+
     const insertValues = [];
     const seenMatchups = new Set<string>();
 
@@ -137,6 +145,11 @@ export default async function AdminMatchesPage({ searchParams }: PageProps) {
       const awayTeamId = awayTeamIds[i];
 
       if (!homeTeamId || !awayTeamId) continue;
+
+      // Rule 1: Both teams must have a home venue assigned
+      const homeVenue = teamVenueMap.get(homeTeamId);
+      const awayVenue = teamVenueMap.get(awayTeamId);
+      if (!homeVenue || !awayVenue) continue;
 
       // Rule 1: Same team can't play each other
       if (homeTeamId === awayTeamId) continue;

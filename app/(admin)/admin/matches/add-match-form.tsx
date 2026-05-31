@@ -4,7 +4,7 @@ import { useRef, useState, useEffect } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 
 interface Props {
-  teams: { id: number; name: string; divisionId: number | null }[];
+  teams: { id: number; name: string; divisionId: number | null; homeVenueId: number | null }[];
   seasons: { id: number; name: string }[];
   divisions: { id: number; name: string; seasonId: number | null }[];
   action: (formData: FormData) => Promise<void>;
@@ -102,7 +102,17 @@ export default function AddMatchForm({ teams, seasons, divisions, action }: Prop
     return keys.length !== new Set(keys).size;
   };
 
-  const isFormInvalid = hasDuplicateMatchups() || filteredTeams.length < 2;
+  // Validation: Check if any selected team is missing a home venue assignment
+  const hasTeamsWithoutVenues = () => {
+    return matchups.some(m => {
+      if (!m.homeTeamId || !m.awayTeamId) return false;
+      const homeTeam = filteredTeams.find(t => t.id.toString() === m.homeTeamId);
+      const awayTeam = filteredTeams.find(t => t.id.toString() === m.awayTeamId);
+      return !homeTeam?.homeVenueId || !awayTeam?.homeVenueId;
+    });
+  };
+
+  const isFormInvalid = hasDuplicateMatchups() || hasTeamsWithoutVenues() || filteredTeams.length < 2;
 
   return (
     <form 
@@ -288,6 +298,14 @@ export default function AddMatchForm({ teams, seasons, divisions, action }: Prop
         <div className="p-4 bg-red-950/20 border border-red-900/40 rounded-2xl flex gap-3 text-red-400 relative z-10 shadow-inner">
           <span className="text-[10px] font-black uppercase tracking-widest leading-relaxed">
             ⚠️ Error: Duplicate matchups detected in this batch. Every pairing must be unique.
+          </span>
+        </div>
+      )}
+
+      {hasTeamsWithoutVenues() && (
+        <div className="p-4 bg-red-950/20 border border-red-900/40 rounded-2xl flex gap-3 text-red-400 relative z-10 shadow-inner">
+          <span className="text-[10px] font-black uppercase tracking-widest leading-relaxed">
+            ⚠️ Error: All selected teams must have a home venue assigned before creating a match.
           </span>
         </div>
       )}
