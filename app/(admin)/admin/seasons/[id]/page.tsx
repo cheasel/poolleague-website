@@ -1,10 +1,11 @@
 import { db } from "@/src/db";
-import { seasons } from "@/src/db/schema";
+import { seasons, divisions, teamRegistrations, teamMemberships, matches } from "@/src/db/schema";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Save, ArrowLeft, Trophy } from "lucide-react";
+import DeleteSeasonButton from "./DeleteSeasonButton";
 
 export const dynamic = "force-dynamic";
 
@@ -64,6 +65,21 @@ export default async function EditSeasonPage({ params }: PageProps) {
 
     revalidatePath("/admin/seasons");
     revalidatePath("/standings");
+    redirect("/admin/seasons");
+  }
+
+  async function deleteSeason() {
+    "use server";
+    await db.transaction(async (tx) => {
+      await tx.delete(teamMemberships).where(eq(teamMemberships.seasonId, seasonId));
+      await tx.delete(teamRegistrations).where(eq(teamRegistrations.seasonId, seasonId));
+      await tx.delete(matches).where(eq(matches.seasonId, seasonId));
+      await tx.delete(divisions).where(eq(divisions.seasonId, seasonId));
+      await tx.delete(seasons).where(eq(seasons.id, seasonId));
+    });
+
+    revalidatePath("/admin/seasons");
+    revalidatePath("/admin");
     redirect("/admin/seasons");
   }
 
@@ -135,6 +151,10 @@ export default async function EditSeasonPage({ params }: PageProps) {
             <Save className="w-4 h-4 stroke-[2.5]" /> Commit Season Parameter Changes
           </button>
         </form>
+
+        <div className="mt-6 border-t border-slate-900/60 pt-6">
+          <DeleteSeasonButton action={deleteSeason} />
+        </div>
       </div>
     </div>
   );
