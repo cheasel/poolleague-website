@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useTransition } from 'react';
 import { Calendar, CheckSquare, Plus, Search, Eye, MapPin, Shield, Filter } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -64,6 +64,7 @@ interface MatchDashboardProps {
   allPlayersRaw: any[];
   addFrameAction: (formData: FormData) => Promise<void>;
   addMatchAction: (formData: FormData) => Promise<void>;
+  clearDivisionScheduleAction: (divisionId: number) => Promise<void>;
   seasons: SeasonRow[];
   divisions: DivisionRow[];
 }
@@ -74,7 +75,8 @@ export default function MatchDashboard({
   sortParam,
   seasons,
   divisions,
-  addMatchAction
+  addMatchAction,
+  clearDivisionScheduleAction
 }: MatchDashboardProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'fixtures' | 'results'>('fixtures');
@@ -82,6 +84,7 @@ export default function MatchDashboard({
   const [selectedSeasonId, setSelectedSeasonId] = useState<string>("all");
   const [selectedDivisionId, setSelectedDivisionId] = useState<string>("all");
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
   const handleSeasonChange = (seasonId: string) => {
     setSelectedSeasonId(seasonId);
@@ -91,6 +94,28 @@ export default function MatchDashboard({
   const filteredDivisionsList = divisions.filter(
     (d) => selectedSeasonId === "all" || d.seasonId?.toString() === selectedSeasonId
   );
+
+  const divisionMatches = allMatches.filter(
+    (m) => m.divisionId?.toString() === selectedDivisionId
+  );
+  const hasMatches = divisionMatches.length > 0;
+  const hasCompleted = divisionMatches.some((m) => m.status === 'completed');
+
+  const handleClearSchedule = () => {
+    if (selectedDivisionId === "all") return;
+    const confirmClear = window.confirm(
+      "Are you sure you want to clear all matches for this division? This action will permanently delete all scheduled fixtures and cannot be undone."
+    );
+    if (!confirmClear) return;
+
+    startTransition(async () => {
+      try {
+        await clearDivisionScheduleAction(Number(selectedDivisionId));
+      } catch (err: any) {
+        alert(err.message || "Failed to clear schedule");
+      }
+    });
+  };
 
   // Filter matches based on search, active view tab, and selected season/division
   const filteredMatches = allMatches.filter((match) => {
@@ -167,7 +192,7 @@ export default function MatchDashboard({
               <Plus className="w-4 h-4 text-indigo-400" /> {isAddOpen ? 'Close Form' : 'Add Match'}
             </button>
             <Link
-              href="/admin/matches/generator"
+              href={selectedDivisionId !== "all" ? `/admin/matches/generator?divisionId=${selectedDivisionId}` : "/admin/matches/generator"}
               className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-black text-xs uppercase tracking-wider transition-all shadow-lg shadow-indigo-950/40"
             >
               <Plus className="w-4 h-4" /> Match Generator
@@ -260,6 +285,24 @@ export default function MatchDashboard({
                 ))}
               </select>
             </div>
+
+            {selectedDivisionId !== "all" && hasMatches && (
+              <div className="flex items-center shrink-0">
+                <button
+                  type="button"
+                  disabled={hasCompleted || isPending}
+                  onClick={handleClearSchedule}
+                  className={`w-full sm:w-auto px-4 py-2.5 font-black text-[10px] uppercase tracking-wider rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer ${
+                    hasCompleted
+                      ? "bg-slate-900 border border-slate-800 text-slate-600 cursor-not-allowed"
+                      : "bg-red-950/20 hover:bg-red-950/40 border border-red-900/30 hover:border-red-900/60 text-red-400 hover:text-red-300"
+                  }`}
+                  title={hasCompleted ? "Cannot clear schedule: Completed games exist" : "Clear all matches for this division"}
+                >
+                  {isPending ? "Clearing..." : "Clear Schedule"}
+                </button>
+              </div>
+            )}
           </div>
         </div>
 

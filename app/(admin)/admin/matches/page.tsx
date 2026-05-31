@@ -1,6 +1,6 @@
 import { db } from "@/src/db";
 import { matches, teams, matchGames, players, seasons, divisions } from "@/src/db/schema";
-import { eq, asc, desc, sql, inArray } from "drizzle-orm";
+import { eq, asc, desc, sql, inArray, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import MatchDashboard from "./MatchDashboard";
 
@@ -191,6 +191,31 @@ export default async function AdminMatchesPage({ searchParams }: PageProps) {
     revalidatePath("/admin/matches");
   }
 
+  async function clearDivisionScheduleAction(divisionId: number) {
+    "use server";
+
+    // 1. Verify if there are completed matches in this division
+    const completedMatches = await db
+      .select({ id: matches.id })
+      .from(matches)
+      .where(
+        and(
+          eq(matches.divisionId, divisionId),
+          eq(matches.status, "completed")
+        )
+      )
+      .limit(1);
+
+    if (completedMatches.length > 0) {
+      throw new Error("Cannot clear schedule: This division already has completed matches.");
+    }
+
+    // 2. Delete matches (cascade deletes games)
+    await db.delete(matches).where(eq(matches.divisionId, divisionId));
+
+    revalidatePath("/admin/matches");
+  }
+
   return (
     <MatchDashboard
       activeMatchId={activeMatchId}
@@ -203,6 +228,7 @@ export default async function AdminMatchesPage({ searchParams }: PageProps) {
       allPlayersRaw={allPlayersRaw}
       addFrameAction={addFrameAction}
       addMatchAction={addMatchAction}
+      clearDivisionScheduleAction={clearDivisionScheduleAction}
       seasons={allSeasons}
       divisions={allDivisions}
     />

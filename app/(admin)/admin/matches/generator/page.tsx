@@ -1,10 +1,11 @@
 import { db } from "@/src/db";
-import { teams, divisions, matches } from "@/src/db/schema";
+import { teams, divisions, matches, seasons } from "@/src/db/schema";
 import { eq, asc, and, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Sparkles, AlertTriangle } from "lucide-react";
+import GeneratorForm from "./GeneratorForm";
 
 export const dynamic = "force-dynamic";
 
@@ -26,8 +27,31 @@ export default async function MatchScheduleGeneratorPage({ searchParams }: Gener
   const clashingAway = params.away ? decodeURIComponent(params.away) : "";
   const selectedDivId = params.divisionId || "";
 
-  // 1. Fetch divisions so the admin can choose which league tier bracket to schedule
-  const allDivisions = await db.select().from(divisions).orderBy(asc(divisions.tier));
+  // 1. Fetch divisions so the admin can choose which league tier bracket to schedule, joined with seasons to get start_date
+  const allDivisionsRaw = await db
+    .select({
+      id: divisions.id,
+      name: divisions.name,
+      seasonStartDate: seasons.startDate,
+    })
+    .from(divisions)
+    .leftJoin(seasons, eq(divisions.seasonId, seasons.id))
+    .orderBy(asc(divisions.tier));
+
+  const formatLocalDate = (dateObj: Date | null) => {
+    if (!dateObj) return "";
+    const d = new Date(dateObj);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const allDivisionsFormatted = allDivisionsRaw.map(d => ({
+    id: d.id,
+    name: d.name,
+    seasonStartDate: formatLocalDate(d.seasonStartDate),
+  }));
 
   // --- ROUND-ROBIN GENERATOR SERVER ACTION ---
   async function generateLeagueSchedule(formData: FormData) {
@@ -264,36 +288,11 @@ export default async function MatchScheduleGeneratorPage({ searchParams }: Gener
         </div>
 
         {/* Configurations Setup Form Panel */}
-        <form action={generateLeagueSchedule} className="space-y-6 pt-4 relative z-10">
-          <div className="space-y-2.5">
-            <label className="text-[10px] font-black uppercase tracking-widest text-slate-600 ml-2">Target League Division</label>
-            <select 
-              name="divisionId" 
-              required
-              defaultValue={selectedDivId}
-              className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-indigo-500 outline-none font-bold text-white text-xs uppercase tracking-[0.1em] appearance-none transition-all shadow-inner"
-            >
-              <option value="">Select Division to Balance...</option>
-              {allDivisions.map(d => (
-                <option key={d.id} value={d.id}>{d.name}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="space-y-2.5">
-            <label className="text-[10px] font-black uppercase tracking-widest text-slate-600 ml-2">Season Opening Date (Week 1)</label>
-            <input 
-              type="date"
-              name="startDate"
-              required
-              className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-indigo-500 outline-none font-bold text-white text-xs uppercase tracking-widest transition-all shadow-inner"
-            />
-          </div>
-
-          <button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-[0.2em] text-[10px] p-5 rounded-[1.5rem] transition-all shadow-lg shadow-indigo-900/20 mt-6 active:scale-[0.98]">
-            Execute Matrix Generation
-          </button>
-        </form>
+        <GeneratorForm 
+          divisions={allDivisionsFormatted}
+          selectedDivId={selectedDivId}
+          action={generateLeagueSchedule}
+        />
       </section>
     </div>
   );
