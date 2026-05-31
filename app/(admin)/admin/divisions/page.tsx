@@ -4,12 +4,39 @@ import { eq, asc, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { Plus, FolderTree } from "lucide-react";
 import DivisionsList from "./divisions-list";
+import SeasonSelector from "@/components/SeasonSelector";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminDivisionsPage() {
-  // 1. Fetch all divisions ranked by tier level with their season split and team relation metrics via registrations
+interface PageProps {
+  searchParams: Promise<{
+    seasonId?: string;
+  }>;
+}
+
+export default async function AdminDivisionsPage({ searchParams }: PageProps) {
+  const resolvedParams = await searchParams;
+
+  // 1. Fetch active season to default to if no seasonId query param is active
+  const [activeSeason] = await db
+    .select()
+    .from(seasons)
+    .where(eq(seasons.isActive, true))
+    .limit(1);
+
+  // Fallback to the latest season if no active season is flagged
+  const [latestSeason] = await db
+    .select()
+    .from(seasons)
+    .orderBy(desc(seasons.startDate))
+    .limit(1);
+
+  const defaultSeasonId = activeSeason?.id || latestSeason?.id || null;
+  const selectedSeasonId = resolvedParams.seasonId ? Number(resolvedParams.seasonId) : defaultSeasonId;
+
+  // 2. Fetch all divisions ranked by tier level with their season split and team relation metrics via registrations
   const allDivisionsRaw = await db.query.divisions.findMany({
+    where: selectedSeasonId ? eq(divisions.seasonId, selectedSeasonId) : undefined,
     with: {
       season: true,
       teamRegistrations: {
@@ -32,7 +59,7 @@ export default async function AdminDivisionsPage() {
       .filter((t): t is NonNullable<typeof t> => t !== null),
   }));
 
-  // 2. Fetch all seasons for the Creation Dropdown selection options
+  // 3. Fetch all seasons for the Creation Dropdown selection options
   const allSeasons = await db.select().from(seasons).orderBy(desc(seasons.startDate));
 
   // =========================================================================
@@ -89,16 +116,21 @@ export default async function AdminDivisionsPage() {
     <div className="space-y-10 max-w-5xl mx-auto text-slate-200">
       
       {/* HEADER ROW */}
-      <header className="border-b border-slate-900 pb-8">
-        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400 block mb-1">
-          Infrastructure Engine
-        </span>
-        <h1 className="text-4xl font-black text-white uppercase tracking-tighter italic leading-none">
-          Division <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-500">Tiers</span>
-        </h1>
-        <p className="text-slate-500 font-medium text-xs mt-1">
-          Configure competitive matrix bounds, tier rankings, and modify structural assets instantly.
-        </p>
+      <header className="border-b border-slate-900 pb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+        <div>
+          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400 block mb-1">
+            Infrastructure Engine
+          </span>
+          <h1 className="text-4xl font-black text-white uppercase tracking-tighter italic leading-none">
+            Division <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-500">Tiers</span>
+          </h1>
+          <p className="text-slate-500 font-medium text-xs mt-1">
+            Configure competitive matrix bounds, tier rankings, and modify structural assets instantly.
+          </p>
+        </div>
+        <div className="shrink-0">
+          <SeasonSelector seasons={allSeasons} selectedSeasonId={selectedSeasonId} />
+        </div>
       </header>
 
       {/* CORE GRID CONTROLLER */}
@@ -147,6 +179,7 @@ export default async function AdminDivisionsPage() {
               <div className="relative">
                 <select
                   name="seasonId"
+                  defaultValue={selectedSeasonId || ""}
                   className="w-full p-3.5 bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl outline-none font-bold text-white text-xs appearance-none pr-10 cursor-pointer"
                 >
                   <option value="">No Season Link (Unassigned)</option>
