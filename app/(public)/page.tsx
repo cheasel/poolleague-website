@@ -154,7 +154,8 @@ const getCachedTopPlayerStats = unstable_cache(
         CAST(COUNT(pw.is_win) AS INTEGER) AS wins
       FROM player_wins pw
       JOIN players p ON pw.player_id = p.id
-      LEFT JOIN teams t ON p.team_id = t.id
+      LEFT JOIN team_memberships tm ON p.id = tm.player_id AND tm.season_id = ${seasonId}
+      LEFT JOIN teams t ON tm.team_id = t.id
       GROUP BY pw.player_id, p.name, p.image_url, t.name, t.logo_url
       ORDER BY wins DESC
       LIMIT ${limit}
