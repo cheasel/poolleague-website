@@ -39,7 +39,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   // Category 2: Live Match-Week Operation Panels
   const operationalItems = [
     { href: "/admin", label: "Overview Hub", icon: LayoutDashboard },
-    { href: "/admin/matches", label: "Scorecard Dispatch", icon: Calendar },
+    { href: "/admin/matches", label: "Match Manager", icon: Calendar },
     { href: "/admin/matches/weeks", label: "Matchweek Manager", icon: Sliders },
     { href: "/admin/teams", label: "Squad Directory", icon: Trophy },
     { href: "/admin/players", label: "Roster Controls", icon: Users },

@@ -81,7 +81,7 @@ export default function MatchDashboard({
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'fixtures' | 'results'>('fixtures');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedSeasonId, setSelectedSeasonId] = useState<string>("all");
+  const [selectedSeasonId, setSelectedSeasonId] = useState<string>(seasons[0]?.id.toString() || "all");
   const [selectedDivisionId, setSelectedDivisionId] = useState<string>("all");
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -262,7 +262,6 @@ export default function MatchDashboard({
                 onChange={(e) => handleSeasonChange(e.target.value)}
                 className="w-full p-2.5 bg-slate-950 border border-slate-850 rounded-xl focus:border-indigo-500 outline-none font-bold text-white text-[11px] appearance-none cursor-pointer"
               >
-                <option value="all">Filter By Season: All Seasons</option>
                 {seasons.map((s) => (
                   <option key={s.id} value={s.id.toString()} className="bg-slate-950 text-slate-200">
                     {s.name}

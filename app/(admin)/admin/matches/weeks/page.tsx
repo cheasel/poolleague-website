@@ -15,12 +15,14 @@ interface WeeksPageProps {
 
 export default async function MatchweeksPage({ searchParams }: WeeksPageProps) {
   const params = await searchParams;
-  const seasonIdParam = params.seasonId || "all";
-  const divisionIdParam = params.divisionId || "";
 
   // 1. Fetch seasons & divisions sequentially to avoid connection pooling deadlocks
   const allSeasons = await db.select().from(seasons).orderBy(desc(seasons.startDate));
   const allDivisions = await db.select().from(divisions).orderBy(asc(divisions.name));
+
+  const latestSeasonId = allSeasons[0]?.id.toString() || "";
+  const seasonIdParam = params.seasonId && params.seasonId !== "all" ? params.seasonId : latestSeasonId;
+  const divisionIdParam = params.divisionId || "";
 
   let weekData: any[] = [];
 

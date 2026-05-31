@@ -46,7 +46,11 @@ export default function MatchweekManagerForm({
   saveAction,
 }: MatchweekManagerFormProps) {
   const router = useRouter();
-  const [selectedSeasonId, setSelectedSeasonId] = useState(seasonIdParam || "all");
+  const defaultSeasonId = seasonIdParam && seasonIdParam !== "all"
+    ? seasonIdParam
+    : (seasons[0]?.id.toString() || "");
+
+  const [selectedSeasonId, setSelectedSeasonId] = useState(defaultSeasonId);
   const [selectedDivisionId, setSelectedDivisionId] = useState(divisionIdParam || "");
   const [weeks, setWeeks] = useState<MatchweekItem[]>(initialWeekData);
   const [isPending, startTransition] = useTransition();
@@ -208,7 +212,6 @@ export default function MatchweekManagerForm({
               onChange={(e) => handleSeasonChange(e.target.value)}
               className="w-full p-3.5 bg-slate-950 border border-slate-800 rounded-xl focus:border-indigo-500 outline-none font-bold text-white text-xs uppercase tracking-wider appearance-none transition-all cursor-pointer shadow-inner"
             >
-              <option value="all">All Seasons</option>
               {seasons.map((s) => (
                 <option key={s.id} value={s.id.toString()}>
                   {s.name}
