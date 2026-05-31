@@ -59,6 +59,7 @@ export default function MatchweekManagerForm({
   }, [initialWeekData]);
 
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [weeksNeedingDateReview, setWeeksNeedingDateReview] = useState<Set<number>>(new Set());
 
   const handleDragStart = (e: React.DragEvent, index: number) => {
     e.dataTransfer.setData("text/plain", index.toString());
@@ -96,6 +97,16 @@ export default function MatchweekManagerForm({
     }));
 
     setWeeks(reindexedWeeks);
+
+    // Highlight re-ordered weeks to prompt the admin to review/change their dates
+    const newReviewSet = new Set(weeksNeedingDateReview);
+    reindexedWeeks.forEach((item, idx) => {
+      const originalIdx = initialWeekData.findIndex(w => w.originalWeek === item.originalWeek);
+      if (originalIdx !== idx) {
+        newReviewSet.add(item.originalWeek);
+      }
+    });
+    setWeeksNeedingDateReview(newReviewSet);
   };
 
   const handleSeasonChange = (seasonId: string) => {
@@ -123,10 +134,16 @@ export default function MatchweekManagerForm({
     const updated = [...weeks];
     updated[index] = { ...updated[index], date: newDateStr };
     setWeeks(updated);
+
+    // Clear review highlight when date is modified by the admin
+    const newReviewSet = new Set(weeksNeedingDateReview);
+    newReviewSet.delete(updated[index].originalWeek);
+    setWeeksNeedingDateReview(newReviewSet);
   };
 
   const handleReset = () => {
     setWeeks(initialWeekData);
+    setWeeksNeedingDateReview(new Set());
   };
 
   // Validation checks
@@ -223,6 +240,18 @@ export default function MatchweekManagerForm({
           <div className="absolute top-0 right-0 w-80 h-full bg-indigo-600/5 blur-[100px] rounded-full pointer-events-none"></div>
 
           {/* Validation Errors & Success Cards */}
+          {weeksNeedingDateReview.size > 0 && (
+            <div className="p-4 bg-amber-950/20 border border-amber-900/40 rounded-2xl flex gap-3 text-amber-500 shadow-inner">
+              <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5 opacity-80" />
+              <div className="text-[10px] font-black uppercase tracking-widest space-y-1">
+                <p>Dates May Require Updates</p>
+                <p className="text-amber-500/80 normal-case font-bold leading-relaxed">
+                  Some matchweeks have been re-ordered. Please check their scheduled dates to ensure they remain in correct chronological order.
+                </p>
+              </div>
+            </div>
+          )}
+
           {hasDuplicates && (
             <div className="p-4 bg-red-950/20 border border-red-900/40 rounded-2xl flex gap-3 text-red-400 shadow-inner">
               <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 opacity-80" />
@@ -314,8 +343,18 @@ export default function MatchweekManagerForm({
                               type="date"
                               value={week.date}
                               onChange={(e) => handleDateChange(idx, e.target.value)}
-                              className="w-full p-2 bg-slate-950 border border-slate-800 rounded-lg font-bold text-white text-xs uppercase tracking-wider focus:border-indigo-500 outline-none"
+                              className={`w-full p-2 bg-slate-950 border rounded-lg font-bold text-white text-xs uppercase tracking-wider outline-none transition-all ${
+                                weeksNeedingDateReview.has(week.originalWeek)
+                                  ? "border-amber-500/80 shadow-md shadow-amber-950/20 focus:border-amber-400 focus:ring-amber-500/20"
+                                  : "border-slate-800 focus:border-indigo-500"
+                              }`}
                             />
+                            {weeksNeedingDateReview.has(week.originalWeek) && (
+                              <div className="flex items-center gap-1 mt-1.5 text-amber-500 text-[9px] font-black uppercase tracking-wider animate-pulse">
+                                <AlertTriangle className="w-3 h-3 text-amber-500 shrink-0" />
+                                Review Date
+                              </div>
+                            )}
                           </td>
                           <td className="p-4 max-w-md">
                             <div className="text-[11px] font-bold text-slate-400 leading-relaxed line-clamp-2">
