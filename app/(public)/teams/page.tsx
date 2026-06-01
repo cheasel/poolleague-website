@@ -31,13 +31,18 @@ const getCachedDivisions = unstable_cache(
   { revalidate: 300, tags: ["divisions"] }
 );
 
-const getCachedTeamStatsData = unstable_cache(
-  async (selectedSeasonId: number | null, selectedDivisionId: number | null) => {
+const getCachedTeamStatsData = (
+  selectedSeasonId: number | null,
+  selectedDivisionId: number | null
+) => unstable_cache(
+  async () => {
     const completedMatches = await db
       .select({
         id: matches.id,
         homeTeamId: matches.homeTeamId,
         awayTeamId: matches.awayTeamId,
+        homeScore: matches.homeScore,
+        awayScore: matches.awayScore,
       })
       .from(matches)
       .where(
@@ -50,14 +55,6 @@ const getCachedTeamStatsData = unstable_cache(
 
     const completedMatchIds = completedMatches.map((m) => m.id);
 
-    const regConditions = [];
-    if (selectedDivisionId) {
-      regConditions.push(eq(teamRegistrations.divisionId, selectedDivisionId));
-    }
-    if (selectedSeasonId) {
-      regConditions.push(eq(teamRegistrations.seasonId, selectedSeasonId));
-    }
-
     const baseTeams = await db
       .select({
         id: teams.id,
@@ -66,7 +63,12 @@ const getCachedTeamStatsData = unstable_cache(
       })
       .from(teamRegistrations)
       .innerJoin(teams, eq(teamRegistrations.teamId, teams.id))
-      .where(regConditions.length > 0 ? and(...regConditions) : undefined);
+      .where(
+        and(
+          selectedSeasonId ? eq(teamRegistrations.seasonId, selectedSeasonId) : undefined,
+          selectedDivisionId ? eq(teamRegistrations.divisionId, selectedDivisionId) : undefined
+        )
+      );
 
     const gamesPlayed = completedMatchIds.length > 0
       ? await db
@@ -81,14 +83,14 @@ const getCachedTeamStatsData = unstable_cache(
       : [];
 
     return calculateTeamStats(
-      baseTeams.map(t => ({ id: t.id, name: t.name, logoUrl: t.logoUrl })),
+      baseTeams,
       completedMatches,
       gamesPlayed
     );
   },
-  ["teams-stats-data"],
+  ["teams-stats-data", String(selectedSeasonId), String(selectedDivisionId)],
   { revalidate: 60, tags: ["teams", "matches"] }
-);
+)();
 
 export default async function PublicTeamsPage({ searchParams }: PageProps) {
   const params = await searchParams;

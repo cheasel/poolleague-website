@@ -14,8 +14,8 @@ interface PageProps {
   }>;
 }
 
-const getCachedMatchPageData = unstable_cache(
-  async (matchId: number) => {
+const getCachedMatchPageData = (matchId: number) => unstable_cache(
+  async () => {
     const homeTeams = alias(teams, "homeTeams");
 
     // 1. Fetch complete Match Details with Season and Division hierarchy data
@@ -129,9 +129,9 @@ const getCachedMatchPageData = unstable_cache(
       relevantPlayers
     };
   },
-  ["match-detail-page"],
+  ["match-detail-page", String(matchId)],
   { revalidate: 60, tags: ["matches", "teams", "divisions", "seasons", "matchGames", "players"] }
-);
+)();
 
 export default async function PublicMatchDetailPage({ params }: PageProps) {
   const { id } = await params;

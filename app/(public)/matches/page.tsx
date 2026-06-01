@@ -31,12 +31,12 @@ const getCachedDivisions = unstable_cache(
   { revalidate: 300, tags: ["divisions"] }
 );
 
-const getCachedMatchesData = unstable_cache(
-  async (
-    selectedSeasonId: number | null,
-    selectedDivisionId: number | null,
-    sortDirection: "asc" | "desc"
-  ) => {
+const getCachedMatchesData = (
+  selectedSeasonId: number | null,
+  selectedDivisionId: number | null,
+  sortDirection: "asc" | "desc"
+) => unstable_cache(
+  async () => {
     const conditions = [];
     if (selectedSeasonId) {
       conditions.push(eq(matches.seasonId, selectedSeasonId));
@@ -64,9 +64,9 @@ const getCachedMatchesData = unstable_cache(
       .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(sortDirection === "desc" ? desc(matches.date) : asc(matches.date));
   },
-  ["matches-list-data"],
+  ["matches-list-data", String(selectedSeasonId), String(selectedDivisionId), sortDirection],
   { revalidate: 60, tags: ["matches", "teams"] }
-);
+)();
 
 export default async function PublicMatchesPage({ searchParams }: PageProps) {
   const params = await searchParams;
