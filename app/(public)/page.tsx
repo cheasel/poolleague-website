@@ -174,7 +174,23 @@ const getCachedTopPlayerStats = (seasonId: number, divisionId: number, limit: nu
 )();
 
 const getCachedSeasons = unstable_cache(
-  async () => db.select().from(seasons).orderBy(desc(seasons.startDate)).limit(1),
+  async () => {
+    // Try to find the active season first
+    const active = await db
+      .select()
+      .from(seasons)
+      .where(eq(seasons.isActive, true))
+      .limit(1);
+    
+    if (active.length > 0) return active;
+
+    // Fallback to the latest season by start date
+    return db
+      .select()
+      .from(seasons)
+      .orderBy(desc(seasons.startDate))
+      .limit(1);
+  },
   ["homepage-current-seasons"],
   { revalidate: 300, tags: ["seasons"] }
 );
@@ -209,8 +225,23 @@ export default async function PublicHomePage({ searchParams }: PageProps) {
 
   // 1. Fetch seasons and active season id (cached)
   const currentSeasons = await getCachedSeasons();
-  const activeSeasonId = currentSeasons[0]?.id || 1;
-  const activeSeasonName = currentSeasons[0]?.name || "Current Season";
+  const activeSeason = currentSeasons[0] || null;
+  const activeSeasonId = activeSeason?.id || 1;
+  const activeSeasonName = activeSeason?.name || "Current Season";
+
+  const formatSeasonDate = (dateVal: Date | null | undefined) => {
+    if (!dateVal) return "";
+    return new Date(dateVal).toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      timeZone: "UTC",
+    });
+  };
+
+  const activeSeasonStart = activeSeason?.startDate ? formatSeasonDate(activeSeason.startDate) : "";
+  const activeSeasonEnd = activeSeason?.endDate ? formatSeasonDate(activeSeason.endDate) : "";
+  const activeSeasonDates = activeSeasonStart && activeSeasonEnd ? `${activeSeasonStart} — ${activeSeasonEnd}` : "";
 
   // 2. Fetch all divisions for the active season (cached)
   const allDivisions = await getCachedDivisions(activeSeasonId);
@@ -238,9 +269,16 @@ export default async function PublicHomePage({ searchParams }: PageProps) {
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#0f172a_1px,transparent_1px),linear-gradient(to_bottom,#0f172a_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-40 pointer-events-none" />
         
         <div className="max-w-6xl mx-auto px-4 py-16 sm:py-20 relative z-10 space-y-6">
-          <Badge variant="indigo">
-            <Zap className="w-3 h-3 text-indigo-400 fill-indigo-400" /> Stats Spotlight Dashboard
-          </Badge>
+          <div className="flex flex-wrap gap-2 items-center">
+            <Badge variant="indigo">
+              <Zap className="w-3 h-3 text-indigo-400 fill-indigo-400" /> Stats Spotlight Dashboard
+            </Badge>
+            {activeSeasonName && (
+              <span className="px-3 py-1 bg-slate-900 border border-slate-800 text-[10px] font-black uppercase tracking-wider text-indigo-400 rounded-xl">
+                Active Season: {activeSeasonName} {activeSeasonDates ? `(${activeSeasonDates})` : ""}
+              </span>
+            )}
+          </div>
 
           <h1 className="text-4xl sm:text-6xl font-black text-white uppercase tracking-tighter italic leading-[0.9] max-w-3xl">
             Lanna Pool Club <br />
@@ -403,6 +441,11 @@ export default async function PublicHomePage({ searchParams }: PageProps) {
                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight block">
                   {activeSeasonName}
                 </p>
+                {activeSeasonDates && (
+                  <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider block mt-0.5">
+                    {activeSeasonDates}
+                  </p>
+                )}
               </div>
             </div>
 
