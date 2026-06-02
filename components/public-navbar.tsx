@@ -51,9 +51,9 @@ export default function PublicNavbar() {
           {/* Logo Section */}
           <Link href="/" className="flex items-center gap-2 group" onClick={() => setIsOpen(false)}>
             <div className="bg-slate-900 p-1.5 rounded-lg group-hover:bg-indigo-600 border border-slate-800 transition-colors">
-              <BarChart3 className="w-5 h-5 text-white" />
+              <BarChart3 className="w-5 h-5 text-slate-100" />
             </div>
-            <span className="font-black text-white uppercase tracking-tighter text-lg">
+            <span className="font-black text-slate-100 uppercase tracking-tighter text-lg">
               Lanna Pool <span className="text-indigo-400">Club</span>
             </span>
           </Link>
@@ -65,8 +65,8 @@ export default function PublicNavbar() {
               href="/match-hub"
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
                 pathname.startsWith('/match-hub')
-                  ? 'bg-slate-900 text-white'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-900/60'
+                  ? 'bg-slate-900 text-slate-100'
+                  : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/60'
               }`}
             >
               <CalendarDays className={`w-4 h-4 ${pathname.startsWith('/match-hub') ? 'text-indigo-400' : 'text-slate-500'}`} />
@@ -78,8 +78,8 @@ export default function PublicNavbar() {
               href="/standings"
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
                 pathname.startsWith('/standings')
-                  ? 'bg-slate-900 text-white'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-900/60'
+                  ? 'bg-slate-900 text-slate-100'
+                  : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/60'
               }`}
             >
               <Trophy className={`w-4 h-4 ${pathname.startsWith('/standings') ? 'text-indigo-400' : 'text-slate-500'}`} />
@@ -92,8 +92,8 @@ export default function PublicNavbar() {
                 onClick={handleDropdownToggle}
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all outline-none ${
                   pathname.startsWith('/players') || pathname.startsWith('/teams')
-                    ? 'bg-slate-900 text-white'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-900/60'
+                    ? 'bg-slate-900 text-slate-100'
+                    : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/60'
                 }`}
               >
                 <BarChart3 className={`w-4 h-4 ${pathname.startsWith('/players') || pathname.startsWith('/teams') ? 'text-indigo-400' : 'text-slate-500'}`} />
@@ -109,7 +109,7 @@ export default function PublicNavbar() {
                     className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
                       pathname.startsWith('/players')
                         ? 'bg-slate-900 text-indigo-400'
-                        : 'text-slate-400 hover:text-white hover:bg-slate-900/40'
+                        : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/40'
                     }`}
                   >
                     <Users className="w-4 h-4" />
@@ -121,7 +121,7 @@ export default function PublicNavbar() {
                     className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all ${
                       pathname.startsWith('/teams') && !pathname.match(/\/teams\/\d+/)
                         ? 'bg-slate-900 text-indigo-400'
-                        : 'text-slate-400 hover:text-white hover:bg-slate-900/40'
+                        : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/40'
                     }`}
                   >
                     <Shield className="w-4 h-4" />
@@ -136,8 +136,8 @@ export default function PublicNavbar() {
               href="/matches"
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
                 pathname.startsWith('/matches')
-                  ? 'bg-slate-900 text-white'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-900/60'
+                  ? 'bg-slate-900 text-slate-100'
+                  : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/60'
               }`}
             >
               <Calendar className={`w-4 h-4 ${pathname.startsWith('/matches') ? 'text-indigo-400' : 'text-slate-500'}`} />
@@ -149,10 +149,19 @@ export default function PublicNavbar() {
           <div className="hidden md:flex items-center gap-4">
             <button
               onClick={toggleTheme}
-              className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 hover:bg-slate-900/80 transition-all cursor-pointer flex items-center justify-center"
+              className="relative inline-flex h-9 w-16 shrink-0 cursor-pointer items-center rounded-full bg-slate-950 border border-slate-800 transition-colors duration-200 outline-none p-1 shadow-inner"
               aria-label="Toggle Theme"
             >
-              {theme === 'dark' ? <Sun className="w-4 h-4 text-indigo-400" /> : <Moon className="w-4 h-4 text-indigo-500" />}
+              {/* Sliding pill indicator */}
+              <span
+                className={`absolute h-7 w-7 rounded-full bg-slate-800 shadow-md transition-all duration-200 ${
+                  theme === 'light' ? 'left-1' : 'left-8'
+                }`}
+              />
+              <span className="relative z-10 flex w-full items-center justify-between px-1.5">
+                <Sun className={`w-3.5 h-3.5 transition-colors duration-200 ${theme === 'light' ? 'text-slate-100 font-bold' : 'text-slate-600'}`} />
+                <Moon className={`w-3.5 h-3.5 transition-colors duration-200 ${theme === 'dark' ? 'text-white' : 'text-slate-500'}`} />
+              </span>
             </button>
             <a 
               href="https://www.facebook.com/LannaPoolClub"
@@ -175,7 +184,7 @@ export default function PublicNavbar() {
             <button
               onClick={() => setIsOpen(!isOpen)}
               type="button"
-              className="inline-flex items-center justify-center p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-900 focus:outline-none transition-colors border border-transparent hover:border-slate-800"
+              className="inline-flex items-center justify-center p-2 rounded-xl text-slate-400 hover:text-slate-100 hover:bg-slate-900 focus:outline-none transition-colors border border-transparent hover:border-slate-800"
               aria-controls="mobile-menu"
               aria-expanded={isOpen}
             >
@@ -200,8 +209,8 @@ export default function PublicNavbar() {
             onClick={() => setIsOpen(false)}
             className={`flex items-center gap-3 px-4 py-3 rounded-xl text-base font-bold transition-all ${
               pathname.startsWith('/match-hub')
-                ? 'bg-slate-900 text-white border-l-2 border-indigo-400'
-                : 'text-slate-400 hover:text-white hover:bg-slate-900/40'
+                ? 'bg-slate-900 text-slate-100 border-l-2 border-indigo-400'
+                : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/40'
             }`}
           >
             <CalendarDays className={`w-4 h-4 ${pathname.startsWith('/match-hub') ? 'text-indigo-400' : 'text-slate-500'}`} />
@@ -214,8 +223,8 @@ export default function PublicNavbar() {
             onClick={() => setIsOpen(false)}
             className={`flex items-center gap-3 px-4 py-3 rounded-xl text-base font-bold transition-all ${
               pathname.startsWith('/standings')
-                ? 'bg-slate-900 text-white border-l-2 border-indigo-400'
-                : 'text-slate-400 hover:text-white hover:bg-slate-900/40'
+                ? 'bg-slate-900 text-slate-100 border-l-2 border-indigo-400'
+                : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/40'
             }`}
           >
             <Trophy className={`w-4 h-4 ${pathname.startsWith('/standings') ? 'text-indigo-400' : 'text-slate-500'}`} />
@@ -228,8 +237,8 @@ export default function PublicNavbar() {
             onClick={() => setIsOpen(false)}
             className={`flex items-center gap-3 px-4 py-3 rounded-xl text-base font-bold transition-all ${
               pathname.startsWith('/players')
-                ? 'bg-slate-900 text-white border-l-2 border-indigo-400'
-                : 'text-slate-400 hover:text-white hover:bg-slate-900/40'
+                ? 'bg-slate-900 text-slate-100 border-l-2 border-indigo-400'
+                : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/40'
             }`}
           >
             <Users className={`w-4 h-4 ${pathname.startsWith('/players') ? 'text-indigo-400' : 'text-slate-500'}`} />
@@ -242,8 +251,8 @@ export default function PublicNavbar() {
             onClick={() => setIsOpen(false)}
             className={`flex items-center gap-3 px-4 py-3 rounded-xl text-base font-bold transition-all ${
               pathname.startsWith('/teams') && !pathname.match(/\/teams\/\d+/)
-                ? 'bg-slate-900 text-white border-l-2 border-indigo-400'
-                : 'text-slate-400 hover:text-white hover:bg-slate-900/40'
+                ? 'bg-slate-900 text-slate-100 border-l-2 border-indigo-400'
+                : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/40'
             }`}
           >
             <Shield className={`w-4 h-4 ${pathname.startsWith('/teams') && !pathname.match(/\/teams\/\d+/) ? 'text-indigo-400' : 'text-slate-500'}`} />
@@ -256,8 +265,8 @@ export default function PublicNavbar() {
             onClick={() => setIsOpen(false)}
             className={`flex items-center gap-3 px-4 py-3 rounded-xl text-base font-bold transition-all ${
               pathname.startsWith('/matches')
-                ? 'bg-slate-900 text-white border-l-2 border-indigo-400'
-                : 'text-slate-400 hover:text-white hover:bg-slate-900/40'
+                ? 'bg-slate-900 text-slate-100 border-l-2 border-indigo-400'
+                : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/40'
             }`}
           >
             <Calendar className={`w-4 h-4 ${pathname.startsWith('/matches') ? 'text-indigo-400' : 'text-slate-500'}`} />
@@ -265,13 +274,25 @@ export default function PublicNavbar() {
           </Link>
           
           <div className="pt-4 mt-2 border-t border-slate-900 px-4 space-y-3">
-            <button
-              onClick={toggleTheme}
-              className="flex justify-between items-center w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-xs font-black uppercase tracking-widest text-slate-400 hover:text-white transition-all cursor-pointer"
-            >
-              <span>Theme: {theme === 'dark' ? 'Dark Mode' : 'Light Mode'}</span>
-              {theme === 'dark' ? <Sun className="w-4 h-4 text-indigo-400" /> : <Moon className="w-4 h-4 text-indigo-500" />}
-            </button>
+            <div className="flex items-center justify-between w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-xs font-black uppercase tracking-widest text-slate-400">
+              <span>Theme Mode</span>
+              <button
+                onClick={toggleTheme}
+                className="relative inline-flex h-8 w-14 shrink-0 cursor-pointer items-center rounded-full bg-slate-950 border border-slate-800 transition-colors duration-200 outline-none p-0.5 shadow-inner"
+                aria-label="Toggle Theme"
+              >
+                {/* Sliding pill indicator */}
+                <span
+                  className={`absolute h-6.5 w-6.5 rounded-full bg-slate-800 shadow-md transition-all duration-200 ${
+                    theme === 'light' ? 'left-0.5' : 'left-7'
+                  }`}
+                />
+                <span className="relative z-10 flex w-full items-center justify-between px-1">
+                  <Sun className={`w-3.5 h-3.5 transition-colors duration-200 ${theme === 'light' ? 'text-slate-100 font-bold' : 'text-slate-600'}`} />
+                  <Moon className={`w-3.5 h-3.5 transition-colors duration-200 ${theme === 'dark' ? 'text-white' : 'text-slate-500'}`} />
+                </span>
+              </button>
+            </div>
             <a 
               href="https://www.facebook.com/LannaPoolClub"
               target="_blank"

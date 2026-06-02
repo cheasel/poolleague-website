@@ -280,7 +280,7 @@ export default async function PublicHomePage({ searchParams }: PageProps) {
             )}
           </div>
 
-          <h1 className="text-4xl sm:text-6xl font-black text-white uppercase tracking-tighter italic leading-[0.9] max-w-3xl">
+          <h1 className="text-4xl sm:text-6xl font-black text-slate-100 uppercase tracking-tighter italic leading-[0.9] max-w-3xl">
             Lanna Pool Club <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-500 drop-shadow-sm">
               League Arena
@@ -366,7 +366,7 @@ export default async function PublicHomePage({ searchParams }: PageProps) {
                     </span>
                   </div>
                   <div className="min-w-0">
-                    <h4 className="font-black text-white text-[15px] uppercase tracking-tight truncate">
+                    <h4 className="font-black text-slate-100 text-[15px] uppercase tracking-tight truncate">
                       {mvpPlayer.name}
                     </h4>
                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight truncate mt-0.5">
@@ -399,7 +399,7 @@ export default async function PublicHomePage({ searchParams }: PageProps) {
 
               {leader1 ? (
                 <div className="py-2">
-                  <h4 className="font-black text-white text-lg uppercase tracking-tight truncate">
+                  <h4 className="font-black text-slate-100 text-lg uppercase tracking-tight truncate">
                     {leader1.name}
                   </h4>
                   <div className="flex items-center gap-1.5 text-orange-400 mt-1">
@@ -435,7 +435,7 @@ export default async function PublicHomePage({ searchParams }: PageProps) {
               </div>
               
               <div className="py-2 space-y-1">
-                <h4 className="font-black text-white text-base uppercase tracking-tight">
+                <h4 className="font-black text-slate-100 text-base uppercase tracking-tight">
                   {currentDivision ? currentDivision.name : "Premier Division"}
                 </h4>
                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight block">
@@ -472,7 +472,7 @@ export default async function PublicHomePage({ searchParams }: PageProps) {
               <div className="flex items-center justify-between border-b border-slate-800 pb-4">
                 <div>
                   <span className="text-[9px] font-black uppercase tracking-wider text-indigo-400 block">Roster Rankings</span>
-                  <h3 className="font-black uppercase tracking-tight text-sm text-white mt-0.5 flex items-center gap-1.5">
+                  <h3 className="font-black uppercase tracking-tight text-sm text-slate-100 mt-0.5 flex items-center gap-1.5">
                     <Crown className="w-4 h-4 text-indigo-400 fill-indigo-400/20" /> Top 5 Player Leaderboard
                   </h3>
                 </div>
@@ -490,7 +490,7 @@ export default async function PublicHomePage({ searchParams }: PageProps) {
                   {topPlayers.map((player, index) => (
                     <TableRow key={player.name}>
                       <TableCell rank={index + 1} />
-                      <TableCell className="font-black text-white text-[12.5px] uppercase tracking-tight group-hover/row:text-indigo-400 transition-colors">
+                      <TableCell className="font-black text-slate-100 text-[12.5px] uppercase tracking-tight group-hover/row:text-indigo-400 transition-colors">
                         {player.name}
                       </TableCell>
                       <TableCell className="text-slate-400 uppercase text-[11px] font-bold tracking-tight">
@@ -529,7 +529,7 @@ export default async function PublicHomePage({ searchParams }: PageProps) {
               <div className="flex items-center justify-between border-b border-slate-900 pb-3 px-1">
                 <div>
                   <span className="text-[9px] font-black uppercase tracking-wider text-indigo-400 block">Recent Results</span>
-                  <h3 className="font-black uppercase tracking-tight text-sm text-white mt-0.5">Recent Scoreboards</h3>
+                  <h3 className="font-black uppercase tracking-tight text-sm text-slate-100 mt-0.5">Recent Scoreboards</h3>
                 </div>
                 <Link href="/matches" className="text-xs font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 transition-colors">
                   All Matches <ArrowRight className="w-3.5 h-3.5" />

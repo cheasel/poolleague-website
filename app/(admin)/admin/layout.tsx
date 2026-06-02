@@ -131,14 +131,26 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
         {/* Footer Configuration Section */}
         <div className="space-y-3 pt-4 border-t border-slate-800/60 mt-4 shrink-0 min-w-0">
-          {/* Theme Toggle Button */}
-          <button
-            onClick={toggleTheme}
-            className="flex items-center justify-between w-full p-3 bg-slate-950 hover:bg-slate-800/80 border border-slate-800 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-all shadow-inner cursor-pointer"
-          >
-            <span>Theme: {theme === 'dark' ? 'Dark' : 'Light'}</span>
-            {theme === 'dark' ? <Sun className="w-3.5 h-3.5 text-indigo-400" /> : <Moon className="w-3.5 h-3.5 text-indigo-500" />}
-          </button>
+          {/* Theme Toggle Row */}
+          <div className="flex items-center justify-between w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-400 shadow-inner">
+            <span>Theme Mode</span>
+            <button
+              onClick={toggleTheme}
+              className="relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full bg-slate-900 border border-slate-850 transition-colors duration-200 outline-none p-0.5"
+              aria-label="Toggle Theme"
+            >
+              {/* Sliding pill indicator */}
+              <span
+                className={`absolute h-5.5 w-5.5 rounded-full bg-slate-800 shadow-md transition-all duration-200 ${
+                  theme === 'light' ? 'left-0.5' : 'left-6'
+                }`}
+              />
+              <span className="relative z-10 flex w-full items-center justify-between px-1">
+                <Sun className={`w-3.5 h-3.5 transition-colors duration-200 ${theme === 'light' ? 'text-slate-100 font-bold' : 'text-slate-600'}`} />
+                <Moon className={`w-3.5 h-3.5 transition-colors duration-200 ${theme === 'dark' ? 'text-white' : 'text-slate-500'}`} />
+              </span>
+            </button>
+          </div>
 
           {/* Public Site Return Link */}
           <Link 
@@ -220,13 +232,25 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
             </div>
 
             <div className="space-y-3 pt-4 border-t border-slate-800 mt-4">
-              <button
-                onClick={toggleTheme}
-                className="flex items-center justify-between w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-white transition-all cursor-pointer"
-              >
-                <span>Theme: {theme === 'dark' ? 'Dark' : 'Light'}</span>
-                {theme === 'dark' ? <Sun className="w-3.5 h-3.5 text-indigo-400" /> : <Moon className="w-3.5 h-3.5 text-indigo-500" />}
-              </button>
+              <div className="flex items-center justify-between w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-400 shadow-inner">
+                <span>Theme Mode</span>
+                <button
+                  onClick={toggleTheme}
+                  className="relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full bg-slate-900 border border-slate-850 transition-colors duration-200 outline-none p-0.5"
+                  aria-label="Toggle Theme"
+                >
+                  {/* Sliding pill indicator */}
+                  <span
+                    className={`absolute h-5.5 w-5.5 rounded-full bg-slate-800 shadow-md transition-all duration-200 ${
+                      theme === 'light' ? 'left-0.5' : 'left-6'
+                    }`}
+                  />
+                  <span className="relative z-10 flex w-full items-center justify-between px-1">
+                    <Sun className={`w-3.5 h-3.5 transition-colors duration-200 ${theme === 'light' ? 'text-slate-100 font-bold' : 'text-slate-600'}`} />
+                    <Moon className={`w-3.5 h-3.5 transition-colors duration-200 ${theme === 'dark' ? 'text-white' : 'text-slate-500'}`} />
+                  </span>
+                </button>
+              </div>
 
               <Link 
                 href="/"

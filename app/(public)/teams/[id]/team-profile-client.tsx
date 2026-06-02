@@ -165,7 +165,7 @@ export default function TeamProfileClient({
           <div className="flex items-center justify-between px-2">
             <div className="flex items-center gap-3">
               <Users className="w-5 h-5 text-indigo-400" />
-              <h2 className="text-xl font-black uppercase tracking-tight text-white">
+              <h2 className="text-xl font-black uppercase tracking-tight text-slate-100">
                 {activeTab === "roster" ? "Official Roster" : "Performance Analytics"}
               </h2>
             </div>
@@ -202,7 +202,7 @@ export default function TeamProfileClient({
                           <User className="w-4 h-4 text-slate-700 group-hover:text-indigo-400 transition-colors" />
                         )}
                       </div>
-                      <span className="font-black text-white uppercase tracking-tight group-hover:text-indigo-400 transition-colors text-sm">
+                      <span className="font-black text-slate-100 uppercase tracking-tight group-hover:text-indigo-400 transition-colors text-sm">
                         {player.name}
                       </span>
                     </div>

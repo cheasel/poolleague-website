@@ -104,7 +104,7 @@ export default async function TitleRace({ divisionId, seasonId }: TitleRaceProps
       {/* 🎯 CHANGED: Converted header element backgrounds and updated text metrics */}
       <div className="p-5 border-b border-slate-800/80 bg-slate-900/20">
         <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400 block mb-0.5">Live Apex</span>
-        <h2 className="text-lg font-black text-white uppercase tracking-tighter italic">
+        <h2 className="text-lg font-black text-slate-100 uppercase tracking-tighter italic">
           Title <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Race</span>
         </h2>
       </div>
