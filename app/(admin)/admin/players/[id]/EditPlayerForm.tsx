@@ -82,7 +82,7 @@ export default function EditPlayerForm({ player, teamsList, updatePlayerAction }
                 />
                 <div className="text-center space-y-1 p-2 pointer-events-none">
                   <UploadCloud className="w-5 h-5 text-zinc-500 group-hover:text-indigo-400 mx-auto transition-colors" />
-                  <p className="text-[10px] font-black uppercase text-zinc-400 group-hover:text-white transition-colors">
+                  <p className="text-[10px] font-black uppercase text-zinc-400 group-hover:text-slate-100 transition-colors">
                     Upload Roster Photo
                   </p>
                   <p className="text-[9px] text-zinc-600 font-bold uppercase">PNG, JPG up to 2MB</p>
@@ -105,7 +105,7 @@ export default function EditPlayerForm({ player, teamsList, updatePlayerAction }
             required
             defaultValue={player.name}
             placeholder="e.g., Ronnie O'Sullivan"
-            className="w-full p-3.5 bg-zinc-950 border border-zinc-800 focus:border-indigo-500 rounded-xl outline-none font-bold text-white text-xs transition-all"
+            className="w-full p-3.5 bg-zinc-950 border border-zinc-800 focus:border-indigo-500 rounded-xl outline-none font-bold text-slate-100 text-xs transition-all"
           />
         </div>
 
@@ -118,11 +118,11 @@ export default function EditPlayerForm({ player, teamsList, updatePlayerAction }
             <select
               name="teamId"
               defaultValue={player.teamId ?? ""}
-              className="w-full p-3.5 bg-zinc-950 border border-zinc-800 focus:border-indigo-500 rounded-xl outline-none font-bold text-white text-xs appearance-none pr-10 cursor-pointer"
+              className="w-full p-3.5 bg-zinc-950 border border-zinc-800 focus:border-indigo-500 rounded-xl outline-none font-bold text-slate-100 text-xs appearance-none pr-10 cursor-pointer"
             >
               <option value="">-- Unassigned Free Agent Status --</option>
               {teamsList.map((team) => (
-                <option key={team.id} value={team.id} className="text-white bg-zinc-950">
+                <option key={team.id} value={team.id} className="text-slate-100 bg-zinc-950">
                   {team.name}
                 </option>
               ))}

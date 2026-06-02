@@ -108,8 +108,26 @@
   .light p.text-white,
   .light td.text-white,
   .light th.text-white,
+  .light input.text-white,
+  .light select.text-white,
+  .light textarea.text-white,
   .light div.text-white:not([class*="bg-"]):not([class*="shadow-"]):not([class*="indigo"]):not([class*="rose"]):not([class*="emerald"]),
   .light span.text-white:not([class*="bg-"]):not([class*="shadow-"]):not([class*="indigo"]):not([class*="rose"]):not([class*="emerald"]) {
     color: var(--slate-100) !important;
+  }
+
+  /* Override static zinc text colors in light mode to adapt nicely */
+  .light .text-zinc-50,
+  .light .text-zinc-100,
+  .light .text-zinc-200,
+  .light .text-zinc-300,
+  .light .text-zinc-400 {
+    color: var(--slate-100) !important;
+  }
+
+  .light .text-zinc-500,
+  .light .text-zinc-650,
+  .light .text-zinc-600 {
+    color: var(--slate-500) !important;
   }
 }

@@ -16,7 +16,7 @@ export default function CreateVenueForm({ createVenueAction }: CreateVenueFormPr
     <div className="bg-zinc-900/40 backdrop-blur-md rounded-[2rem] border border-zinc-800/80 p-6 md:p-8 relative overflow-hidden shadow-2xl">
       <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-600/5 blur-[80px] rounded-full pointer-events-none"></div>
       
-      <h2 className="text-xs font-black uppercase tracking-widest text-white mb-1 flex items-center gap-2">
+      <h2 className="text-xs font-black uppercase tracking-widest text-slate-100 mb-1 flex items-center gap-2">
         <Plus className="w-3.5 h-3.5 text-indigo-400 stroke-[3]" /> Establish Venue Node
       </h2>
       <p className="text-[10px] text-zinc-500 font-bold uppercase mb-6">Initialize a new match deployment hub</p>
@@ -29,7 +29,7 @@ export default function CreateVenueForm({ createVenueAction }: CreateVenueFormPr
             name="name" 
             required 
             placeholder="e.g., Rack & Cue Arena" 
-            className={`w-full p-3.5 bg-zinc-950 border ${state?.error ? 'border-rose-500/50 focus:border-rose-500' : 'border-zinc-800 focus:border-indigo-500'} rounded-xl outline-none font-bold text-white text-xs transition-all`}
+            className={`w-full p-3.5 bg-zinc-950 border ${state?.error ? 'border-rose-500/50 focus:border-rose-500' : 'border-zinc-800 focus:border-indigo-500'} rounded-xl outline-none font-bold text-slate-100 text-xs transition-all`}
           />
           
           {/* 🎯 INLINE DUPLICATE NOTICE LINKED DIRECTLY TO DATABASE STATE */}
@@ -46,7 +46,7 @@ export default function CreateVenueForm({ createVenueAction }: CreateVenueFormPr
             type="text" 
             name="address" 
             placeholder="e.g., 42 Breakaway Blvd, Tier 1" 
-            className="w-full p-3.5 bg-zinc-950 border border-zinc-800 focus:border-indigo-500 rounded-xl outline-none font-bold text-white text-xs transition-all"
+            className="w-full p-3.5 bg-zinc-950 border border-zinc-800 focus:border-indigo-500 rounded-xl outline-none font-bold text-slate-100 text-xs transition-all"
           />
         </div>
 
@@ -55,7 +55,7 @@ export default function CreateVenueForm({ createVenueAction }: CreateVenueFormPr
           <div className="relative">
             <select 
               name="isActive" 
-              className="w-full p-3.5 bg-zinc-950 border border-zinc-800 focus:border-indigo-500 rounded-xl outline-none font-bold text-white text-xs appearance-none pr-10 cursor-pointer"
+              className="w-full p-3.5 bg-zinc-950 border border-zinc-800 focus:border-indigo-500 rounded-xl outline-none font-bold text-slate-100 text-xs appearance-none pr-10 cursor-pointer"
             >
               <option value="true">Active Arena (Open for Matches)</option>
               <option value="false">Inactive Arena (Closed / Locked)</option>

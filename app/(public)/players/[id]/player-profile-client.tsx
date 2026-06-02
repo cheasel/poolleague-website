@@ -191,7 +191,7 @@ export default function PlayerProfileClient({
   return (
     <div className="space-y-8">
       {/* Jumbotron Hero Card Container */}
-      <div className="bg-slate-900/40 backdrop-blur-md rounded-[2.5rem] p-8 md:p-12 text-white shadow-2xl border border-slate-900 relative overflow-hidden">
+      <div className="bg-slate-900/40 backdrop-blur-md rounded-[2.5rem] p-8 md:p-12 text-slate-100 shadow-2xl border border-slate-900 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-full bg-indigo-600/10 blur-[100px] rounded-full"></div>
         
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 relative z-10">
@@ -239,7 +239,7 @@ export default function PlayerProfileClient({
         <div className="bg-slate-900/40 p-6 rounded-[2rem] border border-slate-900 shadow-xl flex justify-between items-center">
           <div>
             <div className="flex items-center gap-3 mb-2 text-slate-500"><Trophy className="w-4 h-4 text-amber-500" /><h3 className="text-[10px] font-black uppercase tracking-widest">Singles Record</h3></div>
-            <div className="text-2xl font-black text-white tabular-nums">{stats.singlesWins}W - {stats.singlesLosses}L</div>
+            <div className="text-2xl font-black text-slate-100 tabular-nums">{stats.singlesWins}W - {stats.singlesLosses}L</div>
           </div>
           <div className="text-right">
             <div className="text-lg font-mono font-black text-indigo-400">{stats.singlesWinPct}%</div>
@@ -249,7 +249,7 @@ export default function PlayerProfileClient({
         <div className="bg-slate-900/40 p-6 rounded-[2rem] border border-slate-900 shadow-xl flex justify-between items-center">
           <div>
             <div className="flex items-center gap-3 mb-2 text-slate-500"><Users className="w-4 h-4 text-indigo-400" /><h3 className="text-[10px] font-black uppercase tracking-widest">Doubles Record</h3></div>
-            <div className="text-2xl font-black text-white tabular-nums">{stats.doublesWins}W - {stats.doublesLosses}L</div>
+            <div className="text-2xl font-black text-slate-100 tabular-nums">{stats.doublesWins}W - {stats.doublesLosses}L</div>
           </div>
           <div className="text-right">
             <div className="text-lg font-mono font-black text-purple-400">{stats.doublesWinPct}%</div>
@@ -258,14 +258,14 @@ export default function PlayerProfileClient({
         </div>
         <div className="bg-slate-900/40 p-6 rounded-[2rem] border border-slate-900 shadow-xl">
           <div className="flex items-center gap-3 mb-4 text-slate-500"><TrendingUp className="w-4 h-4 text-pink-400" /><h3 className="text-[10px] font-black uppercase tracking-widest">Prime Partner</h3></div>
-          <div className="text-sm font-black text-white uppercase truncate tracking-tight">{stats.bestPartner}</div>
+          <div className="text-sm font-black text-slate-100 uppercase truncate tracking-tight">{stats.bestPartner}</div>
         </div>
       </div>
 
       {/* Ledger */}
       <div className="bg-slate-900/40 border border-slate-900 rounded-[2.5rem] shadow-2xl overflow-hidden">
         <div className="p-6 md:px-8 border-b border-slate-800 bg-slate-900/60">
-          <h2 className="font-black text-white uppercase tracking-tight text-lg flex items-center gap-2">
+          <h2 className="font-black text-slate-100 uppercase tracking-tight text-lg flex items-center gap-2">
             <Calendar className="w-5 h-5 text-indigo-400" /> 
             {selectedSeasonId === "all" ? (
               <span>Season Stats</span>
@@ -294,7 +294,7 @@ export default function PlayerProfileClient({
                       {s.seasonName}
                     </span>
                     <div>
-                      <div className="font-black text-white uppercase text-sm group-hover:text-indigo-400 transition-colors">
+                      <div className="font-black text-slate-100 uppercase text-sm group-hover:text-indigo-400 transition-colors">
                         {s.teamName}
                       </div>
                       <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-0.5">
@@ -332,7 +332,7 @@ export default function PlayerProfileClient({
                   <div className="flex items-center gap-6">
                     <span className={`text-[10px] font-black px-3 py-1.5 rounded-xl border tabular-nums min-w-[70px] text-center tracking-widest ${isWin ? 'bg-indigo-600 text-white border-transparent shadow-lg shadow-indigo-900/20' : 'bg-slate-950 text-slate-500 border-slate-800'}`}>{isWin ? 'VICTORY' : 'DEFEAT'}</span>
                     <div>
-                      <div className="font-black text-white uppercase text-sm flex items-center gap-1.5 flex-wrap group-hover:text-indigo-400 transition-colors"><User className="w-3.5 h-3.5 text-slate-600" /><span>vs {opponentNames.join(" & ") || "Vacant"}</span></div>
+                      <div className="font-black text-slate-100 uppercase text-sm flex items-center gap-1.5 flex-wrap group-hover:text-indigo-400 transition-colors"><User className="w-3.5 h-3.5 text-slate-600" /><span>vs {opponentNames.join(" & ") || "Vacant"}</span></div>
                       <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-0.5">{isHome ? game.awayTeamName : game.homeTeamName} • {game.matchDate ? new Date(game.matchDate).toLocaleDateString('en-GB', { timeZone: 'UTC' }) : "TBD"}</div>
                     </div>
                   </div>

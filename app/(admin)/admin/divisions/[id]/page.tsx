@@ -62,7 +62,7 @@ export default async function EditDivisionPage({ params }: PageProps) {
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-10 pb-24 px-4 text-zinc-200">
+    <div className="max-w-3xl mx-auto space-y-10 pb-24 px-4 text-slate-100">
       
       {/* Top Header Navigation */}
       <header className="flex items-center justify-between">

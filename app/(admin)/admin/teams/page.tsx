@@ -199,7 +199,7 @@ export default async function AdminTeamsPage({ searchParams }: PageProps) {
         <header className="border-b border-slate-900 pb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
           <div>
             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400 block mb-1">Database Operations</span>
-            <h1 className="text-4xl font-black text-white uppercase tracking-tighter italic">Team <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-500">Management</span></h1>
+            <h1 className="text-4xl font-black text-slate-100 uppercase tracking-tighter italic">Team <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-500">Management</span></h1>
             <p className="text-slate-500 font-medium text-xs mt-1">Register new teams, assign home arenas, and configure division brackets.</p>
           </div>
           <div className="shrink-0">
@@ -215,7 +215,7 @@ export default async function AdminTeamsPage({ searchParams }: PageProps) {
               <input 
                 name="name" 
                 placeholder="Enter Team Name..." 
-                className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-indigo-500 outline-none font-bold text-white placeholder:text-slate-800 transition-all shadow-inner text-xs"
+                className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-indigo-500 outline-none font-bold text-slate-100 placeholder:text-slate-800 transition-all shadow-inner text-xs"
               />
             </div>
 
@@ -223,7 +223,7 @@ export default async function AdminTeamsPage({ searchParams }: PageProps) {
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-600 ml-2">Or Existing Team</label>
               <select 
                 name="existingTeamId" 
-                className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-indigo-500 outline-none font-bold text-white appearance-none transition-all shadow-inner text-xs cursor-pointer"
+                className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-indigo-500 outline-none font-bold text-slate-100 appearance-none transition-all shadow-inner text-xs cursor-pointer"
               >
                 <option value="">-- New Team --</option>
                 {systemTeams.map((team) => (
@@ -239,7 +239,7 @@ export default async function AdminTeamsPage({ searchParams }: PageProps) {
               <select 
                 name="divisionId" 
                 required 
-                className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-indigo-500 outline-none font-bold text-white appearance-none transition-all shadow-inner text-xs cursor-pointer"
+                className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-indigo-500 outline-none font-bold text-slate-100 appearance-none transition-all shadow-inner text-xs cursor-pointer"
               >
                 <option value="">Select Division</option>
                 {allDivisions.map((div) => (
@@ -254,7 +254,7 @@ export default async function AdminTeamsPage({ searchParams }: PageProps) {
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-600 ml-2">Home Venue (Optional)</label>
               <select 
                 name="homeVenueId" 
-                className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-indigo-500 outline-none font-bold text-white appearance-none transition-all shadow-inner text-xs cursor-pointer"
+                className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-indigo-500 outline-none font-bold text-slate-100 appearance-none transition-all shadow-inner text-xs cursor-pointer"
               >
                 <option value="">No Home Venue</option>
                 {venuesList.map((venue) => (
@@ -281,7 +281,7 @@ export default async function AdminTeamsPage({ searchParams }: PageProps) {
         {/* Teams List */}
         <div className="bg-slate-900/40 rounded-[2.5rem] border border-slate-900 shadow-2xl overflow-hidden">
           <div className="px-8 py-6 border-b border-slate-800 bg-slate-900/60 flex justify-between items-center">
-            <h2 className="font-black text-white uppercase tracking-tight text-sm">Active Rosters</h2>
+            <h2 className="font-black text-slate-100 uppercase tracking-tight text-sm">Active Rosters</h2>
             <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{allTeams.length} Total Teams</span>
           </div>
           
@@ -310,7 +310,7 @@ export default async function AdminTeamsPage({ searchParams }: PageProps) {
                     
                     <div>
                       <div className="flex items-center gap-2.5">
-                        <h3 className="font-black text-white uppercase tracking-tight group-hover:text-indigo-400 transition-colors">{team.name}</h3>
+                        <h3 className="font-black text-slate-100 uppercase tracking-tight group-hover:text-indigo-400 transition-colors">{team.name}</h3>
                         
                         {/* Roster Size Badge */}
                         <span className={`text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md shadow-sm border ${

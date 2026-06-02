@@ -82,7 +82,7 @@ export default function EditTeamForm({ team, venuesList, updateTeamAction }: Edi
                 />
                 <div className="text-center space-y-1 p-2 pointer-events-none">
                   <UploadCloud className="w-5 h-5 text-zinc-500 group-hover:text-indigo-400 mx-auto transition-colors" />
-                  <p className="text-[10px] font-black uppercase text-zinc-400 group-hover:text-white transition-colors">
+                  <p className="text-[10px] font-black uppercase text-zinc-400 group-hover:text-slate-100 transition-colors">
                     Upload New Crest Image
                   </p>
                   <p className="text-[9px] text-zinc-600 font-bold uppercase">PNG, JPG up to 2MB</p>
@@ -105,7 +105,7 @@ export default function EditTeamForm({ team, venuesList, updateTeamAction }: Edi
             required
             defaultValue={team.name}
             placeholder="e.g., Spitfire Shooters"
-            className="w-full p-3.5 bg-zinc-950 border border-zinc-800 focus:border-indigo-500 rounded-xl outline-none font-bold text-white text-xs transition-all"
+            className="w-full p-3.5 bg-zinc-950 border border-zinc-800 focus:border-indigo-500 rounded-xl outline-none font-bold text-slate-100 text-xs transition-all"
           />
         </div>
 
@@ -118,7 +118,7 @@ export default function EditTeamForm({ team, venuesList, updateTeamAction }: Edi
             <select
               name="homeVenueId"
               defaultValue={team.homeVenueId ?? ""}
-              className="w-full p-3.5 bg-zinc-950 border border-zinc-800 focus:border-indigo-500 rounded-xl outline-none font-bold text-white text-xs appearance-none pr-10 cursor-pointer"
+              className="w-full p-3.5 bg-zinc-950 border border-zinc-800 focus:border-indigo-500 rounded-xl outline-none font-bold text-slate-100 text-xs appearance-none pr-10 cursor-pointer"
             >
               <option value="">-- No Home Venue Assigned --</option>
               {venuesList.map((venue) => {
@@ -131,7 +131,7 @@ export default function EditTeamForm({ team, venuesList, updateTeamAction }: Edi
                     key={venue.id} 
                     value={venue.id}
                     disabled={isFull}
-                    className={isFull ? "text-zinc-600 bg-zinc-950" : "text-white bg-zinc-950"}
+                    className={isFull ? "text-zinc-600 bg-zinc-950" : "text-slate-100 bg-zinc-950"}
                   >
                     {venue.name} ({allocationCount}/2 Slots Filled) {isFull ? " [MAX CAPACITY]" : ""}
                   </option>

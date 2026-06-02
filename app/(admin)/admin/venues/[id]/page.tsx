@@ -52,7 +52,7 @@ export default async function EditVenuePage({ params }: PageProps) {
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-10 pb-24 px-4 text-zinc-200 antialiased">
+    <div className="max-w-3xl mx-auto space-y-10 pb-24 px-4 text-slate-100 antialiased">
       
       {/* Dynamic Upper Control Header */}
       <header className="flex items-center justify-between">
@@ -75,7 +75,7 @@ export default async function EditVenuePage({ params }: PageProps) {
               <Store className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-2xl md:text-3xl font-black text-white uppercase tracking-tighter italic leading-none">Modify Location</h1>
+              <h1 className="text-2xl md:text-3xl font-black text-slate-100 uppercase tracking-tighter italic leading-none">Modify Location</h1>
               <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mt-1.5">Configure operational arena deployment parameters</p>
             </div>
           </div>
@@ -89,7 +89,7 @@ export default async function EditVenuePage({ params }: PageProps) {
                 name="name" 
                 defaultValue={venue.name} 
                 required 
-                className="w-full p-4 bg-zinc-950 border border-zinc-800 rounded-xl outline-none font-bold text-white text-sm focus:border-indigo-500/80 transition-all" 
+                className="w-full p-4 bg-zinc-950 border border-zinc-800 rounded-xl outline-none font-bold text-slate-100 text-sm focus:border-indigo-500/80 transition-all" 
               />
             </div>
 
@@ -104,7 +104,7 @@ export default async function EditVenuePage({ params }: PageProps) {
                 name="address" 
                 defaultValue={venue.address || ""} 
                 placeholder="e.g., Suite B, 7th Pocket Avenue"
-                className="w-full p-4 bg-zinc-950 border border-zinc-800 rounded-xl outline-none font-bold text-white text-sm focus:border-indigo-500/80 transition-all" 
+                className="w-full p-4 bg-zinc-950 border border-zinc-800 rounded-xl outline-none font-bold text-slate-100 text-sm focus:border-indigo-500/80 transition-all" 
               />
             </div>
 
@@ -118,7 +118,7 @@ export default async function EditVenuePage({ params }: PageProps) {
                 <select 
                   name="isActive" 
                   defaultValue={venue.isActive ? "true" : "false"}
-                  className="w-full p-4 bg-zinc-950 border border-zinc-800 focus:border-indigo-500 rounded-xl outline-none font-bold text-white appearance-none text-sm pr-10 cursor-pointer"
+                  className="w-full p-4 bg-zinc-950 border border-zinc-800 focus:border-indigo-500 rounded-xl outline-none font-bold text-slate-100 appearance-none text-sm pr-10 cursor-pointer"
                 >
                   <option value="true">Operational / Active / Accepting Matches</option>
                   <option value="false">Deactivated / Offline / Block New Bookings</option>
@@ -138,7 +138,7 @@ export default async function EditVenuePage({ params }: PageProps) {
 
       {/* READ-ONLY REVERSE REFERENCE HOOK GRID (Home Franchise List) */}
       <div className="bg-zinc-900/40 backdrop-blur-md rounded-[2rem] border border-zinc-800/80 shadow-2xl p-6 md:p-10 overflow-hidden">
-        <h2 className="text-lg font-black text-white uppercase tracking-tight flex items-center gap-2 mb-2">
+        <h2 className="text-lg font-black text-slate-100 uppercase tracking-tight flex items-center gap-2 mb-2">
           <Shield className="w-4 h-4 text-indigo-400" /> Local Home Franchises
         </h2>
         <p className="text-[11px] text-zinc-500 font-medium mb-6">Teams that use this specific establishment hub as their default home venue.</p>
@@ -147,7 +147,7 @@ export default async function EditVenuePage({ params }: PageProps) {
           <div className="grid sm:grid-cols-2 gap-3">
             {localHomeTeams.map(team => (
               <div key={team.id} className="p-4 bg-zinc-950 border border-zinc-800/60 rounded-xl flex items-center justify-between shadow-inner">
-                <span className="text-xs font-bold text-white uppercase tracking-wide">{team.name}</span>
+                <span className="text-xs font-bold text-slate-100 uppercase tracking-wide">{team.name}</span>
                 <span className="text-[9px] font-black text-zinc-500 bg-zinc-900 border border-zinc-850 px-2 py-1 rounded tracking-wider uppercase">
                   Home Base
                 </span>

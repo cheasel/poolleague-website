@@ -94,7 +94,7 @@ export default function TeamProfileClient({
   return (
     <div className="space-y-10">
       {/* Team Identity Hero Jumbotron */}
-      <section className="bg-slate-900/40 backdrop-blur-md rounded-[2.5rem] p-8 md:p-12 text-white shadow-2xl border border-slate-900 relative overflow-hidden">
+      <section className="bg-slate-900/40 backdrop-blur-md rounded-[2.5rem] p-8 md:p-12 text-slate-100 shadow-2xl border border-slate-900 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-80 h-full bg-indigo-600/10 blur-[120px] rounded-full"></div>
         
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 relative z-10">
@@ -237,7 +237,7 @@ export default function TeamProfileClient({
                     value={minMatchPlayPercentage}
                     onChange={(e) => setMinMatchPlayPercentage(Math.min(100, Math.max(0, Number(e.target.value))))}
                     className={`w-12 p-1 text-center font-bold text-xs border rounded-lg outline-none transition-all ${
-                      enableMatchPlayFilter ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-950 border-slate-900 text-slate-700 cursor-not-allowed'
+                      enableMatchPlayFilter ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-slate-950 border-slate-900 text-slate-700 cursor-not-allowed'
                     }`}
                   />
                   <span className="text-[11px] font-bold text-slate-600">%</span>
@@ -259,7 +259,7 @@ export default function TeamProfileClient({
                     <tbody className="divide-y divide-slate-800/60 font-black uppercase tracking-tight text-slate-400">
                       {processedStats.map((stat) => (
                         <tr key={stat.id} className="hover:bg-slate-900/40 transition-colors group">
-                          <td className="p-4 pl-8 font-black text-white whitespace-nowrap">
+                          <td className="p-4 pl-8 font-black text-slate-100 whitespace-nowrap">
                             <Link href={`/players/${stat.id}`} prefetch={false} className="hover:text-indigo-400 transition-colors flex items-center gap-3">
                               <div className="w-8 h-8 rounded-lg overflow-hidden bg-slate-950 border border-slate-800 shrink-0 flex items-center justify-center relative">
                                 {stat.imageUrl && stat.imageUrl.length > 0 ? (
@@ -302,7 +302,7 @@ export default function TeamProfileClient({
         <div className="lg:col-span-5 space-y-6">
           <div className="flex items-center gap-3 px-2">
             <CalendarDays className="w-5 h-5 text-slate-600" />
-            <h2 className="text-xl font-black uppercase tracking-tight text-white">Fixture Timelines</h2>
+            <h2 className="text-xl font-black uppercase tracking-tight text-slate-100">Fixture Timelines</h2>
           </div>
 
           <div className="space-y-4">
@@ -322,7 +322,7 @@ export default function TeamProfileClient({
                         {match.matchDate ? new Date(match.matchDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', timeZone: 'UTC' }) : "TBD"}
                       </span>
                     </div>
-                    <div className="font-black text-white uppercase tracking-tight text-sm group-hover:text-indigo-400 transition-colors">
+                    <div className="font-black text-slate-100 uppercase tracking-tight text-sm group-hover:text-indigo-400 transition-colors">
                       vs {opponentName}
                     </div>
                   </div>
@@ -350,7 +350,7 @@ export default function TeamProfileClient({
                 return (
                   <div key={match.id} className="p-5 px-6 flex justify-between items-center hover:bg-slate-900/40 transition-colors group">
                     <div>
-                      <div className="font-black text-white uppercase text-xs tracking-tight group-hover:text-indigo-400 transition-colors">
+                      <div className="font-black text-slate-100 uppercase text-xs tracking-tight group-hover:text-indigo-400 transition-colors">
                         vs {opponentName}
                       </div>
                       <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">

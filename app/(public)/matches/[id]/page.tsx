@@ -169,7 +169,7 @@ export default async function PublicMatchDetailPage({ params }: PageProps) {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400 block mb-1">Match Analytics Frame</span>
-              <h1 className="text-3xl font-black text-white uppercase tracking-tighter italic">
+              <h1 className="text-3xl font-black text-slate-100 uppercase tracking-tighter italic">
                 Competitive <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-500">Timeline</span>
               </h1>
             </div>
@@ -198,13 +198,13 @@ export default async function PublicMatchDetailPage({ params }: PageProps) {
               <span className="inline-block px-2.5 py-1 rounded-md bg-slate-950 border border-slate-800 text-slate-500 font-mono text-[10px] font-black uppercase tracking-wider">
                 Rank #{homeRank ?? '?'}
               </span>
-              <h2 className="text-xl md:text-3xl font-black text-white uppercase tracking-tight truncate">
+              <h2 className="text-xl md:text-3xl font-black text-slate-100 uppercase tracking-tight truncate">
                 {homeTeamName}
               </h2>
             </div>
 
             {/* Vs / Score Segment */}
-            <div className="md:col-span-3 text-center py-6 px-4 bg-slate-950 border border-slate-800 rounded-[2rem] text-white shadow-2xl flex flex-col items-center justify-center min-h-[120px]">
+            <div className="md:col-span-3 text-center py-6 px-4 bg-slate-950 border border-slate-800 rounded-[2rem] text-slate-100 shadow-2xl flex flex-col items-center justify-center min-h-[120px]">
               {matchData.status === 'completed' ? (
                 <div className="text-5xl font-black tracking-tighter tabular-nums text-indigo-400 drop-shadow-[0_0_15px_rgba(129,140,248,0.3)]">
                   {matchData.homeTeamScoreTotal} <span className="text-slate-700 text-2xl font-normal mx-0.5">:</span> {matchData.awayTeamScoreTotal}
@@ -225,7 +225,7 @@ export default async function PublicMatchDetailPage({ params }: PageProps) {
               <span className="inline-block px-2.5 py-1 rounded-md bg-slate-950 border border-slate-800 text-slate-500 font-mono text-[10px] font-black uppercase tracking-wider">
                 Rank #{awayRank ?? '?'}
               </span>
-              <h2 className="text-xl md:text-3xl font-black text-white uppercase tracking-tight truncate">
+              <h2 className="text-xl md:text-3xl font-black text-slate-100 uppercase tracking-tight truncate">
                 {awayTeamName}
               </h2>
             </div>
@@ -236,7 +236,7 @@ export default async function PublicMatchDetailPage({ params }: PageProps) {
         {/* Frames Individual Performance Breakdown Sheet */}
         <div className="bg-slate-900/40 border border-slate-900 rounded-[2.5rem] shadow-xl overflow-hidden">
           <div className="px-8 py-6 bg-slate-900/60 border-b border-slate-800">
-            <h3 className="font-black text-white text-xs uppercase tracking-widest flex items-center gap-2">
+            <h3 className="font-black text-slate-100 text-xs uppercase tracking-widest flex items-center gap-2">
               <Shield className="w-4 h-4 text-indigo-400" /> Individual Frame Statistics Ledger
             </h3>
           </div>
@@ -259,7 +259,7 @@ export default async function PublicMatchDetailPage({ params }: PageProps) {
                   </div>
 
                   {/* Home Players */}
-                  <div className={`md:col-span-4 space-y-0.5 md:text-right ${homeWon ? 'font-black text-white' : 'text-slate-500 font-medium'}`}>
+                  <div className={`md:col-span-4 space-y-0.5 md:text-right ${homeWon ? 'font-black text-slate-100' : 'text-slate-500 font-medium'}`}>
                     <div className="flex items-center md:justify-end gap-2 text-xs uppercase tracking-tight group-hover:text-indigo-400 transition-colors">
                       <User className="w-3 h-3 text-slate-700 md:hidden" /> {h1}
                     </div>
@@ -280,7 +280,7 @@ export default async function PublicMatchDetailPage({ params }: PageProps) {
                   </div>
 
                   {/* Away Players */}
-                  <div className={`md:col-span-5 space-y-0.5 ${!homeWon ? 'font-black text-white' : 'text-slate-500 font-medium'}`}>
+                  <div className={`md:col-span-5 space-y-0.5 ${!homeWon ? 'font-black text-slate-100' : 'text-slate-500 font-medium'}`}>
                     <div className="flex items-center gap-2 text-xs uppercase tracking-tight group-hover:text-indigo-400 transition-colors">
                       <User className="w-3 h-3 text-slate-700" /> {a1}
                     </div>

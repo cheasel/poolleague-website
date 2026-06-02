@@ -256,7 +256,7 @@ export default async function AdminPlayersPage({ searchParams }: PageProps) {
       <div className="max-w-4xl mx-auto space-y-10">
         <header className="border-b border-slate-900 pb-8">
           <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400 block mb-1">Database Operations</span>
-          <h1 className="text-4xl font-black text-white uppercase tracking-tighter italic">Player <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-500">Registry</span></h1>
+          <h1 className="text-4xl font-black text-slate-100 uppercase tracking-tighter italic">Player <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-500">Registry</span></h1>
           <p className="text-slate-500 font-medium text-xs mt-1">Manage league competitors and their team affiliations.</p>
         </header>
 

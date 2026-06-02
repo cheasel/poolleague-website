@@ -152,9 +152,9 @@ export default async function EditTeamPage({ params }: PageProps) {
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8 pb-24 px-4 text-zinc-200 antialiased">
+    <div className="max-w-3xl mx-auto space-y-8 pb-24 px-4 text-slate-100 antialiased">
       <header className="border-b border-zinc-800/60 pb-6">
-        <h1 className="text-3xl font-black text-white uppercase tracking-tighter italic">
+        <h1 className="text-3xl font-black text-slate-100 uppercase tracking-tighter italic">
           Modify Team <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-indigo-200">Configuration</span>
         </h1>
         <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mt-1">

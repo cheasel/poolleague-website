@@ -201,7 +201,7 @@ export default function StandingsClient({
                         <td className={posCellClass}>
                           {index + 1}
                         </td>
-                        <td className="px-6 py-4 font-black text-white text-[13px] uppercase tracking-tight group-hover:text-indigo-400 transition-colors">
+                        <td className="px-6 py-4 font-black text-slate-100 text-[13px] uppercase tracking-tight group-hover:text-indigo-400 transition-colors">
                           <div className="flex items-center gap-2">
                             {row.logoUrl ? (
                               <div className="w-6 h-6 rounded bg-slate-950 border border-slate-850 p-0.5 flex items-center justify-center shrink-0">
@@ -320,7 +320,7 @@ export default function StandingsClient({
                     <th className="px-2.5 py-3.5 text-center bg-indigo-950/10 text-slate-500">D</th>
                     <th className="px-2.5 py-3.5 text-center bg-indigo-950/10 text-rose-400">L</th>
                     <th className="px-3 py-3.5 text-center bg-indigo-950/20 font-bold border-l border-slate-800">Frames (+/-)</th>
-                    <th className="px-4 py-3.5 text-center bg-indigo-600/40 text-white font-black border-l border-slate-800">PTS</th>
+                    <th className="px-4 py-3.5 text-center bg-indigo-600/40 text-slate-100 font-black border-l border-slate-800">PTS</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60 font-medium text-slate-400 text-[11px]">
@@ -345,7 +345,7 @@ export default function StandingsClient({
                     return (
                       <tr key={row.id} className={rowBgClass}>
                         <td className={posCellClass}>{index + 1}</td>
-                        <td className="px-4 py-3 font-black text-white uppercase border-r border-slate-800 tracking-tight text-[12px] group-hover:text-indigo-400 transition-colors">
+                        <td className="px-4 py-3 font-black text-slate-100 uppercase border-r border-slate-800 tracking-tight text-[12px] group-hover:text-indigo-400 transition-colors">
                           <div className="flex items-center gap-2">
                             {row.logoUrl ? (
                               <div className="w-6 h-6 rounded bg-slate-950 border border-slate-850 p-0.5 flex items-center justify-center shrink-0">
@@ -425,7 +425,7 @@ export default function StandingsClient({
             <div className="flex items-center justify-between border-b border-slate-800 pb-4">
               <div>
                 <span className="text-[9px] font-black uppercase tracking-wider text-indigo-400 block">Completed Outcomes</span>
-                <h3 className="font-black uppercase tracking-tight text-sm text-white mt-0.5 flex items-center gap-1.5">
+                <h3 className="font-black uppercase tracking-tight text-sm text-slate-100 mt-0.5 flex items-center gap-1.5">
                   <History className="w-4 h-4 text-indigo-400" /> Match Results
                 </h3>
               </div>
@@ -480,7 +480,7 @@ export default function StandingsClient({
             <div className="flex items-center justify-between border-b border-slate-800 pb-4">
               <div>
                 <span className="text-[9px] font-black uppercase tracking-wider text-indigo-400 block">Upcoming Schedule</span>
-                <h3 className="font-black uppercase tracking-tight text-sm text-white mt-0.5 flex items-center gap-1.5">
+                <h3 className="font-black uppercase tracking-tight text-sm text-slate-100 mt-0.5 flex items-center gap-1.5">
                   <CalendarDays className="w-4 h-4 text-indigo-400" /> Match Fixtures
                 </h3>
               </div>

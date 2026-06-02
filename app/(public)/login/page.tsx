@@ -40,7 +40,7 @@ export default function LoginPage() {
             Access Portal
           </div>
 
-          <h1 className="text-3xl sm:text-4xl font-black text-white uppercase tracking-tighter italic leading-none">
+          <h1 className="text-3xl sm:text-4xl font-black text-slate-100 uppercase tracking-tighter italic leading-none">
             Lanna Pool
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-500">
               Club
@@ -62,7 +62,7 @@ export default function LoginPage() {
                 <Lock className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-sm font-black text-white uppercase tracking-tight">
+                <h2 className="text-sm font-black text-slate-100 uppercase tracking-tight">
                   Admin Authentication
                 </h2>
                 <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
@@ -93,7 +93,7 @@ export default function LoginPage() {
                     placeholder="admin@lannapoolclub.com"
                     required
                     autoComplete="email"
-                    className="w-full p-3.5 pl-11 bg-slate-950 border border-slate-800 rounded-xl font-bold text-sm text-white outline-none focus:border-indigo-500 transition-all shadow-inner placeholder:text-slate-700"
+                    className="w-full p-3.5 pl-11 bg-slate-950 border border-slate-800 rounded-xl font-bold text-sm text-slate-100 outline-none focus:border-indigo-500 transition-all shadow-inner placeholder:text-slate-700"
                   />
                 </div>
               </div>
@@ -110,7 +110,7 @@ export default function LoginPage() {
                     placeholder="••••••••••"
                     required
                     autoComplete="current-password"
-                    className="w-full p-3.5 pl-11 bg-slate-950 border border-slate-800 rounded-xl font-bold text-sm text-white outline-none focus:border-indigo-500 transition-all shadow-inner placeholder:text-slate-700"
+                    className="w-full p-3.5 pl-11 bg-slate-950 border border-slate-800 rounded-xl font-bold text-sm text-slate-100 outline-none focus:border-indigo-500 transition-all shadow-inner placeholder:text-slate-700"
                   />
                 </div>
               </div>

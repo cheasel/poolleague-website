@@ -189,7 +189,7 @@ export default function PlayerStatsClient({
                 value={minFramePercentage}
                 onChange={(e) => setMinFramePercentage(Math.min(100, Math.max(0, Number(e.target.value))))}
                 className={`w-12 p-1 text-center font-bold text-xs border rounded-lg outline-none transition-all ${
-                  enableFrameFilter ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-950 border-slate-900 text-slate-700 cursor-not-allowed'
+                  enableFrameFilter ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-slate-950 border-slate-900 text-slate-700 cursor-not-allowed'
                 }`}
               />
               <span className="text-[11px] font-bold text-slate-600">%</span>
@@ -219,7 +219,7 @@ export default function PlayerStatsClient({
                 value={minAttendancePercentage}
                 onChange={(e) => setMinAttendancePercentage(Math.min(100, Math.max(0, Number(e.target.value))))}
                 className={`w-12 p-1 text-center font-bold text-xs border rounded-lg outline-none transition-all ${
-                  enableAttendanceFilter ? 'bg-slate-900 border-slate-700 text-white' : 'bg-slate-950 border-slate-900 text-slate-700 cursor-not-allowed'
+                  enableAttendanceFilter ? 'bg-slate-900 border-slate-700 text-slate-100' : 'bg-slate-950 border-slate-900 text-slate-700 cursor-not-allowed'
                 }`}
               />
               <span className="text-[11px] font-bold text-slate-600">%</span>
@@ -268,13 +268,13 @@ export default function PlayerStatsClient({
                 <th className="px-3 py-4 text-center bg-indigo-950/10 text-slate-400">Total</th>
                 <th className="px-3 py-4 text-center bg-indigo-950/10 text-emerald-400">Won</th>
                 <th className="px-3 py-4 text-center bg-indigo-950/10 text-rose-400">Lost</th>
-                <th className="px-4 py-4 text-center bg-indigo-600/40 text-white font-black">Success %</th>
+                <th className="px-4 py-4 text-center bg-indigo-600/40 text-slate-100 font-black">Success %</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60 font-medium text-slate-400">
               {processedPlayers.map((p, idx) => (
                 <tr key={p.id} className="hover:bg-slate-900/40 transition-colors group">
-                  <td className="px-4 py-3.5 font-bold text-white sticky left-0 bg-slate-950 group-hover:bg-slate-900 border-r border-slate-800 z-10 whitespace-nowrap">
+                  <td className="px-4 py-3.5 font-bold text-slate-100 sticky left-0 bg-slate-950 group-hover:bg-slate-900 border-r border-slate-800 z-10 whitespace-nowrap">
                     <Link href={`/players/${p.id}`} prefetch={false} className="hover:text-indigo-400 transition-colors flex items-center gap-3">
                       <span className="text-[11px] font-mono font-bold text-slate-600 w-4 text-center">{idx + 1}</span>
                       <div className="w-7 h-7 rounded-lg overflow-hidden bg-slate-900 border border-slate-800 shrink-0 hidden sm:flex items-center justify-center shadow-inner">

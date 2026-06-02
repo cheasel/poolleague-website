@@ -72,7 +72,7 @@ export default function VenuesList({
           placeholder="Search by arena name or address..." 
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-12 pr-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl focus:border-indigo-500 outline-none font-bold text-white placeholder:text-zinc-700 text-xs transition-all"
+          className="w-full pl-12 pr-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl focus:border-indigo-500 outline-none font-bold text-slate-100 placeholder:text-zinc-700 text-xs transition-all"
         />
       </div>
 
@@ -129,7 +129,7 @@ export default function VenuesList({
 
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="text-sm font-black text-white uppercase tracking-tight truncate group-hover:text-indigo-400 transition-colors">
+                      <h3 className="text-sm font-black text-slate-100 uppercase tracking-tight truncate group-hover:text-indigo-400 transition-colors">
                         {venue.name}
                       </h3>
                       

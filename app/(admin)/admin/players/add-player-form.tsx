@@ -53,7 +53,7 @@ export default function AddPlayerForm({ teams, seasonId, addPlayerAction }: AddP
             disabled={isPending}
             placeholder="Enter Name (or names separated by commas)..." 
             required 
-            className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-indigo-500 outline-none font-bold text-white placeholder:text-slate-855 transition-all shadow-inner text-xs font-sans"
+            className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-indigo-500 outline-none font-bold text-slate-100 placeholder:text-slate-855 transition-all shadow-inner text-xs font-sans"
           />
         </div>
 
@@ -64,7 +64,7 @@ export default function AddPlayerForm({ teams, seasonId, addPlayerAction }: AddP
               value={teamId}
               onChange={(e) => setTeamId(e.target.value)}
               disabled={isPending}
-              className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-indigo-500 outline-none font-bold text-white appearance-none transition-all shadow-inner cursor-pointer text-xs uppercase"
+              className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-indigo-500 outline-none font-bold text-slate-100 appearance-none transition-all shadow-inner cursor-pointer text-xs uppercase"
             >
               <option value="">Free Agent (No Team)</option>
               {teams.map((team) => (

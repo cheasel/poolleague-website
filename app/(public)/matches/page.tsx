@@ -122,7 +122,7 @@ export default async function PublicMatchesPage({ searchParams }: PageProps) {
         
         <div className="max-w-6xl mx-auto px-4 py-12 relative z-10 space-y-4">
           <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400 block">League Dashboard</span>
-          <h1 className="text-4xl font-black text-white uppercase tracking-tighter italic leading-none">
+          <h1 className="text-4xl font-black text-slate-100 uppercase tracking-tighter italic leading-none">
             Match <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-500">Schedules</span>
           </h1>
           <p className="text-slate-400 font-medium text-xs max-w-xl">

@@ -152,7 +152,7 @@ export default async function PublicTeamProfilePage({ params }: PageProps) {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-400 block mb-1">Squad Analytics Hub</span>
-              <h1 className="text-3xl font-black text-white uppercase tracking-tighter italic">
+              <h1 className="text-3xl font-black text-slate-100 uppercase tracking-tighter italic">
                 Team <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-500">Profile</span>
               </h1>
             </div>

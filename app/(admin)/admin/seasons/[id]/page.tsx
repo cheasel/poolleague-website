@@ -106,7 +106,7 @@ export default async function EditSeasonPage({ params }: PageProps) {
           <div className="bg-slate-950 p-4 rounded-2xl border border-slate-800 text-rose-500 shadow-inner">
             <Trophy className="w-7 h-7" />
           </div>
-          <h1 className="text-3xl md:text-4xl font-black text-white uppercase tracking-tighter italic leading-none">Update <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-400 to-indigo-400">Season</span></h1>
+          <h1 className="text-3xl md:text-4xl font-black text-slate-100 uppercase tracking-tighter italic leading-none">Update <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-400 to-indigo-400">Season</span></h1>
         </div>
 
         <form action={updateSeason} className="space-y-8 relative z-10">
@@ -116,7 +116,7 @@ export default async function EditSeasonPage({ params }: PageProps) {
               name="name" 
               defaultValue={season.name} 
               required 
-              className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-rose-500 outline-none font-bold text-white transition-all shadow-inner placeholder:text-slate-800"
+              className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-rose-500 outline-none font-bold text-slate-100 transition-all shadow-inner placeholder:text-slate-800"
             />
           </div>
 
@@ -126,7 +126,7 @@ export default async function EditSeasonPage({ params }: PageProps) {
               type="date"
               name="startDate" 
               defaultValue={formattedStartDate} 
-              className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-rose-500 outline-none font-bold text-white transition-all shadow-inner"
+              className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-rose-500 outline-none font-bold text-slate-100 transition-all shadow-inner"
             />
           </div>
 
@@ -136,7 +136,7 @@ export default async function EditSeasonPage({ params }: PageProps) {
               type="date"
               name="endDate" 
               defaultValue={formattedEndDate} 
-              className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-rose-500 outline-none font-bold text-white transition-all shadow-inner"
+              className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-rose-500 outline-none font-bold text-slate-100 transition-all shadow-inner"
             />
           </div>
 
@@ -145,7 +145,7 @@ export default async function EditSeasonPage({ params }: PageProps) {
             <select 
               name="isActive" 
               defaultValue={season.isActive ? "true" : "false"}
-              className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-rose-500 outline-none font-bold text-white appearance-none transition-all shadow-inner"
+              className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-rose-500 outline-none font-bold text-slate-100 appearance-none transition-all shadow-inner"
             >
               <option value="true">Active (Accepting Live Results)</option>
               <option value="false">Archived / Historic Split</option>

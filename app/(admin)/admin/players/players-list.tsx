@@ -189,7 +189,7 @@ export default function PlayersList({
             placeholder="Search competitor registry..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-12 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:border-indigo-500 outline-none font-bold text-white placeholder:text-slate-700 text-xs transition-all"
+            className="w-full pl-12 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl focus:border-indigo-500 outline-none font-bold text-slate-100 placeholder:text-slate-700 text-xs transition-all"
           />
         </div>
 
@@ -199,7 +199,7 @@ export default function PlayersList({
             <select
               value={selectedSeasonId || ""}
               onChange={(e) => handleSeasonChange(e.target.value)}
-              className="w-full sm:w-44 p-3 bg-slate-950 border border-slate-800 rounded-xl focus:border-indigo-500 outline-none font-bold text-white text-xs appearance-none cursor-pointer"
+              className="w-full sm:w-44 p-3 bg-slate-950 border border-slate-800 rounded-xl focus:border-indigo-500 outline-none font-bold text-slate-100 text-xs appearance-none cursor-pointer"
             >
               {seasons.map((s) => (
                 <option key={s.id} value={s.id}>
@@ -214,7 +214,7 @@ export default function PlayersList({
             <select
               value={teamFilter}
               onChange={(e) => setTeamFilter(e.target.value)}
-              className="w-full sm:w-56 p-3 bg-slate-950 border border-slate-800 rounded-xl focus:border-indigo-500 outline-none font-bold text-white text-xs appearance-none cursor-pointer"
+              className="w-full sm:w-56 p-3 bg-slate-950 border border-slate-800 rounded-xl focus:border-indigo-500 outline-none font-bold text-slate-100 text-xs appearance-none cursor-pointer"
             >
               <option value="all">Show All Competitors</option>
               <option value="free-agent">Free Agents Only</option>

@@ -30,7 +30,7 @@ export default function SeasonSelector({
         <select
           value={selectedSeasonId || ""}
           onChange={(e) => handleSeasonChange(e.target.value)}
-          className="w-full sm:w-44 p-3 bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl outline-none font-bold text-white text-xs appearance-none pr-10 cursor-pointer shadow-inner"
+          className="w-full sm:w-44 p-3 bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl outline-none font-bold text-slate-100 text-xs appearance-none pr-10 cursor-pointer shadow-inner"
         >
           {seasons.map((s) => (
             <option key={s.id} value={s.id} className="bg-slate-950 text-slate-200">

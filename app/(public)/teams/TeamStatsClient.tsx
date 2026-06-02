@@ -172,13 +172,13 @@ export default function TeamStatsClient({
                 <th className="px-3 py-4 text-center bg-indigo-950/10 text-slate-400">Total</th>
                 <th className="px-3 py-4 text-center bg-indigo-950/10 text-emerald-400">Won</th>
                 <th className="px-3 py-4 text-center bg-indigo-950/10 text-rose-400">Lost</th>
-                <th className="px-4 py-4 text-center bg-indigo-600/40 text-white font-black">Success %</th>
+                <th className="px-4 py-4 text-center bg-indigo-600/40 text-slate-100 font-black">Success %</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60 font-medium text-slate-400">
               {processedTeams.map((t, idx) => (
                 <tr key={t.id} className="hover:bg-slate-900/40 transition-colors group">
-                  <td className="px-4 py-3.5 font-bold text-white sticky left-0 bg-slate-950 group-hover:bg-slate-900 border-r border-slate-800 z-10 whitespace-nowrap">
+                  <td className="px-4 py-3.5 font-bold text-slate-100 sticky left-0 bg-slate-950 group-hover:bg-slate-900 border-r border-slate-800 z-10 whitespace-nowrap">
                     <Link href={`/teams/${t.id}`} prefetch={false} className="hover:text-indigo-400 transition-colors flex items-center gap-3">
                       <span className="text-[11px] font-mono font-bold text-slate-600 w-4 text-center">{idx + 1}</span>
                       <div className="w-7 h-7 rounded-lg overflow-hidden bg-slate-900 border border-slate-800 shrink-0 hidden sm:flex items-center justify-center shadow-inner">
