@@ -37,98 +37,99 @@ export default async function AdminDashboardPage() {
   await syncMemberships();
   await syncTeamRegistrations();
 
-  // Execute queries sequentially to prevent client-side pipelining deadlocks on Supavisor (max: 1 connection pool)
-  const [seasonCount] = await db.select({ count: count() }).from(seasons);
-  const [divisionCount] = await db.select({ count: count() }).from(divisions);
-  const [teamCount] = await db.select({ count: count() }).from(teams);
-  const [playerCount] = await db.select({ count: count() }).from(players);
+  // 1. Fetch active or latest season context sequentially first (safeguards connection deadlock)
   const [activeSeason] = await db.select().from(seasons).where(eq(seasons.isActive, true)).limit(1);
-  const [scheduledMatches] = await db.select({ count: count() }).from(matches).where(eq(matches.status, "scheduled"));
-
-  // Fetch active or latest season for season-specific health checks
   let currentSeason = activeSeason;
   if (!currentSeason) {
     const [latestSeason] = await db.select().from(seasons).orderBy(desc(seasons.startDate)).limit(1);
     currentSeason = latestSeason;
   }
 
-  // Count players who do not have a team membership in the current season
-  const unassignedPlayersCountResult = currentSeason
-    ? await db
-        .select({ count: count() })
-        .from(players)
-        .where(
-          sql`NOT EXISTS (
-            SELECT 1 FROM ${teamMemberships}
-            WHERE ${teamMemberships.playerId} = ${players.id}
-              AND ${teamMemberships.seasonId} = ${currentSeason.id}
-          )`
-        )
-    : [{ count: 0 }];
-  const unassignedPlayers = unassignedPlayersCountResult[0] || { count: 0 };
-
-  // Count teams that are not registered in the current season
-  const unassignedTeamsCountResult = currentSeason
-    ? await db
-        .select({ count: count() })
-        .from(teams)
-        .where(
-          sql`NOT EXISTS (
-            SELECT 1 FROM ${teamRegistrations}
-            WHERE ${teamRegistrations.teamId} = ${teams.id}
-              AND ${teamRegistrations.seasonId} = ${currentSeason.id}
-          )`
-        )
-    : [{ count: 0 }];
-  const unassignedTeams = unassignedTeamsCountResult[0] || { count: 0 };
-
-  // Count active teams in the current season with zero player memberships
-  const teamsWithoutPlayersCountResult = currentSeason
-    ? await db
-        .select({ count: count() })
-        .from(teamRegistrations)
-        .where(
-          and(
-            eq(teamRegistrations.seasonId, currentSeason.id),
-            sql`NOT EXISTS (
-              SELECT 1 FROM ${teamMemberships}
-              WHERE ${teamMemberships.teamId} = ${teamRegistrations.teamId}
-                AND ${teamMemberships.seasonId} = ${currentSeason.id}
-            )`
-          )
-        )
-    : [{ count: 0 }];
-  const teamsWithoutPlayers = teamsWithoutPlayersCountResult[0] || { count: 0 };
-
-  const doubleBookedResult = await db.execute(sql`
-    SELECT COUNT(DISTINCT m1.id) as count
-    FROM matches m1
-    JOIN matches m2 ON date(m1.date) = date(m2.date) AND m1.id < m2.id
-    JOIN teams t1 ON m1.home_team_id = t1.id
-    JOIN teams t2 ON m2.home_team_id = t2.id
-    WHERE t1.home_venue_id = t2.home_venue_id 
-      AND m1.status = 'scheduled' 
-      AND m2.status = 'scheduled'
-      AND m1.date IS NOT NULL
-      AND m2.date IS NOT NULL
+  // 2. Fetch all system metadata counts in a single database roundtrip
+  const countsResult = await db.execute(sql`
+    SELECT
+      (SELECT COUNT(*)::int FROM ${seasons}) as seasons_count,
+      (SELECT COUNT(*)::int FROM ${divisions}) as divisions_count,
+      (SELECT COUNT(*)::int FROM ${teams}) as teams_count,
+      (SELECT COUNT(*)::int FROM ${players}) as players_count,
+      (SELECT COUNT(*)::int FROM ${matches} WHERE status = 'scheduled') as scheduled_matches_count
   `);
 
-  const doubleBookedVenuesCount = Number(doubleBookedResult[0]?.count || 0);
+  const countsRow = (countsResult[0] || {}) as Record<string, any>;
+  const seasonCount = { count: Number(countsRow.seasons_count || 0) };
+  const divisionCount = { count: Number(countsRow.divisions_count || 0) };
+  const teamCount = { count: Number(countsRow.teams_count || 0) };
+  const playerCount = { count: Number(countsRow.players_count || 0) };
+  const scheduledMatches = { count: Number(countsRow.scheduled_matches_count || 0) };
 
-  // 4. Calculate Active Season Progress
+  // 3. Perform all system health audits in a single database roundtrip if a season exists
+  let unassignedPlayers = { count: 0 };
+  let unassignedTeams = { count: 0 };
+  let teamsWithoutPlayers = { count: 0 };
+  let doubleBookedVenuesCount = 0;
+
+  if (currentSeason) {
+    const healthChecksResult = await db.execute(sql`
+      SELECT
+        (
+          SELECT COUNT(*)::int FROM ${players} p
+          WHERE NOT EXISTS (
+            SELECT 1 FROM ${teamMemberships} tm
+            WHERE tm.player_id = p.id
+              AND tm.season_id = ${currentSeason.id}
+          )
+        ) as unassigned_players,
+        (
+          SELECT COUNT(*)::int FROM ${teams} t
+          WHERE NOT EXISTS (
+            SELECT 1 FROM ${teamRegistrations} tr
+            WHERE tr.team_id = t.id
+              AND tr.season_id = ${currentSeason.id}
+          )
+        ) as unassigned_teams,
+        (
+          SELECT COUNT(*)::int FROM ${teamRegistrations} tr
+          WHERE tr.season_id = ${currentSeason.id}
+            AND NOT EXISTS (
+              SELECT 1 FROM ${teamMemberships} tm
+              WHERE tm.team_id = tr.team_id
+                AND tm.season_id = ${currentSeason.id}
+            )
+        ) as teams_without_players,
+        (
+          SELECT COUNT(DISTINCT m1.id)::int
+          FROM ${matches} m1
+          JOIN ${matches} m2 ON date(m1.date) = date(m2.date) AND m1.id < m2.id
+          JOIN ${teams} t1 ON m1.home_team_id = t1.id
+          JOIN ${teams} t2 ON m2.home_team_id = t2.id
+          WHERE t1.home_venue_id = t2.home_venue_id 
+            AND m1.status = 'scheduled' 
+            AND m2.status = 'scheduled'
+            AND m1.date IS NOT NULL
+            AND m2.date IS NOT NULL
+        ) as double_booked
+    `);
+
+    const healthRow = (healthChecksResult[0] || {}) as Record<string, any>;
+    unassignedPlayers = { count: Number(healthRow.unassigned_players || 0) };
+    unassignedTeams = { count: Number(healthRow.unassigned_teams || 0) };
+    teamsWithoutPlayers = { count: Number(healthRow.teams_without_players || 0) };
+    doubleBookedVenuesCount = Number(healthRow.double_booked || 0);
+  }
+
+  // 4. Calculate Active Season Progress in a single aggregate query
   let matchProgress = { completed: 0, total: 0, percentage: 0 };
   if (activeSeason) {
-    const [totalMatches] = await db
-      .select({ count: count() })
+    const progressResult = await db
+      .select({
+        total: count(),
+        completed: sql<number>`SUM(CASE WHEN ${matches.status} = 'completed' THEN 1 ELSE 0 END)::int`,
+      })
       .from(matches)
       .where(eq(matches.seasonId, activeSeason.id));
-    const [completedMatches] = await db
-      .select({ count: count() })
-      .from(matches)
-      .where(and(eq(matches.seasonId, activeSeason.id), eq(matches.status, "completed")));
-    
-    const total = totalMatches?.count || 0;
-    const completed = completedMatches?.count || 0;
+
+    const total = progressResult[0]?.total || 0;
+    const completed = progressResult[0]?.completed || 0;
     const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
     matchProgress = { completed, total, percentage };
   }
