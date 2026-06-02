@@ -54,18 +54,15 @@ interface TeamRow {
 }
 
 interface MatchDashboardProps {
-  activeMatchId: number | null;
   sortParam: 'asc' | 'desc';
   allMatches: MatchWithRelations[];
   rawTeams: TeamRow[];
-  availableHomePlayers: any[];
-  availableAwayPlayers: any[];
-  currentMatchGames: any[];
-  addFrameAction: (formData: FormData) => Promise<void>;
   addMatchAction: (formData: FormData) => Promise<void>;
   clearDivisionScheduleAction: (divisionId: number) => Promise<void>;
   seasons: SeasonRow[];
   divisions: DivisionRow[];
+  selectedSeasonId: string;
+  selectedDivisionId: string;
 }
 
 export default function MatchDashboard({
@@ -75,13 +72,13 @@ export default function MatchDashboard({
   seasons,
   divisions,
   addMatchAction,
-  clearDivisionScheduleAction
+  clearDivisionScheduleAction,
+  selectedSeasonId,
+  selectedDivisionId
 }: MatchDashboardProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'fixtures' | 'results'>('fixtures');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedSeasonId, setSelectedSeasonId] = useState<string>(seasons[0]?.id.toString() || "all");
-  const [selectedDivisionId, setSelectedDivisionId] = useState<string>("all");
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -113,8 +110,11 @@ export default function MatchDashboard({
   });
 
   const handleSeasonChange = (seasonId: string) => {
-    setSelectedSeasonId(seasonId);
-    setSelectedDivisionId("all");
+    router.push(`/admin/matches?seasonId=${seasonId}&divisionId=all&sort=${sortParam}`);
+  };
+
+  const handleDivisionChange = (divisionId: string) => {
+    router.push(`/admin/matches?seasonId=${selectedSeasonId}&divisionId=${divisionId}&sort=${sortParam}`);
   };
 
   const filteredDivisionsList = divisions.filter(
@@ -166,7 +166,7 @@ export default function MatchDashboard({
 
   const toggleSort = () => {
     const nextSort = sortParam === 'desc' ? 'asc' : 'desc';
-    router.push(`/admin/matches?sort=${nextSort}`);
+    router.push(`/admin/matches?seasonId=${selectedSeasonId}&divisionId=${selectedDivisionId}&sort=${nextSort}`);
   };
 
   const getTeamInitials = (name: string) => {
@@ -299,7 +299,7 @@ export default function MatchDashboard({
             <div className="flex-1">
               <select
                 value={selectedDivisionId}
-                onChange={(e) => setSelectedDivisionId(e.target.value)}
+                onChange={(e) => handleDivisionChange(e.target.value)}
                 className="w-full p-2.5 bg-slate-950 border border-slate-850 rounded-xl focus:border-indigo-500 outline-none font-bold text-white text-[11px] appearance-none cursor-pointer"
               >
                 <option value="all">Filter By Division: All Divisions</option>
