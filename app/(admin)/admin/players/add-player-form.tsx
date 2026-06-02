@@ -1,69 +1,100 @@
 'use client';
 
-import { useRef } from 'react';
-import { Plus } from 'lucide-react';
+import { useState, useTransition } from 'react';
+import { Plus, Loader2 } from 'lucide-react';
 
-// Define the interface for the props
-interface Props {
-  teams: { id: number; name: string }[];
-  action: (formData: FormData) => Promise<void>;
+interface Team {
+  id: number;
+  name: string;
 }
 
-export default function AddPlayerForm({ teams, action }: Props) {
-  const formRef = useRef<HTMLFormElement>(null);
+interface AddPlayerFormProps {
+  teams: Team[];
+  seasonId: number | null;
+  addPlayerAction: (formData: FormData) => Promise<void>;
+}
+
+export default function AddPlayerForm({ teams, seasonId, addPlayerAction }: AddPlayerFormProps) {
+  const [name, setName] = useState("");
+  const [teamId, setTeamId] = useState("");
+  const [isPending, startTransition] = useTransition();
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+
+    const formData = new FormData();
+    formData.append("name", name);
+    formData.append("teamId", teamId);
+    if (seasonId) {
+      formData.append("seasonId", seasonId.toString());
+    }
+
+    startTransition(async () => {
+      try {
+        await addPlayerAction(formData);
+        setName(""); // Clear ONLY the competitor name input!
+      } catch (err) {
+        console.error("Failed adding competitor:", err);
+      }
+    });
+  };
 
   return (
-    <form 
-      ref={formRef}
-      action={async (formData) => {
-        await action(formData);
-        formRef.current?.reset(); // Clears the form after successful add
-      }} 
-      className="bg-slate-900/40 backdrop-blur-md p-8 rounded-[2rem] border border-slate-900 shadow-2xl relative overflow-hidden group hover:border-slate-800 transition-all mb-12"
-    >
+    <div className="bg-slate-900/40 rounded-[2.5rem] p-8 shadow-2xl border border-slate-900 relative overflow-hidden">
       <div className="absolute top-0 right-0 w-64 h-full bg-indigo-600/5 blur-[100px] rounded-full pointer-events-none"></div>
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
-        <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase tracking-widest text-slate-600 ml-2">Competitor Identity</label>
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-12 gap-6 items-end relative z-10">
+        <div className="md:col-span-5 space-y-2">
+          <label className="text-[10px] font-black uppercase tracking-widest text-slate-600 ml-2">Competitor Name(s)</label>
           <input 
-            name="name" 
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            disabled={isPending}
+            placeholder="Enter Name (or names separated by commas)..." 
             required 
-            className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-indigo-500 outline-none font-bold text-white text-xs uppercase placeholder:text-slate-800 transition-all shadow-inner"
-            placeholder="e.g. Mark Selby"
+            className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-indigo-500 outline-none font-bold text-white placeholder:text-slate-855 transition-all shadow-inner text-xs font-sans"
           />
-        </div>
-        
-        <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase tracking-widest text-slate-600 ml-2">Squad Assignment</label>
-          <select 
-            name="teamId" 
-            className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-indigo-500 outline-none font-bold text-white text-xs uppercase appearance-none transition-all shadow-inner"
-          >
-            <option value="">Free Agent (No Team)</option>
-            {teams.map(team => (
-              <option key={team.id} value={team.id}>{team.name}</option>
-            ))}
-          </select>
         </div>
 
-        <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase tracking-widest text-slate-600 ml-2">Metric Handicap</label>
-          <input 
-            name="handicap" 
-            type="number" 
-            defaultValue="0"
-            className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-indigo-500 outline-none font-bold text-white text-xs uppercase transition-all shadow-inner"
-          />
+        <div className="md:col-span-4 space-y-2">
+          <label className="text-[10px] font-black uppercase tracking-widest text-slate-600 ml-2">Assign Team</label>
+          <div className="relative">
+            <select 
+              value={teamId}
+              onChange={(e) => setTeamId(e.target.value)}
+              disabled={isPending}
+              className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-indigo-500 outline-none font-bold text-white appearance-none transition-all shadow-inner cursor-pointer text-xs uppercase"
+            >
+              <option value="">Free Agent (No Team)</option>
+              {teams.map((team) => (
+                <option key={team.id} value={team.id.toString()}>
+                  {team.name}
+                </option>
+              ))}
+            </select>
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[8px] text-slate-500 font-sans">▼</div>
+          </div>
         </div>
-      </div>
-      
-      <button 
-        type="submit" 
-        className="mt-8 bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-[10px] transition-all shadow-lg shadow-indigo-900/20 active:scale-95 flex items-center justify-center gap-2 relative z-10"
-      >
-        <Plus className="w-4 h-4 stroke-[3]" /> Register Competitor Profile
-      </button>
-    </form>
+
+        <div className="md:col-span-3">
+          <button 
+            type="submit"
+            disabled={isPending}
+            className="w-full bg-indigo-600 hover:bg-indigo-500 text-white p-4 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-900/20 active:scale-95 cursor-pointer disabled:opacity-50"
+          >
+            {isPending ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin text-white" /> Adding...
+              </>
+            ) : (
+              <>
+                <Plus className="w-4 h-4" /> Add Player
+              </>
+            )}
+          </button>
+        </div>
+      </form>
+    </div>
   );
 }

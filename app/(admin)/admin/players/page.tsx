@@ -5,6 +5,7 @@ import { alias } from "drizzle-orm/pg-core";
 import { revalidatePath } from "next/cache";
 import { Plus } from "lucide-react";
 import PlayersList from "./players-list";
+import AddPlayerForm from "./add-player-form";
 import { syncMemberships } from "@/src/utils/sync-memberships";
 
 export const dynamic = "force-dynamic";
@@ -259,42 +260,12 @@ export default async function AdminPlayersPage({ searchParams }: PageProps) {
           <p className="text-slate-500 font-medium text-xs mt-1">Manage league competitors and their team affiliations.</p>
         </header>
 
-        {/* Add Player Form */}
-        <div className="bg-slate-900/40 rounded-[2.5rem] p-8 shadow-2xl border border-slate-900">
-          <form action={addPlayer} className="grid grid-cols-1 md:grid-cols-12 gap-6 items-end">
-            <input type="hidden" name="seasonId" value={selectedSeasonId || ""} />
-            <div className="md:col-span-5 space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-600 ml-2">Competitor Name(s)</label>
-              <input 
-                name="name" 
-                placeholder="Enter Name (or names separated by commas)..." 
-                required 
-                className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-indigo-500 outline-none font-bold text-white placeholder:text-slate-850 transition-all shadow-inner"
-              />
-            </div>
-
-            <div className="md:col-span-4 space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-600 ml-2">Assign Team</label>
-              <select 
-                name="teamId" 
-                className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-indigo-500 outline-none font-bold text-white appearance-none transition-all shadow-inner cursor-pointer"
-              >
-                <option value="">Free Agent (No Team)</option>
-                {allTeams.map((team) => (
-                  <option key={team.id} value={team.id}>
-                    {team.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="md:col-span-3">
-              <button className="w-full bg-indigo-600 hover:bg-indigo-500 text-white p-4 rounded-2xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-900/20 active:scale-95">
-                <Plus className="w-4 h-4" /> Add Player
-              </button>
-            </div>
-          </form>
-        </div>
+        {/* Add Player Form (Preserves team select state) */}
+        <AddPlayerForm 
+          teams={allTeams}
+          seasonId={selectedSeasonId}
+          addPlayerAction={addPlayer}
+        />
 
         {/* Players List with Client-Side Interactive Filtering */}
         <PlayersList 
