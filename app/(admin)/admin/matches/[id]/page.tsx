@@ -47,6 +47,7 @@ export default async function AdminMatchDetailPage({ params }: PageProps) {
   // Check double booking for the active match if status is scheduled
   let hasVenueConflict = false;
   if (match && match.status === "scheduled" && match.matchDate && match.homeVenueId) {
+    const matchDateStr = match.matchDate.toISOString().split("T")[0];
     const conflictingMatches = await db
       .select({
         id: matches.id,
@@ -57,7 +58,7 @@ export default async function AdminMatchDetailPage({ params }: PageProps) {
         and(
           eq(teams.homeVenueId, match.homeVenueId),
           eq(matches.status, "scheduled"),
-          sql`date(${matches.date}) = date(${match.matchDate})`,
+          sql`${matches.date}::date = ${matchDateStr}::date`,
           sql`${matches.id} != ${match.id}`
         )
       )
