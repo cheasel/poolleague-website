@@ -3,12 +3,30 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Trophy, Users, Calendar, BarChart3, Menu, X, ChevronDown, Shield, CalendarDays } from 'lucide-react';
+import { Trophy, Users, Calendar, BarChart3, Menu, X, ChevronDown, Shield, CalendarDays, Sun, Moon } from 'lucide-react';
 
 export default function PublicNavbar() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+
+  useEffect(() => {
+    const isLight = document.documentElement.classList.contains('light');
+    setTheme(isLight ? 'light' : 'dark');
+  }, []);
+
+  const toggleTheme = () => {
+    const nextTheme = theme === 'dark' ? 'light' : 'dark';
+    if (nextTheme === 'light') {
+      document.documentElement.classList.add('light');
+      localStorage.setItem('theme', 'light');
+    } else {
+      document.documentElement.classList.remove('light');
+      localStorage.setItem('theme', 'dark');
+    }
+    setTheme(nextTheme);
+  };
 
   useEffect(() => {
     if (!isDropdownOpen) return;
@@ -129,6 +147,13 @@ export default function PublicNavbar() {
 
           {/* Desktop Admin Quick Link & Facebook */}
           <div className="hidden md:flex items-center gap-4">
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 hover:bg-slate-900/80 transition-all cursor-pointer flex items-center justify-center"
+              aria-label="Toggle Theme"
+            >
+              {theme === 'dark' ? <Sun className="w-4 h-4 text-indigo-400" /> : <Moon className="w-4 h-4 text-indigo-500" />}
+            </button>
             <a 
               href="https://www.facebook.com/LannaPoolClub"
               target="_blank"
@@ -240,6 +265,13 @@ export default function PublicNavbar() {
           </Link>
           
           <div className="pt-4 mt-2 border-t border-slate-900 px-4 space-y-3">
+            <button
+              onClick={toggleTheme}
+              className="flex justify-between items-center w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl text-xs font-black uppercase tracking-widest text-slate-400 hover:text-white transition-all cursor-pointer"
+            >
+              <span>Theme: {theme === 'dark' ? 'Dark Mode' : 'Light Mode'}</span>
+              {theme === 'dark' ? <Sun className="w-4 h-4 text-indigo-400" /> : <Moon className="w-4 h-4 text-indigo-500" />}
+            </button>
             <a 
               href="https://www.facebook.com/LannaPoolClub"
               target="_blank"

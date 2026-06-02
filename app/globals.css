@@ -1,7 +1,100 @@
 @import "tailwindcss";
 
+@theme {
+  --color-slate-50: var(--slate-50);
+  --color-slate-100: var(--slate-100);
+  --color-slate-200: var(--slate-200);
+  --color-slate-300: var(--slate-300);
+  --color-slate-350: var(--slate-350);
+  --color-slate-400: var(--slate-400);
+  --color-slate-500: var(--slate-500);
+  --color-slate-600: var(--slate-600);
+  --color-slate-700: var(--slate-700);
+  --color-slate-800: var(--slate-800);
+  --color-slate-900: var(--slate-900);
+  --color-slate-950: var(--slate-950);
+
+  --color-indigo-400: var(--indigo-400);
+  --color-indigo-500: var(--indigo-500);
+  --color-indigo-600: var(--indigo-600);
+  --color-indigo-900: var(--indigo-900);
+  --color-indigo-950: var(--indigo-950);
+
+  --color-emerald-400: var(--emerald-400);
+  --color-emerald-950: var(--emerald-950);
+
+  --color-rose-400: var(--rose-400);
+  --color-rose-950: var(--rose-950);
+
+  --color-orange-400: var(--orange-400);
+  --color-orange-950: var(--orange-950);
+}
+
+:root {
+  /* Dark Mode Default Theme (Original Colors) */
+  --slate-50: #f8fafc;
+  --slate-100: #f1f5f9;
+  --slate-200: #e2e8f0;
+  --slate-300: #cbd5e1;
+  --slate-350: #abb8c9;
+  --slate-400: #94a3b8;
+  --slate-500: #64748b;
+  --slate-600: #475569;
+  --slate-700: #334155;
+  --slate-800: #1e293b;
+  --slate-900: #0f172a;
+  --slate-950: #020617;
+
+  --indigo-400: #818cf8;
+  --indigo-500: #6366f1;
+  --indigo-600: #4f46e5;
+  --indigo-900: #312e81;
+  --indigo-950: #1e1b4b;
+
+  --emerald-400: #34d399;
+  --emerald-950: #022c22;
+
+  --rose-400: #f87171;
+  --rose-950: #4c0519;
+
+  --orange-400: #fb923c;
+  --orange-950: #431407;
+}
+
+.light {
+  /* Light Mode Design Palette (Clean, High Contrast, Harmonious Slate/Indigo) */
+  --slate-950: #f8fafc; /* Main body/page background is very soft slate-50 */
+  --slate-900: #ffffff; /* Cards, sidebars, panels, buttons are pure white */
+  --slate-800: #e2e8f0; /* Default border color */
+  --slate-700: #cbd5e1; /* Secondary border color */
+  --slate-600: #94a3b8; /* Muted accents/inactive elements */
+  --slate-500: #64748b; /* Stronger grey for secondary text labels */
+  --slate-400: #475569; /* Slate-600 for secondary body text */
+  --slate-350: #334155; /* Slate-700 for intermediate readability */
+  --slate-300: #1e293b; /* Slate-800 for headers and active text */
+  --slate-200: #0f172a; /* Slate-900 for high-contrast titles */
+  --slate-100: #020617; /* Slate-950 for primary body text (was text-slate-100) */
+  --slate-55: #090d16;  /* Deepest charcoal text fallback */
+
+  --indigo-950: #eef2ff; /* Extremely soft light indigo background highlight */
+  --indigo-900: #e0e7ff; /* Soft light indigo badge background */
+  --indigo-400: #4f46e5; /* Indigo-600 text color for accessibility and contrast */
+  --indigo-500: #6366f1; /* Main indigo brand color */
+  --indigo-600: #4338ca; /* Darker indigo for hover / active states on light backgrounds */
+
+  --emerald-950: #ecfdf5; /* Light emerald green highlight background */
+  --emerald-400: #059669; /* Emerald-600 green text color */
+
+  --rose-950: #fff1f2; /* Light rose red highlight background */
+  --rose-400: #e11d48; /* Rose-600 red text color */
+
+  --orange-950: #fff7ed; /* Light orange highlight background */
+  --orange-400: #ea580c; /* Orange-600 text color */
+}
+
 @layer base {
   body {
     @apply bg-slate-950 text-slate-100 antialiased;
+    transition: background-color 0.2s ease, border-color 0.2s ease, text-color 0.2s ease;
   }
 }
