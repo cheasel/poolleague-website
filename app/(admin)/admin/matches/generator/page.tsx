@@ -1,6 +1,6 @@
 import { db } from "@/src/db";
 import { teams, divisions, matches, seasons, teamRegistrations } from "@/src/db/schema";
-import { eq, asc, and, ne } from "drizzle-orm";
+import { eq, asc, desc, and, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -27,11 +27,14 @@ export default async function MatchScheduleGeneratorPage({ searchParams }: Gener
   const clashingAway = params.away ? decodeURIComponent(params.away) : "";
   const selectedDivId = params.divisionId || "";
 
-  // 1. Fetch divisions so the admin can choose which league tier bracket to schedule, joined with seasons to get start_date
+  // 1. Fetch seasons and divisions so the admin can choose which season and league tier bracket to schedule
+  const allSeasons = await db.select().from(seasons).orderBy(desc(seasons.startDate));
+
   const allDivisionsRaw = await db
     .select({
       id: divisions.id,
       name: divisions.name,
+      seasonId: divisions.seasonId,
       seasonStartDate: seasons.startDate,
     })
     .from(divisions)
@@ -50,6 +53,7 @@ export default async function MatchScheduleGeneratorPage({ searchParams }: Gener
   const allDivisionsFormatted = allDivisionsRaw.map(d => ({
     id: d.id,
     name: d.name,
+    seasonId: d.seasonId,
     seasonStartDate: formatLocalDate(d.seasonStartDate),
   }));
 
@@ -302,6 +306,7 @@ export default async function MatchScheduleGeneratorPage({ searchParams }: Gener
         {/* Configurations Setup Form Panel */}
         <GeneratorForm 
           divisions={allDivisionsFormatted}
+          seasons={allSeasons}
           selectedDivId={selectedDivId}
           action={generateLeagueSchedule}
         />
