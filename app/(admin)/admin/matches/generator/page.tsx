@@ -122,6 +122,7 @@ export default async function MatchScheduleGeneratorPage({ searchParams }: Gener
       homeTeamId: number;
       awayTeamId: number;
       date: Date;
+      weekNumber: number;
     }> = [];
 
     // Base calendar anchor timestamp
@@ -220,6 +221,7 @@ export default async function MatchScheduleGeneratorPage({ searchParams }: Gener
           homeTeamId: finalHomeId,
           awayTeamId: finalAwayId,
           date: roundDate,
+          weekNumber: round + 1,
         });
       }
     }
@@ -233,9 +235,11 @@ export default async function MatchScheduleGeneratorPage({ searchParams }: Gener
         // Insert newly generated round-robin matches
         await tx.insert(matches).values(
           generatedFixtures.map((fix) => ({
+            seasonId: seasonId,
+            divisionId: divisionId, 
             homeTeamId: fix.homeTeamId,
             awayTeamId: fix.awayTeamId,
-            divisionId: divisionId, 
+            weekNumber: fix.weekNumber,
             date: fix.date,
             status: "scheduled" as const,
             homeScore: 0,
