@@ -70,17 +70,22 @@ export default async function EditSeasonPage({ params }: PageProps) {
 
   async function deleteSeason() {
     "use server";
-    await db.transaction(async (tx) => {
-      await tx.delete(teamMemberships).where(eq(teamMemberships.seasonId, seasonId));
-      await tx.delete(teamRegistrations).where(eq(teamRegistrations.seasonId, seasonId));
-      await tx.delete(matches).where(eq(matches.seasonId, seasonId));
-      await tx.delete(divisions).where(eq(divisions.seasonId, seasonId));
-      await tx.delete(seasons).where(eq(seasons.id, seasonId));
-    });
+    try {
+      await db.transaction(async (tx) => {
+        await tx.delete(teamMemberships).where(eq(teamMemberships.seasonId, seasonId));
+        await tx.delete(teamRegistrations).where(eq(teamRegistrations.seasonId, seasonId));
+        await tx.delete(matches).where(eq(matches.seasonId, seasonId));
+        await tx.delete(divisions).where(eq(divisions.seasonId, seasonId));
+        await tx.delete(seasons).where(eq(seasons.id, seasonId));
+      });
 
-    revalidatePath("/admin/seasons");
-    revalidatePath("/admin");
-    redirect("/admin/seasons");
+      revalidatePath("/admin/seasons");
+      revalidatePath("/admin");
+      return { success: true };
+    } catch (err: any) {
+      console.error("Failed to delete season:", err);
+      return { success: false, error: err.message || "Database execution failed" };
+    }
   }
 
   return (

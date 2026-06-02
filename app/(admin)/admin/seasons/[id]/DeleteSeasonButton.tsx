@@ -2,13 +2,15 @@
 
 import { Trash2 } from 'lucide-react';
 import { useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface DeleteSeasonButtonProps {
-  action: () => Promise<void>;
+  action: () => Promise<{ success: boolean; error?: string }>;
 }
 
 export default function DeleteSeasonButton({ action }: DeleteSeasonButtonProps) {
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
 
   const handleDelete = () => {
     const confirmed = window.confirm(
@@ -16,11 +18,13 @@ export default function DeleteSeasonButton({ action }: DeleteSeasonButtonProps) 
     );
     if (confirmed) {
       startTransition(async () => {
-        try {
-          await action();
-        } catch (err) {
-          console.error("Failed to delete season:", err);
-          alert("Failed to delete season. Please check server logs.");
+        const result = await action();
+        if (result && !result.success) {
+          console.error("Failed to delete season:", result.error);
+          alert("Failed to delete season: " + result.error);
+        } else {
+          router.push("/admin/seasons");
+          router.refresh();
         }
       });
     }
