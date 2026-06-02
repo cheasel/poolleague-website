@@ -1,5 +1,5 @@
 import { db } from "@/src/db";
-import { teams, divisions, seasons, venues, players, teamRegistrations, teamMemberships } from "@/src/db/schema";
+import { teams, divisions, seasons, venues, players, teamRegistrations, teamMemberships, matches } from "@/src/db/schema";
 import { eq, asc, desc, count, sql, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { Trophy, Users, Hash, Plus, Trash2, Pencil, MapPin } from "lucide-react";
@@ -179,10 +179,15 @@ export default async function AdminTeamsPage({ searchParams }: PageProps) {
   async function deleteTeam(formData: FormData) {
     "use server";
     const id = Number(formData.get("id"));
-    // Explicitly delete registrations and memberships for this team before deletion
-    await db.delete(teamMemberships).where(eq(teamMemberships.teamId, id));
-    await db.delete(teamRegistrations).where(eq(teamRegistrations.teamId, id));
-    await db.delete(teams).where(eq(teams.id, id));
+
+    await db.transaction(async (tx) => {
+      await tx.delete(teamMemberships).where(eq(teamMemberships.teamId, id));
+      await tx.delete(teamRegistrations).where(eq(teamRegistrations.teamId, id));
+      await tx.update(matches).set({ homeTeamId: null }).where(eq(matches.homeTeamId, id));
+      await tx.update(matches).set({ awayTeamId: null }).where(eq(matches.awayTeamId, id));
+      await tx.delete(teams).where(eq(teams.id, id));
+    });
+
     revalidatePath("/admin/teams");
     revalidatePath("/admin/players");
     revalidatePath("/standings");

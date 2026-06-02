@@ -36,7 +36,7 @@ export const divisions = pgTable("divisions", {
 export const teams = pgTable("teams", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
-  homeVenueId: integer("home_venue_id"), 
+  homeVenueId: integer("home_venue_id").references(() => venues.id, { onDelete: "set null" }), 
   logoUrl: text("logo_url"),
   createdAt: timestamp("created_at").defaultNow(),
 });
@@ -60,10 +60,10 @@ export const players = pgTable("players", {
 // 3. The Flexible Membership Table
 export const teamMemberships = pgTable('team_memberships', {
   id: serial('id').primaryKey(),
-  playerId: integer('player_id').references(() => players.id),
-  teamId: integer('team_id').references(() => teams.id),
-  seasonId: integer('season_id').references(() => seasons.id),
-  divisionId: integer('division_id').references(() => divisions.id),
+  playerId: integer('player_id').references(() => players.id, { onDelete: "cascade" }),
+  teamId: integer('team_id').references(() => teams.id, { onDelete: "cascade" }),
+  seasonId: integer('season_id').references(() => seasons.id, { onDelete: "cascade" }),
+  divisionId: integer('division_id').references(() => divisions.id, { onDelete: "cascade" }),
   isCaptain: boolean('is_captain').default(false),
 }, (table) => [
   index('team_memberships_player_idx').on(table.playerId),
@@ -77,12 +77,12 @@ export const matches = pgTable("matches", {
   date: timestamp("date"),
   status: varchar("status", { length: 50 }).default("scheduled"), 
   weekNumber: integer("week_number").default(1).notNull(),
-  homeTeamId: integer("home_team_id"),
-  awayTeamId: integer("away_team_id"),
+  homeTeamId: integer("home_team_id").references(() => teams.id, { onDelete: "set null" }),
+  awayTeamId: integer("away_team_id").references(() => teams.id, { onDelete: "set null" }),
   homeScore: integer("home_score"),
   awayScore: integer("away_score"),
-  seasonId: integer("season_id"),
-  divisionId: integer("division_id"),
+  seasonId: integer("season_id").references(() => seasons.id, { onDelete: "cascade" }),
+  divisionId: integer("division_id").references(() => divisions.id, { onDelete: "cascade" }),
 }, (table) => [
   index('matches_season_division_idx').on(table.seasonId, table.divisionId),
   index('matches_home_team_idx').on(table.homeTeamId),

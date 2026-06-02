@@ -1,5 +1,5 @@
 import { db } from "@/src/db";
-import { players, teams, seasons, teamMemberships, teamRegistrations } from "@/src/db/schema";
+import { players, teams, seasons, teamMemberships, teamRegistrations, matchGames } from "@/src/db/schema";
 import { eq, asc, and, desc, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { Plus } from "lucide-react";
@@ -96,7 +96,19 @@ export default async function AdminPlayersPage({ searchParams }: PageProps) {
   async function deletePlayer(formData: FormData) {
     "use server";
     const id = Number(formData.get("id"));
-    await db.delete(players).where(eq(players.id, id));
+
+    await db.transaction(async (tx) => {
+      // 1. Wipe team memberships
+      await tx.delete(teamMemberships).where(eq(teamMemberships.playerId, id));
+      // 2. Nullify player references in matchGames
+      await tx.update(matchGames).set({ player1Id: null }).where(eq(matchGames.player1Id, id));
+      await tx.update(matchGames).set({ player1PartnerId: null }).where(eq(matchGames.player1PartnerId, id));
+      await tx.update(matchGames).set({ player2Id: null }).where(eq(matchGames.player2Id, id));
+      await tx.update(matchGames).set({ player2PartnerId: null }).where(eq(matchGames.player2PartnerId, id));
+      // 3. Delete player
+      await tx.delete(players).where(eq(players.id, id));
+    });
+
     revalidatePath("/admin/players");
     revalidatePath("/players");
   }
