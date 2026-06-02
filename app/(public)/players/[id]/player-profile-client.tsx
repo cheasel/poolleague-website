@@ -114,7 +114,20 @@ export default function PlayerProfileClient({
 
     const totalWins = singlesWins + doublesWins;
     const totalPlayed = totalWins + singlesLosses + doublesLosses;
-    return { singlesWins, singlesLosses, doublesWins, doublesLosses, formArray, bestPartner, matchCount: uniqueMatches.size, winPct: totalPlayed > 0 ? ((totalWins / totalPlayed) * 100).toFixed(1) : "0.0" };
+    const singlesPlayed = singlesWins + singlesLosses;
+    const doublesPlayed = doublesWins + doublesLosses;
+    return { 
+      singlesWins, 
+      singlesLosses, 
+      doublesWins, 
+      doublesLosses, 
+      formArray, 
+      bestPartner, 
+      matchCount: uniqueMatches.size, 
+      winPct: totalPlayed > 0 ? ((totalWins / totalPlayed) * 100).toFixed(1) : "0.0",
+      singlesWinPct: singlesPlayed > 0 ? ((singlesWins / singlesPlayed) * 100).toFixed(1) : "0.0",
+      doublesWinPct: doublesPlayed > 0 ? ((doublesWins / doublesPlayed) * 100).toFixed(1) : "0.0",
+    };
   }, [filteredGames, playerId]);
 
   const seasonStats = useMemo(() => {
@@ -223,13 +236,25 @@ export default function PlayerProfileClient({
 
       {/* Cards Matrix Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-slate-900/40 p-6 rounded-[2rem] border border-slate-900 shadow-xl">
-          <div className="flex items-center gap-3 mb-4 text-slate-500"><Trophy className="w-4 h-4 text-amber-500" /><h3 className="text-[10px] font-black uppercase tracking-widest">Singles Record</h3></div>
-          <div className="text-2xl font-black text-white tabular-nums">{stats.singlesWins}W - {stats.singlesLosses}L</div>
+        <div className="bg-slate-900/40 p-6 rounded-[2rem] border border-slate-900 shadow-xl flex justify-between items-center">
+          <div>
+            <div className="flex items-center gap-3 mb-2 text-slate-500"><Trophy className="w-4 h-4 text-amber-500" /><h3 className="text-[10px] font-black uppercase tracking-widest">Singles Record</h3></div>
+            <div className="text-2xl font-black text-white tabular-nums">{stats.singlesWins}W - {stats.singlesLosses}L</div>
+          </div>
+          <div className="text-right">
+            <div className="text-lg font-mono font-black text-indigo-400">{stats.singlesWinPct}%</div>
+            <div className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Win Rate</div>
+          </div>
         </div>
-        <div className="bg-slate-900/40 p-6 rounded-[2rem] border border-slate-900 shadow-xl">
-          <div className="flex items-center gap-3 mb-4 text-slate-500"><Users className="w-4 h-4 text-indigo-400" /><h3 className="text-[10px] font-black uppercase tracking-widest">Doubles Record</h3></div>
-          <div className="text-2xl font-black text-white tabular-nums">{stats.doublesWins}W - {stats.doublesLosses}L</div>
+        <div className="bg-slate-900/40 p-6 rounded-[2rem] border border-slate-900 shadow-xl flex justify-between items-center">
+          <div>
+            <div className="flex items-center gap-3 mb-2 text-slate-500"><Users className="w-4 h-4 text-indigo-400" /><h3 className="text-[10px] font-black uppercase tracking-widest">Doubles Record</h3></div>
+            <div className="text-2xl font-black text-white tabular-nums">{stats.doublesWins}W - {stats.doublesLosses}L</div>
+          </div>
+          <div className="text-right">
+            <div className="text-lg font-mono font-black text-purple-400">{stats.doublesWinPct}%</div>
+            <div className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Win Rate</div>
+          </div>
         </div>
         <div className="bg-slate-900/40 p-6 rounded-[2rem] border border-slate-900 shadow-xl">
           <div className="flex items-center gap-3 mb-4 text-slate-500"><TrendingUp className="w-4 h-4 text-pink-400" /><h3 className="text-[10px] font-black uppercase tracking-widest">Prime Partner</h3></div>
@@ -258,6 +283,10 @@ export default function PlayerProfileClient({
               const totalWins = s.singlesWins + s.doublesWins;
               const totalPlayed = totalWins + s.singlesLosses + s.doublesLosses;
               const winPct = totalPlayed > 0 ? ((totalWins / totalPlayed) * 100).toFixed(1) : "0.0";
+              const singlesPlayed = s.singlesWins + s.singlesLosses;
+              const doublesPlayed = s.doublesWins + s.doublesLosses;
+              const singlesWinPct = singlesPlayed > 0 ? ((s.singlesWins / singlesPlayed) * 100).toFixed(1) : "0.0";
+              const doublesWinPct = doublesPlayed > 0 ? ((s.doublesWins / doublesPlayed) * 100).toFixed(1) : "0.0";
               return (
                 <div key={s.seasonId} className="p-6 md:px-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-900/40 transition-colors group">
                   <div className="flex items-center gap-6">
@@ -269,7 +298,7 @@ export default function PlayerProfileClient({
                         {s.teamName}
                       </div>
                       <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-0.5">
-                        Singles: {s.singlesWins}W - {s.singlesLosses}L • Doubles: {s.doublesWins}W - {s.doublesLosses}L
+                        Singles: {s.singlesWins}W - {s.singlesLosses}L ({singlesWinPct}%) • Doubles: {s.doublesWins}W - {s.doublesLosses}L ({doublesWinPct}%)
                       </div>
                     </div>
                   </div>
