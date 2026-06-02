@@ -1,9 +1,9 @@
 import { db } from "@/src/db";
 import { matches, teams, divisions } from "@/src/db/schema";
-import { eq, asc } from "drizzle-orm";
+import { eq, asc, and, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import Link from "next/link";
-import { ArrowLeft, Calendar, Shield, Trophy, Edit, Save } from "lucide-react";
+import { ArrowLeft, Calendar, Shield, Trophy, Edit, Save, AlertTriangle } from "lucide-react";
 import { revalidatePath } from "next/cache";
 
 export const dynamic = "force-dynamic";
@@ -36,12 +36,37 @@ export default async function AdminMatchDetailPage({ params }: PageProps) {
       homeTeamName: homeTeamsAlias.name,
       awayTeamName: awayTeamsAlias.name,
       divisionName: divisions.name,
+      homeVenueId: homeTeamsAlias.homeVenueId,
     })
     .from(matches)
     .leftJoin(homeTeamsAlias, eq(matches.homeTeamId, homeTeamsAlias.id))
     .leftJoin(awayTeamsAlias, eq(matches.awayTeamId, awayTeamsAlias.id))
     .leftJoin(divisions, eq(matches.divisionId, divisions.id))
     .where(eq(matches.id, matchId));
+
+  // Check double booking for the active match if status is scheduled
+  let hasVenueConflict = false;
+  if (match && match.status === "scheduled" && match.matchDate && match.homeVenueId) {
+    const conflictingMatches = await db
+      .select({
+        id: matches.id,
+      })
+      .from(matches)
+      .innerJoin(teams, eq(matches.homeTeamId, teams.id))
+      .where(
+        and(
+          eq(teams.homeVenueId, match.homeVenueId),
+          eq(matches.status, "scheduled"),
+          sql`date(${matches.date}) = date(${match.matchDate})`,
+          sql`${matches.id} != ${match.id}`
+        )
+      )
+      .limit(1);
+
+    if (conflictingMatches.length > 0) {
+      hasVenueConflict = true;
+    }
+  }
 
   if (!match) {
     return (
@@ -122,6 +147,16 @@ export default async function AdminMatchDetailPage({ params }: PageProps) {
             {match.matchDate ? new Date(match.matchDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : "No Date Assigned"}
           </div>
         </div>
+
+        {hasVenueConflict && (
+          <div className="p-4 bg-amber-950/30 border border-amber-900/40 rounded-2xl flex items-center gap-3 text-amber-300 relative z-10 animate-pulse">
+            <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
+            <div className="text-xs">
+              <span className="font-black uppercase tracking-wider block mb-0.5">⚠️ Venue Conflict Warning</span>
+              Another scheduled match is booked at this team's home venue on the same date.
+            </div>
+          </div>
+        )}
 
         {/* COMPACT INTERACTIVE VISUAL SCOREBOARD */}
         <div className="grid grid-cols-1 md:grid-cols-7 gap-6 items-center text-center py-4 relative z-10">

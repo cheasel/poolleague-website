@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { Calendar, CheckSquare, Plus, Search, Eye, MapPin, Shield, Filter } from 'lucide-react';
+import { Calendar, CheckSquare, Plus, Search, Eye, MapPin, Shield, Filter, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -84,6 +84,33 @@ export default function MatchDashboard({
   const [selectedDivisionId, setSelectedDivisionId] = useState<string>("all");
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  // Helper to parse dates uniformly as YYYY-MM-DD in local time
+  const getLocalDateString = (d: Date | string | null | undefined) => {
+    if (!d) return '';
+    const dateObj = typeof d === 'string' ? new Date(d) : d;
+    return `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
+  };
+
+  // Identify double booked conflicts (two scheduled matches at the same venue on the same day)
+  const conflictingMatchIds = new Set<number>();
+  allMatches.forEach((m1) => {
+    if (m1.status !== 'scheduled' || !m1.date || !m1.homeTeam?.venue?.id) return;
+    const date1 = getLocalDateString(m1.date);
+    const venue1 = m1.homeTeam.venue.id;
+
+    allMatches.forEach((m2) => {
+      if (m1.id === m2.id) return;
+      if (m2.status !== 'scheduled' || !m2.date || !m2.homeTeam?.venue?.id) return;
+      const date2 = getLocalDateString(m2.date);
+      const venue2 = m2.homeTeam.venue.id;
+
+      if (date1 === date2 && venue1 === venue2) {
+        conflictingMatchIds.add(m1.id);
+        conflictingMatchIds.add(m2.id);
+      }
+    });
+  });
 
   const handleSeasonChange = (seasonId: string) => {
     setSelectedSeasonId(seasonId);
@@ -386,6 +413,15 @@ export default function MatchDashboard({
                               <span className="flex items-center gap-1 text-slate-400">
                                 <MapPin className="w-3 h-3 text-slate-600" />
                                 {venueName}
+                              </span>
+                            </>
+                          )}
+                          {conflictingMatchIds.has(match.id) && (
+                            <>
+                              <span className="w-1 h-1 bg-slate-800 rounded-full"></span>
+                              <span className="inline-flex items-center gap-1 text-amber-400 bg-amber-950/40 px-2 py-0.5 rounded-lg border border-amber-900/30 font-bold uppercase tracking-wider animate-pulse">
+                                <AlertTriangle className="w-3 h-3 text-amber-500" />
+                                Venue Conflict
                               </span>
                             </>
                           )}

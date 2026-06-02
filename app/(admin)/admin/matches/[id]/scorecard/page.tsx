@@ -205,6 +205,8 @@ export default async function MatchScorecardPage({ params }: PageProps) {
           imageUrl: p.imageUrl,
         }))} 
         initialGames={existingFrames} 
+        initialHomeScore={match.homeTeamScoreTotal ?? 0}
+        initialAwayScore={match.awayTeamScoreTotal ?? 0}
         onSave={saveFullScorecardAction} 
       />
     </div>
