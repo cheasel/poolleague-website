@@ -85,8 +85,7 @@ export default async function AdminMatchDetailPage({ params }: PageProps) {
   function formatDateTimeLocal(date: Date | null): string {
     if (!date) return "";
     const d = new Date(date);
-    const tzOffset = d.getTimezoneOffset() * 60000;
-    return new Date(d.getTime() - tzOffset).toISOString().slice(0, 16);
+    return d.toISOString().slice(0, 16);
   }
 
   // --- MUTATION: UPDATE MATCH DETAILS ---
@@ -144,7 +143,7 @@ export default async function AdminMatchDetailPage({ params }: PageProps) {
 
           <div className="flex items-center gap-2 text-slate-400 font-bold text-xs uppercase tracking-[0.2em] bg-slate-950 px-4 py-2 rounded-xl border border-slate-800 shadow-inner">
             <Calendar className="w-4 h-4 text-slate-600" />
-            {match.matchDate ? new Date(match.matchDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : "No Date Assigned"}
+            {match.matchDate ? new Date(match.matchDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }) : "No Date Assigned"}
           </div>
         </div>
 

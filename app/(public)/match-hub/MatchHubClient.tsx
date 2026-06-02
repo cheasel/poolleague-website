@@ -82,9 +82,9 @@ export default function MatchHubClient({
   const getLocalDateKey = (dateVal: Date | null) => {
     if (!dateVal) return "";
     const d = new Date(dateVal);
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
+    const year = d.getUTCFullYear();
+    const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(d.getUTCDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
   };
 
@@ -99,7 +99,15 @@ export default function MatchHubClient({
   }, [matches]);
 
   // 4. Default initial date (Today if exists, or closest upcoming, or last past)
-  const todayStr = useMemo(() => getLocalDateKey(new Date()), []);
+  const getLocalTodayDateKey = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const todayStr = useMemo(() => getLocalTodayDateKey(), []);
 
   const initialDate = useMemo(() => {
     if (uniqueDates.length === 0) return "";
@@ -150,9 +158,9 @@ export default function MatchHubClient({
     const meta: Record<string, { pending: number; completed: number; dayOfWeek: string; dayAndMonth: string; isToday: boolean }> = {};
     
     uniqueDates.forEach(dateStr => {
-      const dateObj = new Date(`${dateStr}T12:00:00`); // mid-day to prevent timezone shift
-      const dayOfWeek = dateObj.toLocaleDateString("en-US", { weekday: 'short' }).toUpperCase();
-      const dayAndMonth = dateObj.toLocaleDateString("en-US", { day: 'numeric', month: 'short' }).toUpperCase();
+      const dateObj = new Date(`${dateStr}T12:00:00Z`); // mid-day to prevent timezone shift
+      const dayOfWeek = dateObj.toLocaleDateString("en-US", { weekday: 'short', timeZone: 'UTC' }).toUpperCase();
+      const dayAndMonth = dateObj.toLocaleDateString("en-US", { day: 'numeric', month: 'short', timeZone: 'UTC' }).toUpperCase();
       
       const dayMatches = matches.filter(m => getLocalDateKey(m.date) === dateStr);
       const pending = dayMatches.filter(m => m.status !== 'completed').length;

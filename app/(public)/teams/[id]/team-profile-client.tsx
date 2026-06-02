@@ -319,7 +319,7 @@ export default function TeamProfileClient({
                         {isHome ? "Home Arena" : "Away Visit"}
                       </span>
                       <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-800">
-                        {match.matchDate ? new Date(match.matchDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : "TBD"}
+                        {match.matchDate ? new Date(match.matchDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', timeZone: 'UTC' }) : "TBD"}
                       </span>
                     </div>
                     <div className="font-black text-white uppercase tracking-tight text-sm group-hover:text-indigo-400 transition-colors">
@@ -354,7 +354,7 @@ export default function TeamProfileClient({
                         vs {opponentName}
                       </div>
                       <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">
-                        {match.matchDate ? new Date(match.matchDate).toLocaleDateString('en-GB') : "Past"}
+                        {match.matchDate ? new Date(match.matchDate).toLocaleDateString('en-GB', { timeZone: 'UTC' }) : "Past"}
                       </span>
                     </div>
                     <div className="flex items-center gap-3">

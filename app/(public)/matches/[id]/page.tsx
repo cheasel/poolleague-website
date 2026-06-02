@@ -216,7 +216,7 @@ export default async function PublicMatchDetailPage({ params }: PageProps) {
               )}
               <div className="flex items-center gap-1 text-[9px] text-slate-500 font-black tracking-widest uppercase mt-3">
                 <Calendar className="w-3 h-3 text-slate-600" /> 
-                {matchData.matchDate ? new Date(matchData.matchDate).toLocaleDateString('en-GB') : "TBD"}
+                {matchData.matchDate ? new Date(matchData.matchDate).toLocaleDateString('en-GB', { timeZone: 'UTC' }) : "TBD"}
               </div>
             </div>
 

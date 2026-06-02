@@ -180,7 +180,7 @@ export default async function AdminSeasonsPage() {
                     )}
                   </div>
                   <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider block mt-0.5">
-                    {season.startDate ? new Date(season.startDate).toLocaleDateString() : "TBD"} — {season.endDate ? new Date(season.endDate).toLocaleDateString() : "TBD"}
+                    {season.startDate ? new Date(season.startDate).toLocaleDateString(undefined, { timeZone: 'UTC' }) : "TBD"} — {season.endDate ? new Date(season.endDate).toLocaleDateString(undefined, { timeZone: 'UTC' }) : "TBD"}
                   </span>
                 </div>
               </div>

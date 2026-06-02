@@ -333,7 +333,7 @@ export default function PlayerProfileClient({
                     <span className={`text-[10px] font-black px-3 py-1.5 rounded-xl border tabular-nums min-w-[70px] text-center tracking-widest ${isWin ? 'bg-indigo-600 text-white border-transparent shadow-lg shadow-indigo-900/20' : 'bg-slate-950 text-slate-500 border-slate-800'}`}>{isWin ? 'VICTORY' : 'DEFEAT'}</span>
                     <div>
                       <div className="font-black text-white uppercase text-sm flex items-center gap-1.5 flex-wrap group-hover:text-indigo-400 transition-colors"><User className="w-3.5 h-3.5 text-slate-600" /><span>vs {opponentNames.join(" & ") || "Vacant"}</span></div>
-                      <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-0.5">{isHome ? game.awayTeamName : game.homeTeamName} • {game.matchDate ? new Date(game.matchDate).toLocaleDateString('en-GB') : "TBD"}</div>
+                      <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-0.5">{isHome ? game.awayTeamName : game.homeTeamName} • {game.matchDate ? new Date(game.matchDate).toLocaleDateString('en-GB', { timeZone: 'UTC' }) : "TBD"}</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-3 self-end sm:self-center">

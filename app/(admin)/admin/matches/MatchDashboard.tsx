@@ -85,11 +85,11 @@ export default function MatchDashboard({
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  // Helper to parse dates uniformly as YYYY-MM-DD in local time
+  // Helper to parse dates uniformly as YYYY-MM-DD in UTC
   const getLocalDateString = (d: Date | string | null | undefined) => {
     if (!d) return '';
     const dateObj = typeof d === 'string' ? new Date(d) : d;
-    return `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')}`;
+    return `${dateObj.getUTCFullYear()}-${String(dateObj.getUTCMonth() + 1).padStart(2, '0')}-${String(dateObj.getUTCDate()).padStart(2, '0')}`;
   };
 
   // Identify double booked conflicts (two scheduled matches at the same venue on the same day)
@@ -342,7 +342,7 @@ export default function MatchDashboard({
               {filteredMatches.map((match) => {
                 const homeTeamName = match.homeTeam?.name || 'Unknown Team';
                 const awayTeamName = match.awayTeam?.name || 'Unknown Team';
-                const matchFormattedDate = match.date ? new Date(match.date).toLocaleDateString() : 'TBD Date';
+                const matchFormattedDate = match.date ? new Date(match.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' }) : 'TBD Date';
 
                 const homeInitials = getFallbackColorClass(homeTeamName);
                 const awayInitials = getFallbackColorClass(awayTeamName);

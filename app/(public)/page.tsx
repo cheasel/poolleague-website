@@ -558,7 +558,7 @@ export default async function PublicHomePage({ searchParams }: PageProps) {
                       {/* Date / Metadata Info */}
                       <div className="text-center md:text-right shrink-0 md:pl-4 md:border-l md:border-slate-850/60">
                         <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider bg-slate-950/40 px-3 py-1.5 rounded-lg border border-slate-850/60 md:border-0 md:bg-transparent md:p-0">
-                          {match.date ? new Date(match.date).toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' }) : "Completed"}
+                          {match.date ? new Date(match.date).toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' }) : "Completed"}
                         </span>
                       </div>
                     </div>

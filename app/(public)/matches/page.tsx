@@ -101,7 +101,7 @@ export default async function PublicMatchesPage({ searchParams }: PageProps) {
   // 4. Format structural attributes safely
   const formattedMatches = allMatchesRaw.map((m) => ({
     id: m.id,
-    date: m.date ? new Date(m.date).toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric' }) : "TBD",
+    date: m.date ? new Date(m.date).toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' }) : "TBD",
     status: m.status || "scheduled",
     weekNumber: m.weekNumber || 1,
     homeTeam: m.homeTeamName || "Home Team",
