@@ -1,6 +1,7 @@
 import { db } from "@/src/db";
 import { players, teams, seasons, teamMemberships, teamRegistrations, matchGames } from "@/src/db/schema";
-import { eq, asc, and, desc, sql } from "drizzle-orm";
+import { eq, asc, and, desc, sql, inArray } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { revalidatePath } from "next/cache";
 import { Plus } from "lucide-react";
 import PlayersList from "./players-list";
@@ -24,51 +25,74 @@ export default async function AdminPlayersPage({ searchParams }: PageProps) {
   const allSeasons = await db.select().from(seasons).orderBy(desc(seasons.startDate));
   const selectedSeasonId = params.seasonId ? Number(params.seasonId) : (allSeasons[0]?.id || null);
 
-  // 2. Fetch players joined with teamMemberships for the selected season
+  // Find previous season relative to selectedSeasonId
+  const selectedIdx = allSeasons.findIndex(s => s.id === selectedSeasonId);
+  const previousSeasonId = selectedIdx !== -1 && selectedIdx + 1 < allSeasons.length
+    ? allSeasons[selectedIdx + 1].id
+    : null;
+
+  // Set up aliases for joining current vs previous season memberships and teams
+  const currentMemberships = alias(teamMemberships, "currentMemberships");
+  const currentTeams = alias(teams, "currentTeams");
+  const previousMemberships = alias(teamMemberships, "previousMemberships");
+  const previousTeams = alias(teams, "previousTeams");
+
+  // 2. Fetch players joined with teamMemberships for the selected season and previous season
   const allPlayers = await db
     .select({
       id: players.id,
       name: players.name,
       imageUrl: players.imageUrl,
-      teamName: teams.name,
-      teamId: teamMemberships.teamId,
-      teamLogoUrl: teams.logoUrl,
+      teamName: currentTeams.name,
+      teamId: currentMemberships.teamId,
+      teamLogoUrl: currentTeams.logoUrl,
+      prevTeamName: previousTeams.name,
+      prevTeamId: previousMemberships.teamId,
     })
     .from(players)
     .leftJoin(
-      teamMemberships,
+      currentMemberships,
       and(
-        eq(players.id, teamMemberships.playerId),
-        selectedSeasonId ? eq(teamMemberships.seasonId, selectedSeasonId) : sql`1=0`
+        eq(players.id, currentMemberships.playerId),
+        selectedSeasonId ? eq(currentMemberships.seasonId, selectedSeasonId) : sql`1=0`
       )
     )
-    .leftJoin(teams, eq(teamMemberships.teamId, teams.id))
+    .leftJoin(currentTeams, eq(currentMemberships.teamId, currentTeams.id))
+    .leftJoin(
+      previousMemberships,
+      and(
+        eq(players.id, previousMemberships.playerId),
+        previousSeasonId ? eq(previousMemberships.seasonId, previousSeasonId) : sql`1=0`
+      )
+    )
+    .leftJoin(previousTeams, eq(previousMemberships.teamId, previousTeams.id))
     .orderBy(asc(players.name));
 
   const allTeams = await db.select().from(teams).orderBy(asc(teams.name));
 
-  // 3. Server Action to add a player
+  // 3. Server Action to add players (supports comma-separated names)
   async function addPlayer(formData: FormData) {
     "use server";
-    const name = formData.get("name") as string;
+    const nameInput = formData.get("name") as string;
     const teamIdVal = formData.get("teamId");
     const teamId = teamIdVal ? Number(teamIdVal) : null;
     const seasonIdVal = formData.get("seasonId");
     const seasonId = seasonIdVal ? Number(seasonIdVal) : null;
 
-    if (!name) return;
+    if (!nameInput) return;
+
+    // Split input names by comma for bulk creation support
+    const names = nameInput
+      .split(",")
+      .map(n => n.trim())
+      .filter(n => n.length > 0);
+
+    if (names.length === 0) return;
 
     await db.transaction(async (tx) => {
-      // Create player record
-      const [insertedPlayer] = await tx
-        .insert(players)
-        .values({
-          name,
-        })
-        .returning();
-
-      // If team and season are specified, insert season membership
-      if (insertedPlayer && teamId && seasonId) {
+      // Find divisionId if a team and season are specified
+      let divisionId: number | null = null;
+      if (teamId && seasonId) {
         const [reg] = await tx
           .select()
           .from(teamRegistrations)
@@ -78,13 +102,27 @@ export default async function AdminPlayersPage({ searchParams }: PageProps) {
               eq(teamRegistrations.seasonId, seasonId)
             )
           );
+        divisionId = reg?.divisionId || null;
+      }
 
-        await tx.insert(teamMemberships).values({
-          playerId: insertedPlayer.id,
-          teamId,
-          seasonId,
-          divisionId: reg?.divisionId || null,
-        });
+      for (const name of names) {
+        // Create player record
+        const [insertedPlayer] = await tx
+          .insert(players)
+          .values({
+            name,
+          })
+          .returning();
+
+        // If team and season are specified, insert season membership
+        if (insertedPlayer && teamId && seasonId) {
+          await tx.insert(teamMemberships).values({
+            playerId: insertedPlayer.id,
+            teamId,
+            seasonId,
+            divisionId,
+          });
+        }
       }
     });
 
@@ -160,6 +198,58 @@ export default async function AdminPlayersPage({ searchParams }: PageProps) {
     revalidatePath("/players");
   }
 
+  // 6. Server Action to bulk assign multiple players to a team
+  async function bulkAssignPlayers(formData: FormData) {
+    "use server";
+    const playerIdsStr = formData.get("playerIds") as string;
+    const teamIdVal = formData.get("teamId");
+    const teamId = teamIdVal ? Number(teamIdVal) : null;
+    const seasonIdVal = formData.get("seasonId");
+    const seasonId = seasonIdVal ? Number(seasonIdVal) : null;
+
+    if (!playerIdsStr || !seasonId) return;
+
+    const playerIds = playerIdsStr.split(",").map(Number).filter(Boolean);
+    if (playerIds.length === 0) return;
+
+    await db.transaction(async (tx) => {
+      // Wipe old membership for these players for this season
+      await tx
+        .delete(teamMemberships)
+        .where(
+          and(
+            inArray(teamMemberships.playerId, playerIds),
+            eq(teamMemberships.seasonId, seasonId)
+          )
+        );
+
+      // Create new memberships if team is selected
+      if (teamId) {
+        const [reg] = await tx
+          .select()
+          .from(teamRegistrations)
+          .where(
+            and(
+              eq(teamRegistrations.teamId, teamId),
+              eq(teamRegistrations.seasonId, seasonId)
+            )
+          );
+
+        const newMemberships = playerIds.map(pId => ({
+          playerId: pId,
+          teamId,
+          seasonId,
+          divisionId: reg?.divisionId || null,
+        }));
+
+        await tx.insert(teamMemberships).values(newMemberships);
+      }
+    });
+
+    revalidatePath("/admin/players");
+    revalidatePath("/players");
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 p-6 md:p-12 text-slate-200">
       <div className="max-w-4xl mx-auto space-y-10">
@@ -174,12 +264,12 @@ export default async function AdminPlayersPage({ searchParams }: PageProps) {
           <form action={addPlayer} className="grid grid-cols-1 md:grid-cols-12 gap-6 items-end">
             <input type="hidden" name="seasonId" value={selectedSeasonId || ""} />
             <div className="md:col-span-5 space-y-2">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-600 ml-2">Competitor Name</label>
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-600 ml-2">Competitor Name(s)</label>
               <input 
                 name="name" 
-                placeholder="Enter Player Name..." 
+                placeholder="Enter Name (or names separated by commas)..." 
                 required 
-                className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-indigo-500 outline-none font-bold text-white placeholder:text-slate-800 transition-all shadow-inner"
+                className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-indigo-500 outline-none font-bold text-white placeholder:text-slate-850 transition-all shadow-inner"
               />
             </div>
 
@@ -187,7 +277,7 @@ export default async function AdminPlayersPage({ searchParams }: PageProps) {
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-600 ml-2">Assign Team</label>
               <select 
                 name="teamId" 
-                className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-indigo-500 outline-none font-bold text-white appearance-none transition-all shadow-inner"
+                className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-indigo-500 outline-none font-bold text-white appearance-none transition-all shadow-inner cursor-pointer"
               >
                 <option value="">Free Agent (No Team)</option>
                 {allTeams.map((team) => (
@@ -214,6 +304,7 @@ export default async function AdminPlayersPage({ searchParams }: PageProps) {
           selectedSeasonId={selectedSeasonId || undefined}
           deletePlayerAction={deletePlayer}
           changePlayerTeamAction={changePlayerTeam}
+          bulkAssignPlayersAction={bulkAssignPlayers}
         />
       </div>
     </div>

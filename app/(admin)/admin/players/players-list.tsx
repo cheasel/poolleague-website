@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { User, Trash2, Pencil, Shield, Search, Check, Loader2 } from "lucide-react";
 import Link from 'next/link';
 import Image from 'next/image';
@@ -13,6 +13,8 @@ interface Player {
   teamId: number | null;
   teamName: string | null;
   teamLogoUrl: string | null;
+  prevTeamName?: string | null;
+  prevTeamId?: number | null;
 }
 
 interface Team {
@@ -27,6 +29,7 @@ interface PlayersListProps {
   selectedSeasonId?: number;
   deletePlayerAction: (formData: FormData) => Promise<void>;
   changePlayerTeamAction: (formData: FormData) => Promise<void>;
+  bulkAssignPlayersAction: (formData: FormData) => Promise<void>;
 }
 
 export default function PlayersList({ 
@@ -35,7 +38,8 @@ export default function PlayersList({
   seasons,
   selectedSeasonId,
   deletePlayerAction, 
-  changePlayerTeamAction 
+  changePlayerTeamAction,
+  bulkAssignPlayersAction
 }: PlayersListProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -46,6 +50,16 @@ export default function PlayersList({
   const [updatingId, setUpdatingId] = useState<number | null>(null);
   const [successId, setSuccessId] = useState<number | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  // Bulk operation states
+  const [selectedPlayerIds, setSelectedPlayerIds] = useState<number[]>([]);
+  const [bulkTeamId, setBulkTeamId] = useState("");
+  const [isBulkPending, startBulkTransition] = useTransition();
+
+  // Reset checkboxes when filters change
+  useEffect(() => {
+    setSelectedPlayerIds([]);
+  }, [searchQuery, teamFilter, selectedSeasonId]);
 
   const handleSeasonChange = (seasonIdVal: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -85,6 +99,30 @@ export default function PlayersList({
     });
   };
 
+  // Bulk assignment logic
+  const handleBulkAssign = async () => {
+    if (selectedPlayerIds.length === 0) return;
+
+    const formData = new FormData();
+    formData.append("playerIds", selectedPlayerIds.join(","));
+    if (bulkTeamId) {
+      formData.append("teamId", bulkTeamId);
+    }
+    if (selectedSeasonId) {
+      formData.append("seasonId", selectedSeasonId.toString());
+    }
+
+    startBulkTransition(async () => {
+      try {
+        await bulkAssignPlayersAction(formData);
+        setSelectedPlayerIds([]);
+        setBulkTeamId("");
+      } catch (err) {
+        console.error("Failed bulk assigning players: ", err);
+      }
+    });
+  };
+
   // Filter logic
   const filteredPlayers = initialPlayers.filter((player) => {
     const matchesSearch = player.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -94,6 +132,24 @@ export default function PlayersList({
       (player.teamId !== null && player.teamId.toString() === teamFilter);
     return matchesSearch && matchesTeam;
   });
+
+  const allFilteredSelected = filteredPlayers.length > 0 && filteredPlayers.every(p => selectedPlayerIds.includes(p.id));
+
+  const handleSelectAllToggle = () => {
+    if (allFilteredSelected) {
+      setSelectedPlayerIds([]);
+    } else {
+      setSelectedPlayerIds(filteredPlayers.map(p => p.id));
+    }
+  };
+
+  const handleSelectToggle = (playerId: number) => {
+    setSelectedPlayerIds(prev => 
+      prev.includes(playerId)
+        ? prev.filter(id => id !== playerId)
+        : [...prev, playerId]
+    );
+  };
 
   // Initials generator for fallback avatar
   const getInitials = (name: string) => {
@@ -172,10 +228,68 @@ export default function PlayersList({
         </div>
       </div>
 
+      {/* Bulk Action Bar */}
+      {selectedPlayerIds.length > 0 && (
+        <div className="bg-indigo-950/20 border border-indigo-900/30 rounded-[2rem] p-6 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="flex items-center gap-3">
+            <span className="w-6 h-6 rounded-full bg-indigo-600 text-white font-mono text-xs font-black flex items-center justify-center shadow-md animate-bounce">
+              {selectedPlayerIds.length}
+            </span>
+            <span className="text-[11px] font-black text-slate-300 uppercase tracking-wider">
+              Players Selected for Bulk Assignment
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3 w-full sm:w-auto font-sans">
+            <select
+              value={bulkTeamId}
+              onChange={(e) => setBulkTeamId(e.target.value)}
+              className="w-full sm:w-56 p-3 bg-slate-950 border border-indigo-950/60 focus:border-indigo-500 rounded-xl outline-none font-bold text-white text-xs cursor-pointer"
+            >
+              <option value="">Release Selected (Free Agent)</option>
+              {teams.map((team) => (
+                <option key={team.id} value={team.id.toString()}>
+                  {team.name}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={handleBulkAssign}
+              disabled={isBulkPending}
+              className="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-3 rounded-xl font-black uppercase tracking-widest text-[10px] flex items-center gap-1.5 shadow-lg shadow-indigo-950/40 shrink-0 cursor-pointer disabled:opacity-50"
+            >
+              {isBulkPending ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Processing...
+                </>
+              ) : (
+                "Assign Selected"
+              )}
+            </button>
+            <button
+              onClick={() => setSelectedPlayerIds([])}
+              className="bg-slate-950 border border-slate-800 text-slate-400 hover:text-white px-5 py-3 rounded-xl font-black uppercase tracking-widest text-[10px] shrink-0 cursor-pointer"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Players List Container */}
       <div className="bg-slate-900/40 rounded-[2.5rem] border border-slate-900 shadow-2xl overflow-hidden">
-        <div className="px-8 py-6 border-b border-slate-800 bg-slate-900/60 flex justify-between items-center">
-          <h2 className="font-black text-white uppercase tracking-tight text-sm">Registered Competitors</h2>
+        <div className="px-8 py-6 border-b border-slate-800 bg-slate-900/60 flex justify-between items-center gap-4">
+          <div className="flex items-center gap-3">
+            {filteredPlayers.length > 0 && (
+              <input 
+                type="checkbox"
+                checked={allFilteredSelected}
+                onChange={handleSelectAllToggle}
+                className="w-4.5 h-4.5 text-indigo-600 bg-slate-950 border-slate-850 rounded focus:ring-0 accent-indigo-600 cursor-pointer"
+              />
+            )}
+            <h2 className="font-black text-white uppercase tracking-tight text-sm">Registered Competitors</h2>
+          </div>
           <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">
             {filteredPlayers.length} of {initialPlayers.length} Listed
           </span>
@@ -196,6 +310,14 @@ export default function PlayersList({
                 }`}
               >
                 <div className="flex items-center gap-5">
+                  {/* Row Selection Checkbox */}
+                  <input 
+                    type="checkbox"
+                    checked={selectedPlayerIds.includes(player.id)}
+                    onChange={() => handleSelectToggle(player.id)}
+                    className="w-4.5 h-4.5 text-indigo-600 bg-slate-950 border-slate-850 rounded focus:ring-0 accent-indigo-600 cursor-pointer shrink-0"
+                  />
+
                   {/* Avatar Container */}
                   <div className={`relative w-12 h-12 rounded-2xl overflow-hidden shrink-0 border transition-all ${
                     isFreeAgent 
@@ -225,7 +347,7 @@ export default function PlayersList({
                       {player.name}
                     </h3>
                     
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       {isFreeAgent ? (
                         <span className="text-[8px] font-black text-amber-400 uppercase tracking-widest bg-amber-950/30 px-2.5 py-0.5 rounded-md border border-amber-900/30 shadow-sm animate-pulse">
                           Free Agent
@@ -248,6 +370,13 @@ export default function PlayersList({
                           </span>
                         </div>
                       )}
+
+                      {/* Display Team Affiliation from Last Season */}
+                      {player.prevTeamName && (
+                        <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest bg-slate-950 px-2.5 py-0.5 rounded-md border border-slate-900 shadow-sm" title="Previous Season Team">
+                          Prev Season: {player.prevTeamName}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -258,7 +387,7 @@ export default function PlayersList({
                   <div className="flex items-center gap-2 relative">
                     <select
                       value={player.teamId ?? ""}
-                      disabled={isPending && isUpdating}
+                      disabled={isPending && updatingId === player.id}
                       onChange={(e) => handleTeamChange(player.id, e.target.value)}
                       className={`p-2 bg-slate-950 border rounded-xl outline-none font-bold text-[10px] uppercase appearance-none pr-7 cursor-pointer transition-all ${
                         isFreeAgent 
@@ -275,7 +404,7 @@ export default function PlayersList({
                     </select>
                     
                     {/* Visual Indicator of inline action state */}
-                    <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[8px] text-slate-500">▼</div>
+                    <div className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[8px] text-slate-500 font-sans">▼</div>
 
                     {isUpdating && (
                       <Loader2 className="w-3.5 h-3.5 text-indigo-400 animate-spin absolute -right-6" />
