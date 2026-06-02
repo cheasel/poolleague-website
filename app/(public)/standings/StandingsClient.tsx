@@ -77,6 +77,9 @@ export default function StandingsClient({
     const params = new URLSearchParams(searchParams.toString());
     if (value) {
       params.set(key, value);
+      if (key === 'seasonId') {
+        params.delete('divisionId');
+      }
     } else {
       params.delete(key);
     }

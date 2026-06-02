@@ -158,8 +158,11 @@ export default async function MatchScheduleGeneratorPage({ searchParams }: Gener
       }
     });
 
+    const singleLegRounds = roundsCount;
+    const totalRounds = singleLegRounds * 2;
+
     // 3. Circle Rotation Round-Robin Algorithm Execution with Venue Checking
-    for (let round = 0; round < roundsCount; round++) {
+    for (let round = 0; round < totalRounds; round++) {
       // Calculate isolated date for this round safely
       const roundDate = new Date(baseTimelineMs + round * 7 * 24 * 60 * 60 * 1000);
       const dateKey = getCalendarDateKey(roundDate);
@@ -167,9 +170,12 @@ export default async function MatchScheduleGeneratorPage({ searchParams }: Gener
       // Booked venues set for this specific date
       const bookedSet = new Set<number>(bookedVenuesByDate.get(dateKey) || []);
 
+      const isSecondLeg = round >= singleLegRounds;
+      const rotationRound = round % singleLegRounds;
+
       for (let matchIdx = 0; matchIdx < matchesPerRound; matchIdx++) {
-        const homeIdx = (round + matchIdx) % (numTeams - 1);
-        let awayIdx = (numTeams - 1 - matchIdx + round) % (numTeams - 1);
+        const homeIdx = (rotationRound + matchIdx) % (numTeams - 1);
+        let awayIdx = (numTeams - 1 - matchIdx + rotationRound) % (numTeams - 1);
 
         // The last element stays locked in position while others rotate around it
         if (matchIdx === 0) {
@@ -183,8 +189,16 @@ export default async function MatchScheduleGeneratorPage({ searchParams }: Gener
         if (homeTeam.id === -1 || awayTeam.id === -1) continue;
 
         // Alternate home/away advantages each round to maintain balance
-        const defaultHome = round % 2 === 0 ? homeTeam.id : awayTeam.id;
-        const defaultAway = round % 2 === 0 ? awayTeam.id : homeTeam.id;
+        // For the second leg, swap default home and away roles
+        let defaultHome: number;
+        let defaultAway: number;
+        if (!isSecondLeg) {
+          defaultHome = rotationRound % 2 === 0 ? homeTeam.id : awayTeam.id;
+          defaultAway = rotationRound % 2 === 0 ? awayTeam.id : homeTeam.id;
+        } else {
+          defaultHome = rotationRound % 2 === 0 ? awayTeam.id : homeTeam.id;
+          defaultAway = rotationRound % 2 === 0 ? homeTeam.id : awayTeam.id;
+        }
 
         const homeTeamDetails = divisionTeams.find((t) => t.id === defaultHome);
         const awayTeamDetails = divisionTeams.find((t) => t.id === defaultAway);

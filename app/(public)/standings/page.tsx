@@ -238,14 +238,17 @@ export default async function PublicStandingsPage({ searchParams }: PageProps) {
   const allDivisions = await getCachedDivisions();
 
   const selectedSeasonId = params.seasonId ? Number(params.seasonId) : (allSeasons[0]?.id || null);
-  const selectedDivisionId = params.divisionId ? Number(params.divisionId) : (allDivisions[0]?.id || null);
 
-  // Find current selected division to determine if it is the top tier (minimum tier value in current season)
-  // Filter divisions belonging to this season if seasonId is active, otherwise check all
+  // Filter divisions to only show the ones belonging to the selected season
   const seasonDivisions = allDivisions.filter(d => d.seasonId === selectedSeasonId);
-  const activeDivs = seasonDivisions.length > 0 ? seasonDivisions : allDivisions;
-  const currentDivision = activeDivs.find(d => d.id === selectedDivisionId) || activeDivs[0];
-  const isTopTier = currentDivision ? (currentDivision.tier === Math.min(...activeDivs.map(d => d.tier))) : true;
+
+  let selectedDivisionId = params.divisionId ? Number(params.divisionId) : null;
+  if (!selectedDivisionId || !seasonDivisions.some(d => d.id === selectedDivisionId)) {
+    selectedDivisionId = seasonDivisions[0]?.id || null;
+  }
+
+  const currentDivision = seasonDivisions.find(d => d.id === selectedDivisionId) || seasonDivisions[0];
+  const isTopTier = currentDivision ? (currentDivision.tier === Math.min(...seasonDivisions.map(d => d.tier))) : true;
 
   // 2. Fetch computed standings and matches list from cache sequentially
   const calculatedStandings = await getCachedStandingsData(selectedSeasonId, selectedDivisionId);
@@ -308,7 +311,7 @@ export default async function PublicStandingsPage({ searchParams }: PageProps) {
           <StandingsClient 
             standings={calculatedStandings}
             seasons={allSeasons.map(s => ({ id: s.id, name: s.name }))}
-            divisions={allDivisions.map(d => ({ id: d.id, name: d.name }))}
+            divisions={seasonDivisions.map(d => ({ id: d.id, name: d.name }))}
             selectedSeasonId={selectedSeasonId || undefined}
             selectedDivisionId={selectedDivisionId || undefined}
             resultsByWeek={resultsByWeek}
