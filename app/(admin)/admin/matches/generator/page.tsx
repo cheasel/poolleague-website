@@ -161,81 +161,112 @@ export default async function MatchScheduleGeneratorPage({ searchParams }: Gener
     const singleLegRounds = roundsCount;
     const totalRounds = singleLegRounds * 2;
 
+    // Helper functions for checking/booking venue slots
+    const isVenueBooked = (dateKey: string, venueId: number) => {
+      const bookedSet = bookedVenuesByDate.get(dateKey);
+      return bookedSet ? bookedSet.has(venueId) : false;
+    };
+
+    const bookVenue = (dateKey: string, venueId: number) => {
+      if (!bookedVenuesByDate.has(dateKey)) {
+        bookedVenuesByDate.set(dateKey, new Set());
+      }
+      bookedVenuesByDate.get(dateKey)!.add(venueId);
+    };
+
     // 3. Circle Rotation Round-Robin Algorithm Execution with Venue Checking
-    for (let round = 0; round < totalRounds; round++) {
-      // Calculate isolated date for this round safely
-      const roundDate = new Date(baseTimelineMs + round * 7 * 24 * 60 * 60 * 1000);
-      const dateKey = getCalendarDateKey(roundDate);
+    for (let round = 0; round < singleLegRounds; round++) {
+      const roundDate1 = new Date(baseTimelineMs + round * 7 * 24 * 60 * 60 * 1000);
+      const dateKey1 = getCalendarDateKey(roundDate1);
 
-      // Booked venues set for this specific date
-      const bookedSet = new Set<number>(bookedVenuesByDate.get(dateKey) || []);
-
-      const isSecondLeg = round >= singleLegRounds;
-      const rotationRound = round % singleLegRounds;
+      const round2 = round + singleLegRounds;
+      const roundDate2 = new Date(baseTimelineMs + round2 * 7 * 24 * 60 * 60 * 1000);
+      const dateKey2 = getCalendarDateKey(roundDate2);
 
       for (let matchIdx = 0; matchIdx < matchesPerRound; matchIdx++) {
-        const homeIdx = (rotationRound + matchIdx) % (numTeams - 1);
-        let awayIdx = (numTeams - 1 - matchIdx + rotationRound) % (numTeams - 1);
+        const homeIdx = (round + matchIdx) % (numTeams - 1);
+        let awayIdx = (numTeams - 1 - matchIdx + round) % (numTeams - 1);
 
         // The last element stays locked in position while others rotate around it
         if (matchIdx === 0) {
           awayIdx = numTeams - 1;
         }
 
-        const homeTeam = list[homeIdx];
-        const awayTeam = list[awayIdx];
+        const teamA = list[homeIdx];
+        const teamB = list[awayIdx];
 
         // Skip fixtures involving the dummy BYE team
-        if (homeTeam.id === -1 || awayTeam.id === -1) continue;
+        if (teamA.id === -1 || teamB.id === -1) continue;
 
         // Alternate home/away advantages each round to maintain balance
-        // For the second leg, swap default home and away roles
-        let defaultHome: number;
-        let defaultAway: number;
-        if (!isSecondLeg) {
-          defaultHome = rotationRound % 2 === 0 ? homeTeam.id : awayTeam.id;
-          defaultAway = rotationRound % 2 === 0 ? awayTeam.id : homeTeam.id;
-        } else {
-          defaultHome = rotationRound % 2 === 0 ? awayTeam.id : homeTeam.id;
-          defaultAway = rotationRound % 2 === 0 ? homeTeam.id : awayTeam.id;
-        }
+        const defaultAIsHome = round % 2 === 0;
 
-        const homeTeamDetails = divisionTeams.find((t) => t.id === defaultHome);
-        const awayTeamDetails = divisionTeams.find((t) => t.id === defaultAway);
+        let homeTeamId1 = defaultAIsHome ? teamA.id : teamB.id;
+        let awayTeamId1 = defaultAIsHome ? teamB.id : teamA.id;
 
-        const homeVenueId = homeTeamDetails?.homeVenueId!;
-        const awayVenueId = awayTeamDetails?.homeVenueId!;
+        let homeTeamId2 = defaultAIsHome ? teamB.id : teamA.id;
+        let awayTeamId2 = defaultAIsHome ? teamA.id : teamB.id;
 
-        let finalHomeId = defaultHome;
-        let finalAwayId = defaultAway;
+        const homeTeamDetails1 = divisionTeams.find((t) => t.id === homeTeamId1);
+        const awayTeamDetails1 = divisionTeams.find((t) => t.id === awayTeamId1);
+        const homeTeamDetails2 = divisionTeams.find((t) => t.id === homeTeamId2);
+        const awayTeamDetails2 = divisionTeams.find((t) => t.id === awayTeamId2);
 
-        // Rule 2: Ensure 1 venue plays only 1 home game on the same weekend
-        if (bookedSet.has(homeVenueId)) {
-          // Home venue is already booked! Try to swap roles so the away team hosts
-          if (!bookedSet.has(awayVenueId)) {
-            finalHomeId = defaultAway;
-            finalAwayId = defaultHome;
-            bookedSet.add(awayVenueId);
-          } else {
-            // Both venues are busy on this date! Unresolvable venue clash
-            const homeTeamName = homeTeamDetails?.name || "Unknown Team";
-            const awayTeamName = awayTeamDetails?.name || "Unknown Team";
+        const venueId1 = homeTeamDetails1?.homeVenueId!;
+        const venueId2 = homeTeamDetails2?.homeVenueId!;
+
+        let finalHomeId1 = homeTeamId1;
+        let finalAwayId1 = awayTeamId1;
+        let finalHomeId2 = homeTeamId2;
+        let finalAwayId2 = awayTeamId2;
+
+        // Check if venue1 is booked on dateKey1, OR venue2 is booked on dateKey2
+        const hasClash = isVenueBooked(dateKey1, venueId1) || isVenueBooked(dateKey2, venueId2);
+
+        if (hasClash) {
+          // Attempt to swap home/away for both matches to keep the home & away schedule intact
+          finalHomeId1 = homeTeamId2;
+          finalAwayId1 = awayTeamId2;
+          finalHomeId2 = homeTeamId1;
+          finalAwayId2 = awayTeamId1;
+
+          const swappedVenueId1 = venueId2;
+          const swappedVenueId2 = venueId1;
+
+          const hasSwappedClash = isVenueBooked(dateKey1, swappedVenueId1) || isVenueBooked(dateKey2, swappedVenueId2);
+
+          if (hasSwappedClash) {
+            // Unresolvable venue clash on either of the leg dates
+            const clashingHomeName = homeTeamDetails1?.name || "Unknown Team";
+            const clashingAwayName = awayTeamDetails1?.name || "Unknown Team";
             redirect(
-              `/admin/matches/generator?error=venue_clash&date=${dateKey}&home=${encodeURIComponent(
-                homeTeamName
-              )}&away=${encodeURIComponent(awayTeamName)}&divisionId=${divisionId}`
+              `/admin/matches/generator?error=venue_clash&date=${dateKey1}&home=${encodeURIComponent(
+                clashingHomeName
+              )}&away=${encodeURIComponent(clashingAwayName)}&divisionId=${divisionId}`
             );
+          } else {
+            // Swapped configuration is conflict-free; book the swapped venues
+            bookVenue(dateKey1, swappedVenueId1);
+            bookVenue(dateKey2, swappedVenueId2);
           }
         } else {
-          // Home venue is free
-          bookedSet.add(homeVenueId);
+          // Default configuration works; book the default venues
+          bookVenue(dateKey1, venueId1);
+          bookVenue(dateKey2, venueId2);
         }
 
         generatedFixtures.push({
-          homeTeamId: finalHomeId,
-          awayTeamId: finalAwayId,
-          date: roundDate,
+          homeTeamId: finalHomeId1,
+          awayTeamId: finalAwayId1,
+          date: roundDate1,
           weekNumber: round + 1,
+        });
+
+        generatedFixtures.push({
+          homeTeamId: finalHomeId2,
+          awayTeamId: finalAwayId2,
+          date: roundDate2,
+          weekNumber: round2 + 1,
         });
       }
     }
