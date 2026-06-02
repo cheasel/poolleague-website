@@ -47,6 +47,7 @@ export default function MatchPageClient({
   const initialTab = searchParams.get('tab') === 'fixtures' ? 'fixtures' : 'results';
   const [activeTab, setActiveTab] = useState<'fixtures' | 'results'>(initialTab);
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [selectedTeam, setSelectedTeam] = useState<string>("");
   const itemsPerPage = 20;
 
   useEffect(() => {
@@ -58,7 +59,11 @@ export default function MatchPageClient({
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedSeasonId, selectedDivisionId, sortDirection, activeTab]);
+  }, [selectedSeasonId, selectedDivisionId, sortDirection, activeTab, selectedTeam]);
+
+  useEffect(() => {
+    setSelectedTeam("");
+  }, [selectedSeasonId, selectedDivisionId]);
 
   const handleParamChange = (key: 'seasonId' | 'divisionId' | 'sort', value: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -73,9 +78,32 @@ export default function MatchPageClient({
     router.push(`${pathname}?${params.toString()}`);
   };
 
+  const uniqueTeams = useMemo(() => {
+    const teamsSet = new Set<string>();
+    upcomingFixtures.forEach(m => {
+      if (m.homeTeam) teamsSet.add(m.homeTeam);
+      if (m.awayTeam) teamsSet.add(m.awayTeam);
+    });
+    completedResults.forEach(m => {
+      if (m.homeTeam) teamsSet.add(m.homeTeam);
+      if (m.awayTeam) teamsSet.add(m.awayTeam);
+    });
+    return Array.from(teamsSet).sort((a, b) => a.localeCompare(b));
+  }, [upcomingFixtures, completedResults]);
+
+  const filteredUpcoming = useMemo(() => {
+    if (!selectedTeam) return upcomingFixtures;
+    return upcomingFixtures.filter(m => m.homeTeam === selectedTeam || m.awayTeam === selectedTeam);
+  }, [upcomingFixtures, selectedTeam]);
+
+  const filteredCompleted = useMemo(() => {
+    if (!selectedTeam) return completedResults;
+    return completedResults.filter(m => m.homeTeam === selectedTeam || m.awayTeam === selectedTeam);
+  }, [completedResults, selectedTeam]);
+
   const activeDataset = useMemo(() => {
-    return activeTab === 'fixtures' ? upcomingFixtures : completedResults;
-  }, [activeTab, upcomingFixtures, completedResults]);
+    return activeTab === 'fixtures' ? filteredUpcoming : filteredCompleted;
+  }, [activeTab, filteredUpcoming, filteredCompleted]);
 
   const totalPages = Math.ceil(activeDataset.length / itemsPerPage) || 1;
   const paginatedMatches = useMemo(() => {
@@ -116,6 +144,20 @@ export default function MatchPageClient({
             </select>
           </div>
 
+          {/* Team Select */}
+          <div className="min-w-[160px] w-full sm:w-auto">
+            <select
+              value={selectedTeam}
+              onChange={(e) => setSelectedTeam(e.target.value)}
+              className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl font-bold text-xs text-slate-200 transition-colors outline-none cursor-pointer hover:border-slate-700"
+            >
+              <option value="">All Teams</option>
+              {uniqueTeams.map((teamName) => (
+                <option key={teamName} value={teamName}>{teamName}</option>
+              ))}
+            </select>
+          </div>
+
           {/* 🎯 Chronological Order Select */}
           <div className="min-w-[150px] w-full sm:w-auto">
             <select
@@ -138,7 +180,7 @@ export default function MatchPageClient({
               activeTab === 'results' ? 'bg-slate-900 text-indigo-400 shadow-lg' : 'text-slate-500 hover:text-slate-300'
             }`}
           >
-            <Trophy className="w-3.5 h-3.5" /> Results ({completedResults.length})
+            <Trophy className="w-3.5 h-3.5" /> Results ({filteredCompleted.length})
           </button>
           <button
             onClick={() => setActiveTab('fixtures')}
@@ -146,7 +188,7 @@ export default function MatchPageClient({
               activeTab === 'fixtures' ? 'bg-slate-900 text-indigo-400 shadow-lg' : 'text-slate-500 hover:text-slate-300'
             }`}
           >
-            <CalendarDays className="w-3.5 h-3.5" /> Fixtures ({upcomingFixtures.length})
+            <CalendarDays className="w-3.5 h-3.5" /> Fixtures ({filteredUpcoming.length})
           </button>
         </div>
       </div>
