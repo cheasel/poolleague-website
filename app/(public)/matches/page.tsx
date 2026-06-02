@@ -25,7 +25,14 @@ const getCachedSeasons = unstable_cache(
 
 const getCachedDivisions = unstable_cache(
   async () => {
-    return db.select().from(divisions).orderBy(divisions.tier);
+    return db
+      .select({
+        id: divisions.id,
+        name: divisions.name,
+        seasonId: divisions.seasonId,
+      })
+      .from(divisions)
+      .orderBy(divisions.tier);
   },
   ["divisions-list"],
   { revalidate: 300, tags: ["divisions"] }
@@ -76,7 +83,14 @@ export default async function PublicMatchesPage({ searchParams }: PageProps) {
   const allDivisions = await getCachedDivisions();
 
   const selectedSeasonId = params.seasonId ? Number(params.seasonId) : (allSeasons[0]?.id || null);
-  const selectedDivisionId = params.divisionId ? Number(params.divisionId) : (allDivisions[0]?.id || null);
+
+  // Filter divisions to only show the ones belonging to the selected season
+  const seasonDivisions = allDivisions.filter(d => d.seasonId === selectedSeasonId);
+
+  let selectedDivisionId = params.divisionId ? Number(params.divisionId) : null;
+  if (!selectedDivisionId || !seasonDivisions.some(d => d.id === selectedDivisionId)) {
+    selectedDivisionId = seasonDivisions[0]?.id || null;
+  }
   
   // 🎯 Default sorting direction to 'asc' if not explicitly defined in URL
   const sortDirection = params.sort === "desc" ? "desc" : "asc";
@@ -127,7 +141,7 @@ export default async function PublicMatchesPage({ searchParams }: PageProps) {
             upcomingFixtures={upcomingFixtures}
             completedResults={completedResults}
             seasons={allSeasons.map(s => ({ id: s.id, name: s.name }))}
-            divisions={allDivisions.map(d => ({ id: d.id, name: d.name }))}
+            divisions={seasonDivisions.map(d => ({ id: d.id, name: d.name }))}
             selectedSeasonId={selectedSeasonId || undefined}
             selectedDivisionId={selectedDivisionId || undefined}
             sortDirection={sortDirection}
