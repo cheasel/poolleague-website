@@ -117,6 +117,64 @@ export default function PlayerProfileClient({
     return { singlesWins, singlesLosses, doublesWins, doublesLosses, formArray, bestPartner, matchCount: uniqueMatches.size, winPct: totalPlayed > 0 ? ((totalWins / totalPlayed) * 100).toFixed(1) : "0.0" };
   }, [filteredGames, playerId]);
 
+  const seasonStats = useMemo(() => {
+    if (selectedSeasonId !== "all") return [];
+    
+    const statsBySeason: Record<number, {
+      seasonId: number;
+      seasonName: string;
+      teamName: string;
+      singlesWins: number;
+      singlesLosses: number;
+      doublesWins: number;
+      doublesLosses: number;
+    }> = {};
+
+    memberships.forEach(m => {
+      if (m.seasonId) {
+        const seasonObj = seasons.find(s => s.id === m.seasonId);
+        statsBySeason[m.seasonId] = {
+          seasonId: m.seasonId,
+          seasonName: seasonObj?.name || `Season ${m.seasonId}`,
+          teamName: m.teamName || "Unassigned Agent",
+          singlesWins: 0,
+          singlesLosses: 0,
+          doublesWins: 0,
+          doublesLosses: 0,
+        };
+      }
+    });
+
+    games.forEach(game => {
+      if (!game.seasonId) return;
+      if (!statsBySeason[game.seasonId]) {
+        const seasonObj = seasons.find(s => s.id === game.seasonId);
+        statsBySeason[game.seasonId] = {
+          seasonId: game.seasonId,
+          seasonName: game.seasonName || seasonObj?.name || `Season ${game.seasonId}`,
+          teamName: "Unassigned Agent",
+          singlesWins: 0,
+          singlesLosses: 0,
+          doublesWins: 0,
+          doublesLosses: 0,
+        };
+      }
+
+      const isHome = game.player1Id === playerId || game.player1PartnerId === playerId;
+      const isWin = isHome ? (game.player1Score! > game.player2Score!) : (game.player2Score! > game.player1Score!);
+
+      if (game.gameType === 'double') {
+        if (isWin) statsBySeason[game.seasonId].doublesWins++;
+        else statsBySeason[game.seasonId].doublesLosses++;
+      } else {
+        if (isWin) statsBySeason[game.seasonId].singlesWins++;
+        else statsBySeason[game.seasonId].singlesLosses++;
+      }
+    });
+
+    return Object.values(statsBySeason).sort((a, b) => b.seasonName.localeCompare(a.seasonName));
+  }, [games, memberships, seasons, playerId, selectedSeasonId]);
+
   return (
     <div className="space-y-8">
       {/* Jumbotron Hero Card Container */}
@@ -184,7 +242,9 @@ export default function PlayerProfileClient({
         <div className="p-6 md:px-8 border-b border-slate-800 bg-slate-900/60">
           <h2 className="font-black text-white uppercase tracking-tight text-lg flex items-center gap-2">
             <Calendar className="w-5 h-5 text-indigo-400" /> 
-            {filteredGames.length > 0 && filteredGames[0].divisionName ? (
+            {selectedSeasonId === "all" ? (
+              <span>Season Stats</span>
+            ) : filteredGames.length > 0 && filteredGames[0].divisionName ? (
               <span>{filteredGames[0].divisionName} Records</span>
             ) : (
               <span>Division Performance Ledger</span>
@@ -193,34 +253,80 @@ export default function PlayerProfileClient({
         </div>
 
         <div className="divide-y divide-slate-800/60">
-          {filteredGames.map((game) => {
-            const isHome = game.player1Id === playerId || game.player1PartnerId === playerId;
-            const isWin = isHome ? (game.player1Score! > game.player2Score!) : (game.player2Score! > game.player1Score!);
-            let opponentNames: string[] = [];
-            if (isHome) {
-              if (game.player2Id) opponentNames.push(game.player2Name || "Unknown");
-              if (game.player2PartnerId) opponentNames.push(game.player2PartnerName || "Unknown");
-            } else {
-              if (game.player1Id) opponentNames.push(game.player1Name || "Unknown");
-              if (game.player1PartnerId) opponentNames.push(game.player1PartnerName || "Unknown");
-            }
-
-            return (
-              <div key={game.id} className="p-6 md:px-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-900/40 transition-colors group">
-                <div className="flex items-center gap-6">
-                  <span className={`text-[10px] font-black px-3 py-1.5 rounded-xl border tabular-nums min-w-[70px] text-center tracking-widest ${isWin ? 'bg-indigo-600 text-white border-transparent shadow-lg shadow-indigo-900/20' : 'bg-slate-950 text-slate-500 border-slate-800'}`}>{isWin ? 'VICTORY' : 'DEFEAT'}</span>
-                  <div>
-                    <div className="font-black text-white uppercase text-sm flex items-center gap-1.5 flex-wrap group-hover:text-indigo-400 transition-colors"><User className="w-3.5 h-3.5 text-slate-600" /><span>vs {opponentNames.join(" & ") || "Vacant"}</span></div>
-                    <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-0.5">{isHome ? game.awayTeamName : game.homeTeamName} • {game.matchDate ? new Date(game.matchDate).toLocaleDateString('en-GB') : "TBD"}</div>
+          {selectedSeasonId === "all" ? (
+            seasonStats.map((s) => {
+              const totalWins = s.singlesWins + s.doublesWins;
+              const totalPlayed = totalWins + s.singlesLosses + s.doublesLosses;
+              const winPct = totalPlayed > 0 ? ((totalWins / totalPlayed) * 100).toFixed(1) : "0.0";
+              return (
+                <div key={s.seasonId} className="p-6 md:px-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-900/40 transition-colors group">
+                  <div className="flex items-center gap-6">
+                    <span className="text-[10px] font-black px-3 py-1.5 rounded-xl border border-indigo-900/30 bg-indigo-950/20 text-indigo-400 min-w-[70px] text-center tracking-widest uppercase">
+                      {s.seasonName}
+                    </span>
+                    <div>
+                      <div className="font-black text-white uppercase text-sm group-hover:text-indigo-400 transition-colors">
+                        {s.teamName}
+                      </div>
+                      <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-0.5">
+                        Singles: {s.singlesWins}W - {s.singlesLosses}L • Doubles: {s.doublesWins}W - {s.doublesLosses}L
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 self-end sm:self-center">
+                    <div className="text-right">
+                      <div className="text-xs font-mono font-black text-slate-300">{winPct}%</div>
+                      <div className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Win Rate</div>
+                    </div>
+                    <span className="text-[10px] font-black uppercase px-2.5 py-1 rounded-lg tracking-widest border bg-slate-950 text-slate-400 border-slate-800">
+                      {totalPlayed} Frames
+                    </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 self-end sm:self-center">
-                  <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">{game.seasonName}</span>
-                  <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-lg tracking-widest border ${game.gameType === 'double' ? 'bg-purple-950/30 text-purple-400 border-purple-900/40' : 'bg-indigo-950/30 text-indigo-400 border-indigo-900/40'}`}>{game.gameType}</span>
+              );
+            })
+          ) : (
+            filteredGames.map((game) => {
+              const isHome = game.player1Id === playerId || game.player1PartnerId === playerId;
+              const isWin = isHome ? (game.player1Score! > game.player2Score!) : (game.player2Score! > game.player1Score!);
+              let opponentNames: string[] = [];
+              if (isHome) {
+                if (game.player2Id) opponentNames.push(game.player2Name || "Unknown");
+                if (game.player2PartnerId) opponentNames.push(game.player2PartnerName || "Unknown");
+              } else {
+                if (game.player1Id) opponentNames.push(game.player1Name || "Unknown");
+                if (game.player1PartnerId) opponentNames.push(game.player1PartnerName || "Unknown");
+              }
+
+              return (
+                <div key={game.id} className="p-6 md:px-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-900/40 transition-colors group">
+                  <div className="flex items-center gap-6">
+                    <span className={`text-[10px] font-black px-3 py-1.5 rounded-xl border tabular-nums min-w-[70px] text-center tracking-widest ${isWin ? 'bg-indigo-600 text-white border-transparent shadow-lg shadow-indigo-900/20' : 'bg-slate-950 text-slate-500 border-slate-800'}`}>{isWin ? 'VICTORY' : 'DEFEAT'}</span>
+                    <div>
+                      <div className="font-black text-white uppercase text-sm flex items-center gap-1.5 flex-wrap group-hover:text-indigo-400 transition-colors"><User className="w-3.5 h-3.5 text-slate-600" /><span>vs {opponentNames.join(" & ") || "Vacant"}</span></div>
+                      <div className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-0.5">{isHome ? game.awayTeamName : game.homeTeamName} • {game.matchDate ? new Date(game.matchDate).toLocaleDateString('en-GB') : "TBD"}</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 self-end sm:self-center">
+                    <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">{game.seasonName}</span>
+                    <span className={`text-[10px] font-black uppercase px-2.5 py-1 rounded-lg tracking-widest border ${game.gameType === 'double' ? 'bg-purple-950/30 text-purple-400 border-purple-900/40' : 'bg-indigo-950/30 text-indigo-400 border-indigo-900/40'}`}>{game.gameType}</span>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
+
+          {selectedSeasonId === "all" && seasonStats.length === 0 && (
+            <div className="p-20 text-center text-slate-700 font-black uppercase tracking-[0.2em] italic text-xs">
+              No active season statistics found for this competitor.
+            </div>
+          )}
+
+          {selectedSeasonId !== "all" && filteredGames.length === 0 && (
+            <div className="p-20 text-center text-slate-700 font-black uppercase tracking-[0.2em] italic text-xs">
+              No active match games found for this season.
+            </div>
+          )}
         </div>
       </div>
     </div>
