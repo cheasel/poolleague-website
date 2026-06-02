@@ -95,6 +95,21 @@
 @layer base {
   body {
     @apply bg-slate-950 text-slate-100 antialiased;
-    transition: background-color 0.2s ease, border-color 0.2s ease, text-color 0.2s ease;
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  }
+
+  /* Override hardcoded text-white in light mode for non-button text elements */
+  .light h1.text-white,
+  .light h2.text-white,
+  .light h3.text-white,
+  .light h4.text-white,
+  .light h5.text-white,
+  .light h6.text-white,
+  .light p.text-white,
+  .light td.text-white,
+  .light th.text-white,
+  .light div.text-white:not([class*="bg-"]):not([class*="shadow-"]):not([class*="indigo"]):not([class*="rose"]):not([class*="emerald"]),
+  .light span.text-white:not([class*="bg-"]):not([class*="shadow-"]):not([class*="indigo"]):not([class*="rose"]):not([class*="emerald"]) {
+    color: var(--slate-100) !important;
   }
 }
