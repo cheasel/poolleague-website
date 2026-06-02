@@ -62,25 +62,25 @@
 }
 
 .light {
-  /* Light Mode Design Palette (Clean, High Contrast, Harmonious Slate/Indigo) */
-  --slate-950: #f8fafc; /* Main body/page background is very soft slate-50 */
-  --slate-900: #ffffff; /* Cards, sidebars, panels, buttons are pure white */
-  --slate-800: #e2e8f0; /* Default border color */
-  --slate-700: #cbd5e1; /* Secondary border color */
-  --slate-600: #94a3b8; /* Muted accents/inactive elements */
-  --slate-500: #64748b; /* Stronger grey for secondary text labels */
-  --slate-400: #475569; /* Slate-600 for secondary body text */
-  --slate-350: #334155; /* Slate-700 for intermediate readability */
-  --slate-300: #1e293b; /* Slate-800 for headers and active text */
-  --slate-200: #0f172a; /* Slate-900 for high-contrast titles */
-  --slate-100: #020617; /* Slate-950 for primary body text (was text-slate-100) */
-  --slate-55: #090d16;  /* Deepest charcoal text fallback */
+  /* Light Mode Design Palette (Warm Oatmeal / Cozy Sand Aesthetic) */
+  --slate-950: #f4f1ea; /* Main page background (Porcelain Mist) */
+  --slate-900: #faf9f6; /* Cards, sidebars, panels, buttons (Feather White) */
+  --slate-800: #e6dac8; /* Default border color (Creamed Oat) */
+  --slate-700: #cbb9a4; /* Secondary border color (Soft Sandstone) */
+  --slate-600: #a48d78; /* Muted accents/inactive elements (Desert Rock) */
+  --slate-500: #8c7a6b; /* Stronger warm grey for secondary text labels */
+  --slate-400: #6e5e52; /* Warm charcoal for secondary body text */
+  --slate-350: #574a40; /* Intermediate body text readable color */
+  --slate-300: #423830; /* Dark warm brown for headers and active text */
+  --slate-200: #2b241f; /* Deep espresso for high-contrast titles */
+  --slate-100: #332a24; /* Deep warm charcoal for primary body text (was text-slate-100) */
+  --slate-50: #1b1613;  /* Deepest warm espresso text fallback */
 
-  --indigo-950: #eef2ff; /* Extremely soft light indigo background highlight */
-  --indigo-900: #e0e7ff; /* Soft light indigo badge background */
-  --indigo-400: #4f46e5; /* Indigo-600 text color for accessibility and contrast */
+  --indigo-950: #f5ebe0; /* Soft warm light cream background highlight */
+  --indigo-900: #e6dac8; /* Soft warm oatmeal badge background */
+  --indigo-400: #4f46e5; /* Deep indigo text color for contrast */
   --indigo-500: #6366f1; /* Main indigo brand color */
-  --indigo-600: #4338ca; /* Darker indigo for hover / active states on light backgrounds */
+  --indigo-600: #3730a3; /* Darker indigo for hover / active states on light backgrounds */
 
   --emerald-950: #ecfdf5; /* Light emerald green highlight background */
   --emerald-400: #059669; /* Emerald-600 green text color */
