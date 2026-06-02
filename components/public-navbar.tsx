@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Trophy, Users, Calendar, BarChart3, Menu, X, ChevronDown, Shield } from 'lucide-react';
+import { Trophy, Users, Calendar, BarChart3, Menu, X, ChevronDown, Shield, CalendarDays } from 'lucide-react';
 
 export default function PublicNavbar() {
   const pathname = usePathname();
@@ -42,6 +42,19 @@ export default function PublicNavbar() {
 
           {/* Desktop Navigation Links */}
           <div className="hidden md:flex items-center gap-1">
+            {/* Match Hub */}
+            <Link
+              href="/match-hub"
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                pathname.startsWith('/match-hub')
+                  ? 'bg-slate-900 text-white'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-900/60'
+              }`}
+            >
+              <CalendarDays className={`w-4 h-4 ${pathname.startsWith('/match-hub') ? 'text-indigo-400' : 'text-slate-500'}`} />
+              Match Hub
+            </Link>
+
             {/* Standings */}
             <Link
               href="/standings"
@@ -156,6 +169,20 @@ export default function PublicNavbar() {
         id="mobile-menu"
       >
         <div className="px-2 pt-2 pb-4 space-y-1 sm:px-3">
+          {/* Match Hub */}
+          <Link
+            href="/match-hub"
+            onClick={() => setIsOpen(false)}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-base font-bold transition-all ${
+              pathname.startsWith('/match-hub')
+                ? 'bg-slate-900 text-white border-l-2 border-indigo-400'
+                : 'text-slate-400 hover:text-white hover:bg-slate-900/40'
+            }`}
+          >
+            <CalendarDays className={`w-4 h-4 ${pathname.startsWith('/match-hub') ? 'text-indigo-400' : 'text-slate-500'}`} />
+            Match Hub
+          </Link>
+
           {/* Standings */}
           <Link
             href="/standings"
