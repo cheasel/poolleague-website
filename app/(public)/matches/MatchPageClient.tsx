@@ -230,7 +230,7 @@ export default function MatchPageClient({
                 <div className="flex-1 flex items-center justify-between sm:justify-center gap-6 max-w-lg mx-auto w-full">
                   
                   <div className="text-right flex-1 min-w-0">
-                    <span className="font-black text-white uppercase tracking-tight text-[13px] block truncate group-hover:text-indigo-400 transition-colors">
+                    <span className="font-black text-slate-100 uppercase tracking-tight text-[13px] block truncate group-hover:text-indigo-400 transition-colors">
                       {match.homeTeam}
                     </span>
                   </div>
@@ -250,7 +250,7 @@ export default function MatchPageClient({
                   </div>
 
                   <div className="text-left flex-1 min-w-0">
-                    <span className="font-black text-white uppercase tracking-tight text-[13px] block truncate group-hover:text-indigo-400 transition-colors">
+                    <span className="font-black text-slate-100 uppercase tracking-tight text-[13px] block truncate group-hover:text-indigo-400 transition-colors">
                       {match.awayTeam}
                     </span>
                   </div>
