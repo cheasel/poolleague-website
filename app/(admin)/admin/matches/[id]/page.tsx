@@ -23,27 +23,32 @@ export default async function AdminMatchDetailPage({ params }: PageProps) {
   const homeTeamsAlias = alias(teams, "homeTeamsAlias");
   const awayTeamsAlias = alias(teams, "awayTeamsAlias");
 
-  // 1. Fetch match metadata with joined team and division contexts
-  const [match] = await db
-    .select({
-      id: matches.id,
-      matchDate: matches.date,
-      status: matches.status,
-      weekNumber: matches.weekNumber,
-      homeTeamId: matches.homeTeamId,
-      awayTeamId: matches.awayTeamId,
-      homeTeamScoreTotal: matches.homeScore,
-      awayTeamScoreTotal: matches.awayScore,
-      homeTeamName: homeTeamsAlias.name,
-      awayTeamName: awayTeamsAlias.name,
-      divisionName: divisions.name,
-      homeVenueId: homeTeamsAlias.homeVenueId,
-    })
-    .from(matches)
-    .leftJoin(homeTeamsAlias, eq(matches.homeTeamId, homeTeamsAlias.id))
-    .leftJoin(awayTeamsAlias, eq(matches.awayTeamId, awayTeamsAlias.id))
-    .leftJoin(divisions, eq(matches.divisionId, divisions.id))
-    .where(eq(matches.id, matchId));
+  // 1. Fetch match metadata and all teams in parallel
+  const [matchResult, allTeams] = await Promise.all([
+    db
+      .select({
+        id: matches.id,
+        matchDate: matches.date,
+        status: matches.status,
+        weekNumber: matches.weekNumber,
+        homeTeamId: matches.homeTeamId,
+        awayTeamId: matches.awayTeamId,
+        homeTeamScoreTotal: matches.homeScore,
+        awayTeamScoreTotal: matches.awayScore,
+        homeTeamName: homeTeamsAlias.name,
+        awayTeamName: awayTeamsAlias.name,
+        divisionName: divisions.name,
+        homeVenueId: homeTeamsAlias.homeVenueId,
+      })
+      .from(matches)
+      .leftJoin(homeTeamsAlias, eq(matches.homeTeamId, homeTeamsAlias.id))
+      .leftJoin(awayTeamsAlias, eq(matches.awayTeamId, awayTeamsAlias.id))
+      .leftJoin(divisions, eq(matches.divisionId, divisions.id))
+      .where(eq(matches.id, matchId)),
+    db.select().from(teams).orderBy(asc(teams.name))
+  ]);
+
+  const match = matchResult[0];
 
   // Check double booking for the active match if status is scheduled
   let hasVenueConflict = false;
@@ -77,9 +82,6 @@ export default async function AdminMatchDetailPage({ params }: PageProps) {
       </div>
     );
   }
-
-  // 2. Fetch all teams to populate the select inputs when editing
-  const allTeams = await db.select().from(teams).orderBy(asc(teams.name));
 
   const isCompleted = match.status === "completed";
 
