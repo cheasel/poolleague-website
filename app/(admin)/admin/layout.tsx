@@ -207,8 +207,14 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
          3. MOBILE NAVIGATION DRAWER OVERLAY
          ========================================================================= */}
       {isMobileOpen && (
-        <div className="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40">
-          <div className="w-72 bg-slate-900 h-full p-5 flex flex-col justify-between border-r border-slate-800 animate-in slide-in-from-left duration-200">
+        <div 
+          className="lg:hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-40 cursor-pointer"
+          onClick={() => setIsMobileOpen(false)}
+        >
+          <div 
+            className="w-72 bg-slate-900 h-full p-5 flex flex-col justify-between border-r border-slate-800 animate-in slide-in-from-left duration-200 cursor-default"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="space-y-6 overflow-y-auto min-w-0">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-indigo-600/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-sm shrink-0">

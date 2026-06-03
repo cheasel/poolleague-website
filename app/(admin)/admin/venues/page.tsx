@@ -90,12 +90,12 @@ export default async function VenuesPage() {
     <div className="max-w-6xl mx-auto space-y-10 pb-24 px-4 text-slate-100 antialiased">
       
       {/* Header Matrix */}
-      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-800/60 pb-6">
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/60 pb-6">
         <div>
           <h1 className="text-3xl font-black text-slate-100 uppercase tracking-tighter italic">
             Arena <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-indigo-200 to-white">Venues</span>
           </h1>
-          <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mt-1">
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-1">
             Manage physical host club destinations and match environments
           </p>
         </div>
