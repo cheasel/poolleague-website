@@ -3,8 +3,9 @@ import { matches, teams, divisions } from "@/src/db/schema";
 import { eq, asc, and, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import Link from "next/link";
-import { ArrowLeft, Calendar, Shield, Trophy, Edit, Save, AlertTriangle } from "lucide-react";
+import { Calendar, Shield, Trophy, Edit, Save, AlertTriangle } from "lucide-react";
 import { revalidatePath } from "next/cache";
+import BackButton from "./BackButton";
 
 export const dynamic = "force-dynamic";
 
@@ -117,12 +118,7 @@ export default async function AdminMatchDetailPage({ params }: PageProps) {
   return (
     <div className="space-y-8 max-w-4xl mx-auto pb-16 px-4 text-slate-200">
       <header>
-        <Link 
-          href="/admin/matches" 
-          className="inline-flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-indigo-400 transition-all"
-        >
-          <ArrowLeft className="w-4 h-4" /> Back to Fixtures Registry
-        </Link>
+        <BackButton />
       </header>
 
       {/* MATCH SUMMARY DISPLAY CARD */}

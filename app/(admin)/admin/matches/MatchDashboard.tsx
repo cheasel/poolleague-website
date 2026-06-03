@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 import { Calendar, CheckSquare, Plus, Search, Eye, MapPin, Shield, Filter, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -81,6 +81,42 @@ export default function MatchDashboard({
   const [searchQuery, setSearchQuery] = useState('');
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  // Restore active tab and search query from sessionStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedTab = sessionStorage.getItem('matchesActiveTab');
+      if (savedTab === 'fixtures' || savedTab === 'results') {
+        setActiveTab(savedTab);
+      }
+      const savedSearch = sessionStorage.getItem('matchesSearchQuery');
+      if (savedSearch) {
+        setSearchQuery(savedSearch);
+      }
+    }
+  }, []);
+
+  // Persist active tab changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('matchesActiveTab', activeTab);
+    }
+  }, [activeTab]);
+
+  // Persist search query changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('matchesSearchQuery', searchQuery);
+    }
+  }, [searchQuery]);
+
+  // Persist the current URL parameters (filters)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const currentPath = window.location.pathname + window.location.search;
+      sessionStorage.setItem('lastMatchesPath', currentPath);
+    }
+  }, [selectedSeasonId, selectedDivisionId, sortParam]);
 
   // Helper to parse dates uniformly as YYYY-MM-DD in UTC
   const getLocalDateString = (d: Date | string | null | undefined) => {
