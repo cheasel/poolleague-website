@@ -15,8 +15,8 @@ interface PageProps {
   }>;
 }
 
-const getCachedPlayerProfile = (playerId: number) => unstable_cache(
-  async () => {
+const getCachedPlayerProfile = unstable_cache(
+  async (playerId: number) => {
     const [row] = await db
       .select({
         id: players.id,
@@ -27,12 +27,12 @@ const getCachedPlayerProfile = (playerId: number) => unstable_cache(
       .where(eq(players.id, playerId));
     return row || null;
   },
-  ["player-profile", String(playerId)],
+  ["player-profile"],
   { revalidate: 60, tags: ["players"] }
-)();
+);
 
-const getCachedPlayerMemberships = (playerId: number) => unstable_cache(
-  async () => {
+const getCachedPlayerMemberships = unstable_cache(
+  async (playerId: number) => {
     return db
       .select({
         seasonId: teamMemberships.seasonId,
@@ -42,9 +42,9 @@ const getCachedPlayerMemberships = (playerId: number) => unstable_cache(
       .leftJoin(teams, eq(teamMemberships.teamId, teams.id))
       .where(eq(teamMemberships.playerId, playerId));
   },
-  ["player-memberships", String(playerId)],
+  ["player-memberships"],
   { revalidate: 60, tags: ["players", "teams"] }
-)();
+);
 
 const getCachedSeasons = unstable_cache(
   async () => {
@@ -54,8 +54,8 @@ const getCachedSeasons = unstable_cache(
   { revalidate: 300, tags: ["seasons"] }
 );
 
-const getCachedPlayerGames = (playerId: number) => unstable_cache(
-  async () => {
+const getCachedPlayerGames = unstable_cache(
+  async (playerId: number) => {
     const homeTeams = alias(teams, "homeTeams");
     const awayTeams = alias(teams, "awayTeams");
     const p1 = alias(players, "p1");
@@ -106,9 +106,9 @@ const getCachedPlayerGames = (playerId: number) => unstable_cache(
       .orderBy(desc(matches.date), desc(matchGames.gameOrder))
       .limit(200); // Cap results — OR conditions on 4 cols = full scan without limit
   },
-  ["player-games-list", String(playerId)],
+  ["player-games-list"],
   { revalidate: 60, tags: ["matchGames", "matches", "teams", "players"] }
-)();
+);
 
 export default async function PlayerProfilePage({ params }: PageProps) {
   const { id } = await params;

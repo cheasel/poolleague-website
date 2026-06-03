@@ -14,7 +14,7 @@ if (!connectionString) {
  * update in development, and ensures that we don't leak or exhaust database connections
  * in production environments.
  */
-const globalForDb = global as unknown as {
+const globalForDb = globalThis as unknown as {
   conn: postgres.Sql | undefined;
 };
 
@@ -22,7 +22,7 @@ const conn = globalForDb.conn ?? postgres(connectionString || '', {
   prepare: false,
   // Supabase pooler (Supavisor) works best with these settings
   ssl: 'require',
-  max: Number(process.env.DATABASE_POOL_SIZE || 10), // Allow concurrency to prevent client queue blocking and deadlocks
+  max: Number(process.env.DATABASE_POOL_SIZE || 3), // Allow concurrency to prevent client queue blocking and deadlocks
   idle_timeout: 20,
   connect_timeout: 10,
   // NOTE: statement_timeout cannot be set here — Supavisor (port 6543) strips all

@@ -21,20 +21,20 @@ const getCachedSeasons = unstable_cache(
   { revalidate: 300, tags: ["seasons"] }
 );
 
-const getCachedDivisionsForSeason = (seasonId: number) => unstable_cache(
-  async () => {
+const getCachedDivisionsForSeason = unstable_cache(
+  async (seasonId: number) => {
     return db
       .select()
       .from(divisions)
       .where(eq(divisions.seasonId, seasonId))
       .orderBy(divisions.tier);
   },
-  ["divisions-season-list", String(seasonId)],
+  ["divisions-season-list"],
   { revalidate: 300, tags: ["divisions"] }
-)();
+);
 
-const getCachedMatchesForSeason = (seasonId: number) => unstable_cache(
-  async () => {
+const getCachedMatchesForSeason = unstable_cache(
+  async (seasonId: number) => {
     return db
       .select({
         id: matches.id,
@@ -57,12 +57,12 @@ const getCachedMatchesForSeason = (seasonId: number) => unstable_cache(
       .where(eq(matches.seasonId, seasonId))
       .orderBy(asc(matches.date), asc(matches.id));
   },
-  ["matches-season-list", String(seasonId)],
+  ["matches-season-list"],
   { revalidate: 60, tags: ["matches", "teams"] }
-)();
+);
 
-const getCachedStandingsForSeason = (seasonId: number) => unstable_cache(
-  async () => {
+const getCachedStandingsForSeason = unstable_cache(
+  async (seasonId: number) => {
     // 1. Fetch completed matches in this season
     const completedMatches = await db
       .select({
@@ -217,9 +217,9 @@ const getCachedStandingsForSeason = (seasonId: number) => unstable_cache(
 
     return standingsMap;
   },
-  ["standings-season-map", String(seasonId)],
+  ["standings-season-map"],
   { revalidate: 60, tags: ["standings", "matches", "teams"] }
-)();
+);
 
 export default async function MatchHubPage({ searchParams }: PageProps) {
   const params = await searchParams;
