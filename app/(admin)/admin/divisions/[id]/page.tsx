@@ -18,27 +18,27 @@ export default async function EditDivisionPage({ params }: PageProps) {
   const { id } = await params;
   const divisionId = Number(id);
 
-  // 1. Fetch the target division data
-  const [division] = await db.select().from(divisions).where(eq(divisions.id, divisionId));
+  // 1. Fetch target division, all seasons, and current division teams in parallel
+  const [divisionResult, allSeasons, divisionTeams] = await Promise.all([
+    db.select().from(divisions).where(eq(divisions.id, divisionId)),
+    db.select().from(seasons).orderBy(asc(seasons.name)),
+    db
+      .select({
+        id: teams.id,
+        name: teams.name,
+        logoUrl: teams.logoUrl,
+      })
+      .from(teamRegistrations)
+      .innerJoin(teams, eq(teamRegistrations.teamId, teams.id))
+      .where(eq(teamRegistrations.divisionId, divisionId))
+      .orderBy(asc(teams.name))
+  ]);
+
+  const division = divisionResult[0];
 
   if (!division) {
     return <div className="p-20 text-center font-black text-slate-500 uppercase">Division not found.</div>;
   }
-
-  // 2. Fetch all seasons for the Season Selector
-  const allSeasons = await db.select().from(seasons).orderBy(asc(seasons.name));
-
-  // 3. Fetch teams assigned to THIS division currently via registrations
-  const divisionTeams = await db
-    .select({
-      id: teams.id,
-      name: teams.name,
-      logoUrl: teams.logoUrl,
-    })
-    .from(teamRegistrations)
-    .innerJoin(teams, eq(teamRegistrations.teamId, teams.id))
-    .where(eq(teamRegistrations.divisionId, divisionId))
-    .orderBy(asc(teams.name));
 
   // --- MUTATION: UPDATE DIVISION SETTINGS ---
   async function updateDivision(formData: FormData) {

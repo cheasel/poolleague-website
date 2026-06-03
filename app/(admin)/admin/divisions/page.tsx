@@ -17,19 +17,15 @@ interface PageProps {
 export default async function AdminDivisionsPage({ searchParams }: PageProps) {
   const resolvedParams = await searchParams;
 
-  // 1. Fetch active season to default to if no seasonId query param is active
-  const [activeSeason] = await db
-    .select()
-    .from(seasons)
-    .where(eq(seasons.isActive, true))
-    .limit(1);
+  // 1. Fetch active season, latest season, and all seasons list in parallel
+  const [activeSeasonResult, latestSeasonResult, allSeasons] = await Promise.all([
+    db.select().from(seasons).where(eq(seasons.isActive, true)).limit(1),
+    db.select().from(seasons).orderBy(desc(seasons.startDate)).limit(1),
+    db.select().from(seasons).orderBy(desc(seasons.startDate))
+  ]);
 
-  // Fallback to the latest season if no active season is flagged
-  const [latestSeason] = await db
-    .select()
-    .from(seasons)
-    .orderBy(desc(seasons.startDate))
-    .limit(1);
+  const activeSeason = activeSeasonResult[0];
+  const latestSeason = latestSeasonResult[0];
 
   const defaultSeasonId = activeSeason?.id || latestSeason?.id || null;
   const selectedSeasonId = resolvedParams.seasonId ? Number(resolvedParams.seasonId) : defaultSeasonId;
@@ -58,9 +54,6 @@ export default async function AdminDivisionsPage({ searchParams }: PageProps) {
       .map((r) => r.team)
       .filter((t): t is NonNullable<typeof t> => t !== null),
   }));
-
-  // 3. Fetch all seasons for the Creation Dropdown selection options
-  const allSeasons = await db.select().from(seasons).orderBy(desc(seasons.startDate));
 
   // =========================================================================
   // SERVER ACTION: CREATE DIVISION

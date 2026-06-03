@@ -18,15 +18,17 @@ export default async function EditVenuePage({ params }: PageProps) {
   const { id } = await params;
   const venueId = Number(id);
 
-  // 1. Fetch exact venue entry matching schema
-  const [venue] = await db.select().from(venues).where(eq(venues.id, venueId));
+  // Fetch exact venue entry and registered home teams in parallel
+  const [venueResult, localHomeTeams] = await Promise.all([
+    db.select().from(venues).where(eq(venues.id, venueId)),
+    db
+      .select()
+      .from(teams)
+      .where(eq(teams.homeVenueId, venueId))
+      .orderBy(asc(teams.name))
+  ]);
 
-  // 2. Query what teams are registered to this host location as their base camp
-  const localHomeTeams = await db
-    .select()
-    .from(teams)
-    .where(eq(teams.homeVenueId, venueId))
-    .orderBy(asc(teams.name));
+  const venue = venueResult[0];
 
   if (!venue) {
     return <div className="p-20 text-center font-black text-slate-500 uppercase">Arena Node Missing.</div>;

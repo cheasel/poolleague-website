@@ -17,27 +17,28 @@ export default async function EditTeamPage({ params }: PageProps) {
   const resolvedParams = await params;
   const teamId = Number(resolvedParams.id);
 
-  // 1. Fetch current team record context
-  const [team] = await db
-    .select()
-    .from(teams)
-    .where(eq(teams.id, teamId))
-    .limit(1);
+  // 1. Fetch team, all venues, and current venue occupancy counts in parallel
+  const [teamResult, allVenuesRaw, venueCounts] = await Promise.all([
+    db
+      .select()
+      .from(teams)
+      .where(eq(teams.id, teamId))
+      .limit(1),
+    db.select().from(venues),
+    db
+      .select({
+        homeVenueId: teams.homeVenueId,
+        value: count(),
+      })
+      .from(teams)
+      .groupBy(teams.homeVenueId)
+  ]);
+
+  const team = teamResult[0];
 
   if (!team) {
     redirect("/admin/teams");
   }
-
-  // 2. Fetch all venues along with their current total allocated team counts
-  const allVenuesRaw = await db.select().from(venues);
-  
-  const venueCounts = await db
-    .select({
-      homeVenueId: teams.homeVenueId,
-      value: count(),
-    })
-    .from(teams)
-    .groupBy(teams.homeVenueId);
 
   const venueCountsMap = venueCounts.reduce((acc, v) => {
     if (v.homeVenueId) acc[v.homeVenueId] = v.value;

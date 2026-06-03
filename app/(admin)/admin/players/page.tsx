@@ -39,37 +39,39 @@ export default async function AdminPlayersPage({ searchParams }: PageProps) {
   const previousTeams = alias(teams, "previousTeams");
 
   // 2. Fetch players joined with teamMemberships for the selected season and previous season
-  const allPlayers = await db
-    .select({
-      id: players.id,
-      name: players.name,
-      imageUrl: players.imageUrl,
-      teamName: currentTeams.name,
-      teamId: currentMemberships.teamId,
-      teamLogoUrl: currentTeams.logoUrl,
-      prevTeamName: previousTeams.name,
-      prevTeamId: previousMemberships.teamId,
-    })
-    .from(players)
-    .leftJoin(
-      currentMemberships,
-      and(
-        eq(players.id, currentMemberships.playerId),
-        selectedSeasonId ? eq(currentMemberships.seasonId, selectedSeasonId) : sql`1=0`
+  // 2. Fetch all players and all teams in parallel to optimize DB roundtrips
+  const [allPlayers, allTeams] = await Promise.all([
+    db
+      .select({
+        id: players.id,
+        name: players.name,
+        imageUrl: players.imageUrl,
+        teamName: currentTeams.name,
+        teamId: currentMemberships.teamId,
+        teamLogoUrl: currentTeams.logoUrl,
+        prevTeamName: previousTeams.name,
+        prevTeamId: previousMemberships.teamId,
+      })
+      .from(players)
+      .leftJoin(
+        currentMemberships,
+        and(
+          eq(players.id, currentMemberships.playerId),
+          selectedSeasonId ? eq(currentMemberships.seasonId, selectedSeasonId) : sql`1=0`
+        )
       )
-    )
-    .leftJoin(currentTeams, eq(currentMemberships.teamId, currentTeams.id))
-    .leftJoin(
-      previousMemberships,
-      and(
-        eq(players.id, previousMemberships.playerId),
-        previousSeasonId ? eq(previousMemberships.seasonId, previousSeasonId) : sql`1=0`
+      .leftJoin(currentTeams, eq(currentMemberships.teamId, currentTeams.id))
+      .leftJoin(
+        previousMemberships,
+        and(
+          eq(players.id, previousMemberships.playerId),
+          previousSeasonId ? eq(previousMemberships.seasonId, previousSeasonId) : sql`1=0`
+        )
       )
-    )
-    .leftJoin(previousTeams, eq(previousMemberships.teamId, previousTeams.id))
-    .orderBy(asc(players.name));
-
-  const allTeams = await db.select().from(teams).orderBy(asc(teams.name));
+      .leftJoin(previousTeams, eq(previousMemberships.teamId, previousTeams.id))
+      .orderBy(asc(players.name)),
+    db.select().from(teams).orderBy(asc(teams.name))
+  ]);
 
   // 3. Server Action to add players (supports comma-separated names)
   async function addPlayer(formData: FormData) {

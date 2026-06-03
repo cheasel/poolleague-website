@@ -27,59 +27,68 @@ export default async function AdminTeamsPage({ searchParams }: PageProps) {
   const selectedSeasonId = params.seasonId ? Number(params.seasonId) : (allSeasons[0]?.id || null);
 
   // 2. Fetch all teams registered for the selected season
-  const allTeams = await db
-    .select({
-      id: teams.id,
-      name: teams.name,
-      logoUrl: teams.logoUrl,
-      divisionName: divisions.name,
-      seasonName: seasons.name,
-      homeVenueName: venues.name,
-    })
-    .from(teams)
-    .leftJoin(teamRegistrations, eq(teams.id, teamRegistrations.teamId))
-    .leftJoin(divisions, eq(teamRegistrations.divisionId, divisions.id))
-    .leftJoin(seasons, eq(teamRegistrations.seasonId, seasons.id))
-    .leftJoin(venues, eq(teams.homeVenueId, venues.id))
-    .where(selectedSeasonId ? eq(teamRegistrations.seasonId, selectedSeasonId) : undefined)
-    .orderBy(asc(teams.name));
-
-  // 3. Fetch all teams in the system to support selecting an existing team
-  const systemTeams = await db.select().from(teams).orderBy(asc(teams.name));
-
-  // 4. Fetch divisions for the selected season only to restrict registration options
-  const allDivisions = await db
-    .select({
-      id: divisions.id,
-      name: divisions.name,
-      seasonName: seasons.name,
-    })
-    .from(divisions)
-    .leftJoin(seasons, eq(divisions.seasonId, seasons.id))
-    .where(selectedSeasonId ? eq(divisions.seasonId, selectedSeasonId) : undefined)
-    .orderBy(asc(divisions.name));
-
-  const allVenuesRaw = await db
-    .select()
-    .from(venues)
-    .orderBy(asc(venues.name));
-
-  const venueCounts = await db
-    .select({
-      homeVenueId: teams.homeVenueId,
-      value: count(),
-    })
-    .from(teams)
-    .groupBy(teams.homeVenueId);
-
-  const playerCounts = await db
-    .select({
-      teamId: teamMemberships.teamId,
-      value: count(),
-    })
-    .from(teamMemberships)
-    .where(selectedSeasonId ? eq(teamMemberships.seasonId, selectedSeasonId) : undefined)
-    .groupBy(teamMemberships.teamId);
+  // 2. Fetch all required teams dashboard lists in parallel
+  const [
+    allTeams,
+    systemTeams,
+    allDivisions,
+    allVenuesRaw,
+    venueCounts,
+    playerCounts
+  ] = await Promise.all([
+    // Query A: Teams registered for selected season
+    db
+      .select({
+        id: teams.id,
+        name: teams.name,
+        logoUrl: teams.logoUrl,
+        divisionName: divisions.name,
+        seasonName: seasons.name,
+        homeVenueName: venues.name,
+      })
+      .from(teams)
+      .leftJoin(teamRegistrations, eq(teams.id, teamRegistrations.teamId))
+      .leftJoin(divisions, eq(teamRegistrations.divisionId, divisions.id))
+      .leftJoin(seasons, eq(teamRegistrations.seasonId, seasons.id))
+      .leftJoin(venues, eq(teams.homeVenueId, venues.id))
+      .where(selectedSeasonId ? eq(teamRegistrations.seasonId, selectedSeasonId) : undefined)
+      .orderBy(asc(teams.name)),
+    // Query B: All teams in the system
+    db.select().from(teams).orderBy(asc(teams.name)),
+    // Query C: Divisions for selected season
+    db
+      .select({
+        id: divisions.id,
+        name: divisions.name,
+        seasonName: seasons.name,
+      })
+      .from(divisions)
+      .leftJoin(seasons, eq(divisions.seasonId, seasons.id))
+      .where(selectedSeasonId ? eq(divisions.seasonId, selectedSeasonId) : undefined)
+      .orderBy(asc(divisions.name)),
+    // Query D: All venues
+    db
+      .select()
+      .from(venues)
+      .orderBy(asc(venues.name)),
+    // Query E: Venue team counts
+    db
+      .select({
+        homeVenueId: teams.homeVenueId,
+        value: count(),
+      })
+      .from(teams)
+      .groupBy(teams.homeVenueId),
+    // Query F: Team player counts for selected season
+    db
+      .select({
+        teamId: teamMemberships.teamId,
+        value: count(),
+      })
+      .from(teamMemberships)
+      .where(selectedSeasonId ? eq(teamMemberships.seasonId, selectedSeasonId) : undefined)
+      .groupBy(teamMemberships.teamId)
+  ]);
 
   const venueCountsMap = venueCounts.reduce((acc, v) => {
     if (v.homeVenueId) acc[v.homeVenueId] = v.value;

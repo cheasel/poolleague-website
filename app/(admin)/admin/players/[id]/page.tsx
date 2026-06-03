@@ -16,20 +16,20 @@ export default async function EditPlayerPage({ params }: PageProps) {
   const resolvedParams = await params;
   const playerId = Number(resolvedParams.id);
 
-  // Fetch active/latest season
-  const activeSeasons = await db.select().from(seasons).where(eq(seasons.isActive, true)).limit(1);
+  // 1. Fetch active season, player profile, and teams list in parallel
+  const [activeSeasons, playerRawResult, activeTeams] = await Promise.all([
+    db.select().from(seasons).where(eq(seasons.isActive, true)).limit(1),
+    db.select().from(players).where(eq(players.id, playerId)).limit(1),
+    db.select().from(teams)
+  ]);
+
   let targetSeason = activeSeasons[0];
   if (!targetSeason) {
     const allSeasons = await db.select().from(seasons).orderBy(desc(seasons.startDate)).limit(1);
     targetSeason = allSeasons[0];
   }
 
-  // 1. Fetch current player profile data
-  const [playerRaw] = await db
-    .select()
-    .from(players)
-    .where(eq(players.id, playerId))
-    .limit(1);
+  const playerRaw = playerRawResult[0];
 
   if (!playerRaw) {
     redirect("/admin/players");
@@ -53,9 +53,6 @@ export default async function EditPlayerPage({ params }: PageProps) {
     ...playerRaw,
     teamId: membership?.teamId || null,
   };
-
-  // 2. Fetch teams list for selection dropdown options
-  const activeTeams = await db.select().from(teams);
 
   // --- SERVER ACTION: PROCESS UPDATE, CLEAN OLD IMAGE, AND UPLOAD ---
   async function updatePlayer(prevState: any, formData: FormData) {
