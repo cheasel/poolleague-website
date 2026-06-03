@@ -157,10 +157,10 @@ export default async function AdminDivisionsPage({ searchParams }: PageProps) {
                 name="divisionName"
                 placeholder="e.g. Championship Division"
                 required
-                className="w-full p-3.5 bg-slate-950 border border-slate-800 rounded-xl font-bold text-xs uppercase text-white outline-none focus:border-indigo-500 transition-all shadow-inner placeholder:text-slate-800"
+                className="w-full p-3.5 bg-slate-950 border border-slate-800 rounded-xl font-bold text-xs uppercase text-slate-100 outline-none focus:border-indigo-500 transition-all shadow-inner placeholder:text-slate-500"
               />
             </div>
-
+ 
             <div className="space-y-1.5">
               <label className="text-[9px] font-black uppercase tracking-wider text-slate-600 ml-1">Tier Priority Level Weight</label>
               <input
@@ -169,10 +169,10 @@ export default async function AdminDivisionsPage({ searchParams }: PageProps) {
                 placeholder="e.g. 1"
                 min="1"
                 required
-                className="w-full p-3.5 bg-slate-950 border border-slate-800 rounded-xl font-bold text-xs text-white outline-none focus:border-indigo-500 transition-all shadow-inner"
+                className="w-full p-3.5 bg-slate-950 border border-slate-800 rounded-xl font-bold text-xs text-slate-100 outline-none focus:border-indigo-500 transition-all shadow-inner placeholder:text-slate-500"
               />
             </div>
-
+ 
             {/* SEASON SELECTOR DROPDOWN */}
             <div className="space-y-1.5">
               <label className="text-[9px] font-black uppercase tracking-wider text-slate-600 ml-1">Assigned Season split</label>
@@ -180,7 +180,7 @@ export default async function AdminDivisionsPage({ searchParams }: PageProps) {
                 <select
                   name="seasonId"
                   defaultValue={selectedSeasonId || ""}
-                  className="w-full p-3.5 bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl outline-none font-bold text-white text-xs appearance-none pr-10 cursor-pointer"
+                  className="w-full p-3.5 bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl outline-none font-bold text-slate-100 text-xs appearance-none pr-10 cursor-pointer"
                 >
                   <option value="">No Season Link (Unassigned)</option>
                   {allSeasons.map((s) => (
@@ -189,7 +189,7 @@ export default async function AdminDivisionsPage({ searchParams }: PageProps) {
                     </option>
                   ))}
                 </select>
-                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500 text-xs">▼</div>
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 text-xs">▼</div>
               </div>
             </div>
 
