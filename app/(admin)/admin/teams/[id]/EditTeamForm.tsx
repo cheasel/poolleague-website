@@ -38,7 +38,7 @@ export default function EditTeamForm({ team, venuesList, updateTeamAction }: Edi
   };
 
   return (
-    <div className="bg-zinc-900/40 backdrop-blur-md rounded-[2rem] border border-zinc-800/80 p-6 md:p-8 relative overflow-hidden shadow-2xl">
+    <div className="bg-slate-900/40 backdrop-blur-md rounded-[2rem] border border-slate-800/80 p-6 md:p-8 relative overflow-hidden shadow-2xl">
       <div className="absolute top-0 right-0 w-48 h-48 bg-indigo-600/5 blur-[80px] rounded-full pointer-events-none"></div>
 
       <form action={formAction} className="space-y-6">
@@ -53,12 +53,12 @@ export default function EditTeamForm({ team, venuesList, updateTeamAction }: Edi
 
         {/* TEAM LOGO / IMAGE ADD BOX RESTORED */}
         <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400 ml-1 flex items-center gap-1.5">
-            <ImageIcon className="w-3 h-3 text-zinc-500" /> Team Emblem / Insignia Crest
+          <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 ml-1 flex items-center gap-1.5">
+            <ImageIcon className="w-3 h-3 text-slate-505 text-slate-500" /> Team Emblem / Insignia Crest
           </label>
           
-          <div className="flex flex-col sm:flex-row items-center gap-4 p-4 bg-zinc-950 border border-zinc-850 rounded-2xl">
-            <div className="w-24 h-24 rounded-xl border border-zinc-800 bg-zinc-900 flex items-center justify-center overflow-hidden shrink-0 shadow-inner relative group">
+          <div className="flex flex-col sm:flex-row items-center gap-4 p-4 bg-slate-950 border border-slate-800 rounded-2xl">
+            <div className="w-24 h-24 rounded-xl border border-slate-800 bg-slate-900 flex items-center justify-center overflow-hidden shrink-0 shadow-inner relative group">
               {logoPreview ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img 
@@ -67,12 +67,12 @@ export default function EditTeamForm({ team, venuesList, updateTeamAction }: Edi
                   className="w-full h-full object-contain p-2"
                 />
               ) : (
-                <ImageIcon className="w-8 h-8 text-zinc-750" />
+                <ImageIcon className="w-8 h-8 text-slate-600" />
               )}
             </div>
             
             <div className="flex-1 w-full space-y-2">
-              <div className="relative flex items-center justify-center w-full h-24 border-2 border-dashed border-zinc-800 hover:border-indigo-500/50 rounded-xl cursor-pointer bg-zinc-900/20 transition-all group">
+              <div className="relative flex items-center justify-center w-full h-24 border-2 border-dashed border-slate-800 hover:border-indigo-500/50 rounded-xl cursor-pointer bg-slate-900/20 transition-all group">
                 <input 
                     type="file" 
                     name="logoFile" // 🎯 Must match formData.get("logoFile") exactly!
@@ -81,11 +81,11 @@ export default function EditTeamForm({ team, venuesList, updateTeamAction }: Edi
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                 />
                 <div className="text-center space-y-1 p-2 pointer-events-none">
-                  <UploadCloud className="w-5 h-5 text-zinc-500 group-hover:text-indigo-400 mx-auto transition-colors" />
-                  <p className="text-[10px] font-black uppercase text-zinc-400 group-hover:text-slate-100 transition-colors">
+                  <UploadCloud className="w-5 h-5 text-slate-500 group-hover:text-indigo-400 mx-auto transition-colors" />
+                  <p className="text-[10px] font-black uppercase text-slate-400 group-hover:text-slate-100 transition-colors">
                     Upload New Crest Image
                   </p>
-                  <p className="text-[9px] text-zinc-600 font-bold uppercase">PNG, JPG up to 2MB</p>
+                  <p className="text-[9px] text-slate-600 font-bold uppercase">PNG, JPG up to 2MB</p>
                 </div>
               </div>
               {/* Fallback hidden input to pass existing URL if file isn't updated */}
@@ -96,8 +96,8 @@ export default function EditTeamForm({ team, venuesList, updateTeamAction }: Edi
 
         {/* Input: Team Identity Name */}
         <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400 ml-1 flex items-center gap-1.5">
-            <Shield className="w-3 h-3 text-zinc-500" /> Identity Roster Name
+          <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 ml-1 flex items-center gap-1.5">
+            <Shield className="w-3 h-3 text-slate-500" /> Identity Roster Name
           </label>
           <input
             type="text"
@@ -105,20 +105,20 @@ export default function EditTeamForm({ team, venuesList, updateTeamAction }: Edi
             required
             defaultValue={team.name}
             placeholder="e.g., Spitfire Shooters"
-            className="w-full p-3.5 bg-zinc-950 border border-zinc-800 focus:border-indigo-500 rounded-xl outline-none font-bold text-slate-100 text-xs transition-all"
+            className="w-full p-3.5 bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl outline-none font-bold text-slate-100 text-xs transition-all"
           />
         </div>
 
         {/* VENUE SELECTION DROPDOWN */}
         <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase tracking-wider text-zinc-400 ml-1 flex items-center gap-1.5">
+          <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 ml-1 flex items-center gap-1.5">
             <MapPin className="w-3 h-3 text-indigo-400" /> Assigned Home Deployment Venue
           </label>
           <div className="relative">
             <select
               name="homeVenueId"
               defaultValue={team.homeVenueId ?? ""}
-              className="w-full p-3.5 bg-zinc-950 border border-zinc-800 focus:border-indigo-500 rounded-xl outline-none font-bold text-slate-100 text-xs appearance-none pr-10 cursor-pointer"
+              className="w-full p-3.5 bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl outline-none font-bold text-slate-100 text-xs appearance-none pr-10 cursor-pointer"
             >
               <option value="">-- No Home Venue Assigned --</option>
               {venuesList.map((venue) => {
@@ -131,25 +131,25 @@ export default function EditTeamForm({ team, venuesList, updateTeamAction }: Edi
                     key={venue.id} 
                     value={venue.id}
                     disabled={isFull}
-                    className={isFull ? "text-zinc-600 bg-zinc-950" : "text-slate-100 bg-zinc-950"}
+                    className={isFull ? "text-slate-600 bg-slate-950" : "text-slate-100 bg-slate-950"}
                   >
                     {venue.name} ({allocationCount}/2 Slots Filled) {isFull ? " [MAX CAPACITY]" : ""}
                   </option>
                 );
               })}
             </select>
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500 text-xs">▼</div>
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 text-xs">▼</div>
           </div>
-          <p className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider ml-1">
+          <p className="text-[9px] text-slate-500 font-bold uppercase tracking-wider ml-1">
             Structural Rule: System blocks allocation above 2 clubs per base node environment.
           </p>
         </div>
 
         {/* Control Button Actions Bar */}
-        <div className="flex items-center justify-end gap-3 pt-4 border-t border-zinc-800/60">
+        <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800/60">
           <Link
             href="/admin/teams"
-            className="px-5 py-3.5 bg-zinc-950 hover:bg-zinc-900 border border-zinc-800 rounded-xl text-[10px] font-black uppercase tracking-widest text-zinc-400 transition-all"
+            className="px-5 py-3.5 bg-slate-950 hover:bg-slate-900 border border-slate-800 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-400 transition-all"
           >
             Abort Modifications
           </Link>
@@ -157,7 +157,7 @@ export default function EditTeamForm({ team, venuesList, updateTeamAction }: Edi
           <button
             type="submit"
             disabled={isPending}
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-zinc-800 disabled:text-zinc-500 text-white px-6 py-3.5 rounded-xl font-black uppercase tracking-widest text-[10px] transition-all shadow-md active:scale-[0.98]"
+            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 disabled:text-slate-500 text-white px-6 py-3.5 rounded-xl font-black uppercase tracking-widest text-[10px] transition-all shadow-md active:scale-[0.98]"
           >
             <Save className="w-3.5 h-3.5 stroke-[3]" />
             {isPending ? "Syncing Roster..." : "Commit Team Records"}

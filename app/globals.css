@@ -67,9 +67,9 @@
   --slate-900: #faf9f6; /* Cards, sidebars, panels, buttons (Feather White) */
   --slate-800: #e6dac8; /* Default border color (Creamed Oat) */
   --slate-700: #cbb9a4; /* Secondary border color (Soft Sandstone) */
-  --slate-600: #a48d78; /* Muted accents/inactive elements (Desert Rock) */
-  --slate-500: #8c7a6b; /* Stronger warm grey for secondary text labels */
-  --slate-400: #6e5e52; /* Warm charcoal for secondary body text */
+  --slate-600: #7c6a59; /* Increased contrast for readability (was #a48d78, contrast ~4.8:1) */
+  --slate-500: #655446; /* Increased contrast for readability (was #8c7a6b, contrast ~6.8:1) */
+  --slate-400: #4e4034; /* Increased contrast for readability (was #6e5e52, contrast ~9.8:1) */
   --slate-350: #574a40; /* Intermediate body text readable color */
   --slate-300: #423830; /* Dark warm brown for headers and active text */
   --slate-200: #2b241f; /* Deep espresso for high-contrast titles */

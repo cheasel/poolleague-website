@@ -101,7 +101,7 @@ export default function DivisionsList({
                   <button 
                     type="button"
                     title="Active rosters are assigned. Clear teams first to unlock deletion."
-                    className="p-2 bg-slate-950/40 border border-slate-900/60 rounded-lg text-slate-650 cursor-not-allowed flex items-center justify-center"
+                    className="p-2 bg-slate-950/40 border border-slate-900/60 rounded-lg text-slate-500 cursor-not-allowed flex items-center justify-center"
                     disabled
                   >
                     <Lock className="w-3.5 h-3.5" />

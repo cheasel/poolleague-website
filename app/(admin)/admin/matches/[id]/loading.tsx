@@ -36,7 +36,7 @@ export default function MatchDetailLoading() {
         {/* COMPACT SCOREBOARD SKELETON */}
         <div className="grid grid-cols-1 md:grid-cols-7 gap-6 items-center text-center py-4 relative z-10">
           <div className="md:col-span-3 md:text-right space-y-2 flex flex-col md:items-end items-center">
-            <span className="text-[9px] font-black uppercase tracking-widest text-slate-650 block">Home Club</span>
+            <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 block">Home Club</span>
             <div className="h-6 w-48 bg-slate-900 rounded-md" />
           </div>
 
@@ -46,7 +46,7 @@ export default function MatchDetailLoading() {
           </div>
 
           <div className="md:col-span-3 md:text-left space-y-2 flex flex-col md:items-start items-center">
-            <span className="text-[9px] font-black uppercase tracking-widest text-slate-650 block">Away Club</span>
+            <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 block">Away Club</span>
             <div className="h-6 w-48 bg-slate-900 rounded-md" />
           </div>
         </div>

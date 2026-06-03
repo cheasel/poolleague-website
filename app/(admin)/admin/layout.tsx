@@ -188,7 +188,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       {/* =========================================================================
          2. MOBILE FLOATING ACTION HEADER BAR
          ========================================================================= */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-slate-900 border-b border-slate-800 px-4 flex items-center justify-between text-white z-30 shadow-md">
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-slate-900 border-b border-slate-800 px-4 flex items-center justify-between text-white z-50 shadow-md">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-indigo-600/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
             <Sparkles className="w-4 h-4 stroke-[2.5]" />
@@ -212,7 +212,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           onClick={() => setIsMobileOpen(false)}
         >
           <div 
-            className="w-72 bg-slate-900 h-full p-5 flex flex-col justify-between border-r border-slate-800 animate-in slide-in-from-left duration-200 cursor-default"
+            className="w-72 bg-slate-900 h-[calc(100vh-4rem)] mt-16 p-5 flex flex-col justify-between border-r border-slate-800 animate-in slide-in-from-left duration-200 cursor-default"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="space-y-6 overflow-y-auto min-w-0">

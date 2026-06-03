@@ -208,11 +208,11 @@ export default async function EditPlayerPage({ params }: PageProps) {
 
   return (
     <div className="max-w-3xl mx-auto space-y-8 pb-24 px-4 text-slate-100 antialiased">
-      <header className="border-b border-zinc-800/60 pb-6">
+      <header className="border-b border-slate-800/60 pb-6">
         <h1 className="text-3xl font-black text-slate-100 uppercase tracking-tighter italic">
           Edit Player <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-indigo-200">Profile</span>
         </h1>
-        <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider mt-1">
+        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mt-1">
           Update registered athlete identification and league alignment metrics
         </p>
       </header>
