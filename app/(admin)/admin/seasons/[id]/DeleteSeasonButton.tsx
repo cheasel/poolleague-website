@@ -34,7 +34,7 @@ export default function DeleteSeasonButton({ action }: DeleteSeasonButtonProps) 
     <button
       onClick={handleDelete}
       disabled={isPending}
-      className="w-full bg-zinc-950 hover:bg-red-950/20 border border-zinc-900 hover:border-red-900/40 text-slate-500 hover:text-red-400 p-4 rounded-[1.5rem] font-black uppercase tracking-widest text-[9px] flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+      className="w-full bg-slate-950 hover:bg-rose-950 border border-slate-900 hover:border-rose-400/30 text-slate-500 hover:text-rose-400 p-4 rounded-[1.5rem] font-black uppercase tracking-widest text-[9px] flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
     >
       <Trash2 className="w-3.5 h-3.5" />
       {isPending ? "Deleting Season..." : "Delete Season splitting"}

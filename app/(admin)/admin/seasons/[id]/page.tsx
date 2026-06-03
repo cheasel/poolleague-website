@@ -116,7 +116,7 @@ export default async function EditSeasonPage({ params }: PageProps) {
               name="name" 
               defaultValue={season.name} 
               required 
-              className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-rose-500 outline-none font-bold text-slate-100 transition-all shadow-inner placeholder:text-slate-800"
+              className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-rose-500 outline-none font-bold text-slate-100 transition-all shadow-inner placeholder:text-slate-500"
             />
           </div>
 
