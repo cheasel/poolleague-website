@@ -3,6 +3,7 @@ import { matches, teams, matchGames, players, seasons, divisions, teamMembership
 import { eq, asc, desc, sql, inArray, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import MatchDashboard from "./MatchDashboard";
+import { updateSeasonEndDate } from "@/src/utils/season-utils";
 
 export const dynamic = "force-dynamic";
 
@@ -146,6 +147,7 @@ export default async function AdminMatchesPage({ searchParams }: PageProps) {
 
     if (insertValues.length > 0) {
       await db.insert(matches).values(insertValues);
+      await updateSeasonEndDate(seasonId);
     }
 
     revalidatePath("/admin/matches");
@@ -171,7 +173,17 @@ export default async function AdminMatchesPage({ searchParams }: PageProps) {
     }
 
     // 2. Delete matches (cascade deletes games)
+    const [sampleMatch] = await db
+      .select({ seasonId: matches.seasonId })
+      .from(matches)
+      .where(eq(matches.divisionId, divisionId))
+      .limit(1);
+
     await db.delete(matches).where(eq(matches.divisionId, divisionId));
+
+    if (sampleMatch?.seasonId) {
+      await updateSeasonEndDate(sampleMatch.seasonId);
+    }
 
     revalidatePath("/admin/matches");
   }

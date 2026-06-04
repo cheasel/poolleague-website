@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Calendar, Shield, Trophy, Edit, Save, AlertTriangle } from "lucide-react";
 import { revalidatePath } from "next/cache";
 import BackButton from "./BackButton";
+import { updateSeasonEndDate } from "@/src/utils/season-utils";
 
 export const dynamic = "force-dynamic";
 
@@ -112,6 +113,12 @@ export default async function AdminMatchDetailPage({ params }: PageProps) {
         status: statusVal,
       })
       .where(eq(matches.id, matchId));
+
+    // Update the end season date to match the last match of the season
+    const [m] = await db.select({ seasonId: matches.seasonId }).from(matches).where(eq(matches.id, matchId));
+    if (m?.seasonId) {
+      await updateSeasonEndDate(m.seasonId);
+    }
 
     revalidatePath(`/admin/matches/${matchId}`);
     revalidatePath("/admin/matches");

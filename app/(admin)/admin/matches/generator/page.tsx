@@ -4,6 +4,7 @@ import { eq, asc, desc, and, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { updateSeasonEndDate } from "@/src/utils/season-utils";
 import { ArrowLeft, Sparkles, AlertTriangle } from "lucide-react";
 import GeneratorForm from "./GeneratorForm";
 
@@ -308,6 +309,9 @@ export default async function MatchScheduleGeneratorPage({ searchParams }: Gener
             awayScore: 0,
           }))
         );
+
+        // Update the season's endDate
+        await updateSeasonEndDate(seasonId, tx);
       });
     }
 

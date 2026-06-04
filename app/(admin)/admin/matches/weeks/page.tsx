@@ -3,6 +3,7 @@ import { seasons, divisions, matches } from "@/src/db/schema";
 import { eq, asc, desc, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import MatchweekManagerForm from "./MatchweekManagerForm";
+import { updateSeasonEndDate } from "@/src/utils/season-utils";
 
 export const dynamic = "force-dynamic";
 
@@ -127,6 +128,15 @@ export default async function MatchweeksPage({ searchParams }: WeeksPageProps) {
               eq(matches.weekNumber, -(adj.originalWeek + 1000))
             )
           );
+      }
+
+      // Update the season's endDate
+      const [div] = await tx
+        .select({ seasonId: divisions.seasonId })
+        .from(divisions)
+        .where(eq(divisions.id, divisionId));
+      if (div?.seasonId) {
+        await updateSeasonEndDate(div.seasonId, tx);
       }
     });
 
