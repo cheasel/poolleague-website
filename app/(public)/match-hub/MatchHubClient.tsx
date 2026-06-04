@@ -216,6 +216,44 @@ export default function MatchHubClient({
 
   const activeSeasonName = seasons.find(s => s.id === selectedSeasonId)?.name || "Season";
 
+  const renderByeTeams = (divisionId: number, divisionMatches: MatchRow[]) => {
+    const allTeams = standingsMap[divisionId] || [];
+    if (allTeams.length === 0) return null;
+
+    const playingTeamIds = new Set<number>();
+    divisionMatches.forEach(m => {
+      if (m.homeTeamId) playingTeamIds.add(m.homeTeamId);
+      if (m.awayTeamId) playingTeamIds.add(m.awayTeamId);
+    });
+
+    const byeTeams = allTeams.filter(t => !playingTeamIds.has(t.id));
+    if (byeTeams.length === 0) return null;
+
+    return (
+      <div className="mt-3 bg-slate-900/20 border border-slate-900/60 rounded-2xl p-4 space-y-2">
+        <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 block">
+          No Game This Week
+        </span>
+        <div className="flex flex-wrap gap-2">
+          {byeTeams.map(team => (
+            <div key={team.id} className="flex items-center gap-1.5 bg-slate-950 border border-slate-850 px-2.5 py-1 rounded-xl">
+              {team.logoUrl ? (
+                <div className="w-4 h-4 rounded bg-slate-950 border border-slate-900 p-0.5 flex items-center justify-center shrink-0">
+                  <Image src={team.logoUrl} alt={team.name} width={14} height={14} className="object-contain" />
+                </div>
+              ) : (
+                <div className="w-4 h-4 rounded bg-indigo-950/40 border border-indigo-900/20 flex items-center justify-center font-black text-[6px] text-indigo-400 shrink-0">
+                  {team.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase()}
+                </div>
+              )}
+              <span className="font-bold text-[11px] text-slate-350 uppercase tracking-tight">{team.name}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-8">
       {/* Background Ambient Glows */}
@@ -388,12 +426,15 @@ export default function MatchHubClient({
             </div>
 
             {filteredMatches.length === 0 ? (
-              <div className="bg-slate-900/20 border border-dashed border-slate-800 rounded-3xl p-16 text-center shadow-inner">
-                <span className="inline-flex p-3 bg-slate-950 border border-slate-850 text-slate-500 rounded-2xl mb-3 shadow-inner">
-                  <Activity className="w-6 h-6" />
-                </span>
-                <p className="text-xs font-bold text-slate-400 uppercase tracking-tight">No fixtures scheduled</p>
-                <p className="text-[10px] text-slate-500 mt-1">There are no matches scheduled for the selected filters on this date.</p>
+              <div className="space-y-4">
+                <div className="bg-slate-900/20 border border-dashed border-slate-800 rounded-3xl p-16 text-center shadow-inner">
+                  <span className="inline-flex p-3 bg-slate-950 border border-slate-850 text-slate-500 rounded-2xl mb-3 shadow-inner">
+                    <Activity className="w-6 h-6" />
+                  </span>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-tight">No fixtures scheduled</p>
+                  <p className="text-[10px] text-slate-500 mt-1">There are no matches scheduled for the selected filters on this date.</p>
+                </div>
+                {selectedDivisionTab !== "all" && renderByeTeams(Number(selectedDivisionTab), [])}
               </div>
             ) : (
               <div className="space-y-6">
@@ -413,15 +454,19 @@ export default function MatchHubClient({
                             <MatchCard key={m.id} match={m} />
                           ))}
                         </div>
+                        {renderByeTeams(div.id, divMatches)}
                       </div>
                     );
                   })
                 ) : (
                   // Specific Division Selected
-                  <div className="divide-y divide-slate-800/60 border border-slate-900 bg-slate-900/30 rounded-2xl overflow-hidden shadow-md">
-                    {filteredMatches.map(m => (
-                      <MatchCard key={m.id} match={m} />
-                    ))}
+                  <div className="space-y-4">
+                    <div className="divide-y divide-slate-800/60 border border-slate-900 bg-slate-900/30 rounded-2xl overflow-hidden shadow-md">
+                      {filteredMatches.map(m => (
+                        <MatchCard key={m.id} match={m} />
+                      ))}
+                    </div>
+                    {renderByeTeams(Number(selectedDivisionTab), filteredMatches)}
                   </div>
                 )}
               </div>
