@@ -23,6 +23,7 @@ interface EditPlayerFormProps {
 export default function EditPlayerForm({ player, teamsList, updatePlayerAction }: EditPlayerFormProps) {
   const [state, formAction, isPending] = useActionState(updatePlayerAction, { error: "" });
   const [imagePreview, setImagePreview] = useState<string | null>(player.imageUrl);
+  const [isImageDeleted, setIsImageDeleted] = useState(false);
 
   // Intercept changes on the file inputs and render localized previews instantly
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -31,8 +32,18 @@ export default function EditPlayerForm({ player, teamsList, updatePlayerAction }
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result as string);
+        setIsImageDeleted(false);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setImagePreview(null);
+    setIsImageDeleted(true);
+    const fileInput = document.getElementById("playerImageFile") as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = "";
     }
   };
 
@@ -75,6 +86,7 @@ export default function EditPlayerForm({ player, teamsList, updatePlayerAction }
               <div className="relative flex items-center justify-center w-full h-24 border-2 border-dashed border-slate-800 hover:border-indigo-500/50 rounded-xl cursor-pointer bg-slate-900/20 transition-all group">
                 <input 
                   type="file" 
+                  id="playerImageFile"
                   name="playerImageFile"
                   accept="image/*"
                   onChange={handleImageChange}
@@ -88,8 +100,20 @@ export default function EditPlayerForm({ player, teamsList, updatePlayerAction }
                   <p className="text-[9px] text-slate-600 font-bold uppercase">PNG, JPG up to 2MB</p>
                 </div>
               </div>
-              {/* Reference backup identifier link */}
-              <input type="hidden" name="existingImageUrl" value={player.imageUrl || ""} />
+              <div className="flex justify-between items-center gap-2">
+                {imagePreview && (
+                  <button
+                    type="button"
+                    onClick={handleRemoveImage}
+                    className="px-3.5 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-colors shadow-md active:scale-[0.98]"
+                  >
+                    Remove Photo
+                  </button>
+                )}
+                {/* Reference backup identifier link */}
+                <input type="hidden" name="existingImageUrl" value={player.imageUrl || ""} />
+                <input type="hidden" name="deleteImage" value={isImageDeleted ? "true" : "false"} />
+              </div>
             </div>
           </div>
         </div>

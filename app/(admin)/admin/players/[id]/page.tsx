@@ -81,9 +81,35 @@ export default async function EditPlayerPage({ params }: PageProps) {
         return { error: `Authentication failed: ${testError.message}` };
       }
 
+      const deleteImage = formData.get("deleteImage") === "true";
+      const bucketName = "player-avatars";
+
+      // 🗑️ PROCESS PHOTO REMOVAL IF REQUESTED
+      if (deleteImage) {
+        if (finalImageUrl && finalImageUrl.includes(bucketName)) {
+          try {
+            const pathParts = finalImageUrl.split(`${bucketName}/`);
+            if (pathParts.length > 1) {
+              const oldFilePath = pathParts[1];
+              console.log(`🗑️ Removing deleted file "${oldFilePath}" from Supabase...`);
+              const { error: removeError } = await supabaseAdmin.storage
+                .from(bucketName)
+                .remove([oldFilePath]);
+              if (removeError) {
+                console.warn("⚠️ Non-blocking removal notice:", removeError.message);
+              } else {
+                console.log("✅ Successfully deleted old file from storage bucket.");
+              }
+            }
+          } catch (cleanupErr) {
+            console.error("⚠️ Failed to parse or delete old image path:", cleanupErr);
+          }
+        }
+        finalImageUrl = null;
+      }
+
       // 💾 STEP B: BINARY STREAM UPLOAD & CLEANUP PIPELINE
-      if (playerImageFile && playerImageFile.size > 0 && playerImageFile.name !== "undefined") {
-        const bucketName = "player-avatars"; 
+      if (playerImageFile && playerImageFile.size > 0 && playerImageFile.name !== "undefined") { 
 
         // 🗑️ NEW: PURGE OLD IMAGE FROM SUPABASE IF IT EXISTS
         if (finalImageUrl && finalImageUrl.includes(bucketName)) {
