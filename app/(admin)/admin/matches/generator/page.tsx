@@ -175,6 +175,11 @@ export default async function MatchScheduleGeneratorPage({ searchParams }: Gener
     };
 
     // 3. Circle Rotation Round-Robin Algorithm Execution with Venue Checking
+    const homeCounts1: Record<number, number> = {};
+    divisionTeams.forEach((t) => {
+      homeCounts1[t.id] = 0;
+    });
+
     for (let round = 0; round < singleLegRounds; round++) {
       const roundDate1 = new Date(baseTimelineMs + round * 7 * 24 * 60 * 60 * 1000);
       const dateKey1 = getCalendarDateKey(roundDate1);
@@ -201,11 +206,20 @@ export default async function MatchScheduleGeneratorPage({ searchParams }: Gener
         // Alternate home/away advantages each round to maintain balance
         const defaultAIsHome = round % 2 === 0;
 
-        let homeTeamId1 = defaultAIsHome ? teamA.id : teamB.id;
-        let awayTeamId1 = defaultAIsHome ? teamB.id : teamA.id;
+        // Greedy choice: assign home to the team with fewer home games in Leg 1 so far
+        let aIsHome1 = defaultAIsHome;
+        if (homeCounts1[teamA.id] < homeCounts1[teamB.id]) {
+          aIsHome1 = true;
+        } else if (homeCounts1[teamB.id] < homeCounts1[teamA.id]) {
+          aIsHome1 = false;
+        }
 
-        let homeTeamId2 = defaultAIsHome ? teamB.id : teamA.id;
-        let awayTeamId2 = defaultAIsHome ? teamA.id : teamB.id;
+        let homeTeamId1 = aIsHome1 ? teamA.id : teamB.id;
+        let awayTeamId1 = aIsHome1 ? teamB.id : teamA.id;
+
+        // Leg 2 is the exact reverse of Leg 1 (venue mirrored)
+        let homeTeamId2 = awayTeamId1;
+        let awayTeamId2 = homeTeamId1;
 
         const homeTeamDetails1 = divisionTeams.find((t) => t.id === homeTeamId1);
         const awayTeamDetails1 = divisionTeams.find((t) => t.id === awayTeamId1);
@@ -254,6 +268,9 @@ export default async function MatchScheduleGeneratorPage({ searchParams }: Gener
           bookVenue(dateKey1, venueId1);
           bookVenue(dateKey2, venueId2);
         }
+
+        // Track the actual assigned Leg 1 home team to keep greedy counts correct
+        homeCounts1[finalHomeId1]++;
 
         generatedFixtures.push({
           homeTeamId: finalHomeId1,
