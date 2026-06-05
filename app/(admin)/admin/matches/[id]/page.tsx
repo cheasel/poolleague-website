@@ -110,7 +110,7 @@ export default async function AdminMatchDetailPage({ params }: PageProps) {
         awayTeamId: awayId,
         weekNumber: week,
         date: new Date(dateStr),
-        status: statusVal,
+        status: statusVal as "scheduled" | "live" | "completed" | "cancelled",
       })
       .where(eq(matches.id, matchId));
 
