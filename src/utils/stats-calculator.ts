@@ -266,44 +266,102 @@ export function calculateRosterStats(
   allGames: RosterGame[],
   completedTeamMatchIds: Set<number>
 ) {
-  return roster.map((player) => {
-    let singlesPlayed = 0;
-    let singlesWins = 0;
-    let doublesPlayed = 0;
-    let doublesWins = 0;
-    const playedMatchIds = new Set<number>();
+  // 1. Initialize stats registry for roster players for O(1) lookups
+  const playerStatsMap = new Map<number, {
+    singlesPlayed: number;
+    singlesWins: number;
+    doublesPlayed: number;
+    doublesWins: number;
+    playedMatchIds: Set<number>;
+  }>();
 
-    allGames.forEach((game) => {
-      if (!game.matchId) return;
-      // Only count frames from completed matches to avoid inflating stats with live/scheduled data
-      if (!completedTeamMatchIds.has(game.matchId)) return;
-
-      const isHome = game.player1Id === player.id || game.player1PartnerId === player.id;
-      const isAway = game.player2Id === player.id || game.player2PartnerId === player.id;
-      
-      if (!isHome && !isAway) return;
-
-      playedMatchIds.add(game.matchId);
-
-      const playerWon = isHome 
-        ? (Number(game.player1Score || 0) > Number(game.player2Score || 0)) 
-        : (Number(game.player2Score || 0) > Number(game.player1Score || 0));
-      
-      if (game.gameType === 'double') {
-        doublesPlayed++;
-        if (playerWon) doublesWins++;
-      } else {
-        singlesPlayed++;
-        if (playerWon) singlesWins++;
-      }
+  roster.forEach((player) => {
+    playerStatsMap.set(player.id, {
+      singlesPlayed: 0,
+      singlesWins: 0,
+      doublesPlayed: 0,
+      doublesWins: 0,
+      playedMatchIds: new Set<number>(),
     });
+  });
 
+  const teamTotalMatches = completedTeamMatchIds.size;
+
+  // 2. Iterate through allGames exactly once - O(G)
+  allGames.forEach((game) => {
+    if (!game.matchId) return;
+    // Only count frames from completed matches to avoid inflating stats with live/scheduled data
+    if (!completedTeamMatchIds.has(game.matchId)) return;
+
+    // Retrieve stats records for participating players if they belong to the roster
+    const p1 = game.player1Id ? playerStatsMap.get(game.player1Id) : null;
+    const p1Partner = game.player1PartnerId ? playerStatsMap.get(game.player1PartnerId) : null;
+    const p2 = game.player2Id ? playerStatsMap.get(game.player2Id) : null;
+    const p2Partner = game.player2PartnerId ? playerStatsMap.get(game.player2PartnerId) : null;
+
+    // Short-circuit if none of the players in this game belong to the target roster
+    if (!p1 && !p1Partner && !p2 && !p2Partner) return;
+
+    const isDouble = game.gameType === 'double';
+    const p1Score = Number(game.player1Score || 0);
+    const p2Score = Number(game.player2Score || 0);
+    const isHomeWin = p1Score > p2Score;
+    const isAwayWin = p2Score > p1Score;
+
+    // Home roster players update
+    if (p1) {
+      p1.playedMatchIds.add(game.matchId);
+      if (isDouble) {
+        p1.doublesPlayed++;
+        if (isHomeWin) p1.doublesWins++;
+      } else {
+        p1.singlesPlayed++;
+        if (isHomeWin) p1.singlesWins++;
+      }
+    }
+    if (p1Partner) {
+      p1Partner.playedMatchIds.add(game.matchId);
+      if (isDouble) {
+        p1Partner.doublesPlayed++;
+        if (isHomeWin) p1Partner.doublesWins++;
+      } else {
+        p1Partner.singlesPlayed++;
+        if (isHomeWin) p1Partner.singlesWins++;
+      }
+    }
+
+    // Away roster players update
+    if (p2) {
+      p2.playedMatchIds.add(game.matchId);
+      if (isDouble) {
+        p2.doublesPlayed++;
+        if (isAwayWin) p2.doublesWins++;
+      } else {
+        p2.singlesPlayed++;
+        if (isAwayWin) p2.singlesWins++;
+      }
+    }
+    if (p2Partner) {
+      p2Partner.playedMatchIds.add(game.matchId);
+      if (isDouble) {
+        p2Partner.doublesPlayed++;
+        if (isAwayWin) p2Partner.doublesWins++;
+      } else {
+        p2Partner.singlesPlayed++;
+        if (isAwayWin) p2Partner.singlesWins++;
+      }
+    }
+  });
+
+  // 3. Map over roster to calculate percentages and construct response - O(R)
+  return roster.map((player) => {
+    const stats = playerStatsMap.get(player.id)!;
+    const singlesPlayed = stats.singlesPlayed;
+    const singlesWins = stats.singlesWins;
+    const doublesPlayed = stats.doublesPlayed;
+    const doublesWins = stats.doublesWins;
     const totalPlayed = singlesPlayed + doublesPlayed;
     const totalWins = singlesWins + doublesWins;
-    const winPercentage = totalPlayed > 0 ? ((totalWins / totalPlayed) * 100).toFixed(1) : "0.0";
-    const matchesPlayed = playedMatchIds.size;
-    const teamTotalMatches = completedTeamMatchIds.size;
-    const matchPlayPercentage = teamTotalMatches > 0 ? ((matchesPlayed / teamTotalMatches) * 100).toFixed(1) : "0.0";
 
     return {
       id: player.id,
@@ -317,9 +375,9 @@ export function calculateRosterStats(
       doublesLosses: doublesPlayed - doublesWins,
       totalPlayed,
       totalWins,
-      winPercentage,
-      matchesPlayed,
-      matchPlayPercentage,
+      winPercentage: totalPlayed > 0 ? ((totalWins / totalPlayed) * 100).toFixed(1) : "0.0",
+      matchesPlayed: stats.playedMatchIds.size,
+      matchPlayPercentage: teamTotalMatches > 0 ? ((stats.playedMatchIds.size / teamTotalMatches) * 100).toFixed(1) : "0.0",
     };
   });
 }
