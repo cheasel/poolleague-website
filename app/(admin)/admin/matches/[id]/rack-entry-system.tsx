@@ -196,13 +196,13 @@ export default function RackEntrySystem({
   const [racks, setRacks] = useState<Rack[]>(() => {
     if (initialGames.length > 0) {
       return initialGames.map((g: GameRecord) => ({
-        type: g.gameType || (g.player1PartnerId || g.player2PartnerId ? 'double' : 'single'),
+        type: (g.gameType === 'double' ? 'double' : g.gameType === 'single' ? 'single' : (g.player1PartnerId || g.player2PartnerId ? 'double' : 'single')),
         homePlayer1Id: String(g.player1Id || ''),
         homePlayer2Id: String(g.player1PartnerId || ''),
         awayPlayer1Id: String(g.player2Id || ''),
         awayPlayer2Id: String(g.player2PartnerId || ''),
         // Explicitly resolve winner: only set if one side clearly leads; null otherwise forces admin to re-select
-        winner: g.player1Score > g.player2Score ? 'home' : g.player2Score > g.player1Score ? 'away' : null
+        winner: (g.player1Score ?? 0) > (g.player2Score ?? 0) ? 'home' : (g.player2Score ?? 0) > (g.player1Score ?? 0) ? 'away' : null
       }));
     }
     return [];

@@ -70,7 +70,8 @@ interface PlayerAccumulator {
   name: string;
   imageUrl: string | null;
   teamName: string;
-  matchPlayCount: number;
+  maxTeamMatches: number;
+  maxTeamFrames: number;
   matchPlayGames: Set<number>;
   framePlay: number;
   singlePlay: number;
