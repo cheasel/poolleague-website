@@ -114,11 +114,13 @@ export default async function PlayerProfilePage({ params }: PageProps) {
   const { id } = await params;
   const playerId = Number(id);
 
-  // Run all queries sequentially to avoid deadlock on cache misses
-  const player = await getCachedPlayerProfile(playerId);
-  const allSeasons = await getCachedSeasons();
-  const rawGames = await getCachedPlayerGames(playerId);
-  const memberships = await getCachedPlayerMemberships(playerId);
+  // Run all queries in parallel to optimize loading times
+  const [player, allSeasons, rawGames, memberships] = await Promise.all([
+    getCachedPlayerProfile(playerId),
+    getCachedSeasons(),
+    getCachedPlayerGames(playerId),
+    getCachedPlayerMemberships(playerId),
+  ]);
 
   if (!player) {
     return <div className="p-20 text-center font-black uppercase text-slate-400">Player profile sheet unavailable.</div>;

@@ -110,10 +110,11 @@ export default async function PublicTeamProfilePage({ params }: PageProps) {
     return <div className="p-20 text-center font-black uppercase text-slate-400">Team profile unavailable.</div>;
   }
 
-  // Execute caching queries sequentially to prevent client-side deadlock on cache misses
-  // Execute caching queries sequentially to prevent client-side deadlock on cache misses
-  const rosterRaw = await getCachedRoster(teamId, team.seasonId || 0);
-  const teamMatches = await getCachedTeamMatches(teamId);
+  // Execute caching queries in parallel to optimize loading times
+  const [rosterRaw, teamMatches] = await Promise.all([
+    getCachedRoster(teamId, team.seasonId || 0),
+    getCachedTeamMatches(teamId),
+  ]);
 
   const completedTeamMatchIds = teamMatches
     .filter((m) => m.status === "completed")

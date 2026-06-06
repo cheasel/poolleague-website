@@ -239,29 +239,23 @@ interface PageProps {
   }>;
 }
 
-export default async function PublicStandingsPage({ searchParams }: PageProps) {
-  const params = await searchParams;
-
-  // 1. Fetch dropdown lists from cache sequentially
-  const allSeasons = await getCachedSeasons();
-  const allDivisions = await getCachedDivisions();
-
-  const selectedSeasonId = params.seasonId ? Number(params.seasonId) : (allSeasons[0]?.id || null);
-
-  // Filter divisions to only show the ones belonging to the selected season
-  const seasonDivisions = allDivisions.filter(d => d.seasonId === selectedSeasonId);
-
-  let selectedDivisionId = params.divisionId ? Number(params.divisionId) : null;
-  if (!selectedDivisionId || !seasonDivisions.some(d => d.id === selectedDivisionId)) {
-    selectedDivisionId = seasonDivisions[0]?.id || null;
-  }
-
-  const currentDivision = seasonDivisions.find(d => d.id === selectedDivisionId) || seasonDivisions[0];
-  const isTopTier = currentDivision ? (currentDivision.tier === Math.min(...seasonDivisions.map(d => d.tier))) : true;
-
-  // 2. Fetch computed standings and matches list from cache sequentially
-  const calculatedStandings = await getCachedStandingsData(selectedSeasonId, selectedDivisionId);
-  const allMatchesRaw = await getCachedMatchesForStandings(selectedSeasonId, selectedDivisionId);
+async function StandingsTableSection({
+  selectedSeasonId,
+  selectedDivisionId,
+  allSeasons,
+  seasonDivisions,
+  isTopTier,
+}: {
+  selectedSeasonId: number | null;
+  selectedDivisionId: number | null;
+  allSeasons: { id: number; name: string }[];
+  seasonDivisions: { id: number; name: string }[];
+  isTopTier: boolean;
+}) {
+  const [calculatedStandings, allMatchesRaw] = await Promise.all([
+    getCachedStandingsData(selectedSeasonId, selectedDivisionId),
+    getCachedMatchesForStandings(selectedSeasonId, selectedDivisionId),
+  ]);
 
   const formattedMatches = allMatchesRaw.map((m) => ({
     id: m.id,
@@ -294,6 +288,43 @@ export default async function PublicStandingsPage({ searchParams }: PageProps) {
   }));
 
   return (
+    <StandingsClient 
+      standings={calculatedStandings}
+      seasons={allSeasons}
+      divisions={seasonDivisions}
+      selectedSeasonId={selectedSeasonId || undefined}
+      selectedDivisionId={selectedDivisionId || undefined}
+      resultsByWeek={resultsByWeek}
+      fixturesByWeek={fixturesByWeek}
+      isTopTier={isTopTier}
+    />
+  );
+}
+
+export default async function PublicStandingsPage({ searchParams }: PageProps) {
+  const params = await searchParams;
+
+  // 1. Fetch dropdown lists from cache sequentially
+  const allSeasons = await getCachedSeasons();
+  const allDivisions = await getCachedDivisions();
+
+  const selectedSeasonId = params.seasonId ? Number(params.seasonId) : (allSeasons[0]?.id || null);
+
+  // Filter divisions to only show the ones belonging to the selected season
+  const seasonDivisions = allDivisions.filter(d => d.seasonId === selectedSeasonId);
+
+  let selectedDivisionId = params.divisionId ? Number(params.divisionId) : null;
+  if (!selectedDivisionId || !seasonDivisions.some(d => d.id === selectedDivisionId)) {
+    selectedDivisionId = seasonDivisions[0]?.id || null;
+  }
+
+  const currentDivision = seasonDivisions.find(d => d.id === selectedDivisionId) || seasonDivisions[0];
+  const isTopTier = currentDivision ? (currentDivision.tier === Math.min(...seasonDivisions.map(d => d.tier))) : true;
+
+  const formattedSeasons = allSeasons.map(s => ({ id: s.id, name: s.name }));
+  const formattedDivisions = seasonDivisions.map(d => ({ id: d.id, name: d.name }));
+
+  return (
     <div className="min-h-screen bg-slate-950 pb-16 text-slate-100">
       
       {/* HERO SECTION */}
@@ -317,14 +348,11 @@ export default async function PublicStandingsPage({ searchParams }: PageProps) {
             Loading standings...
           </div>
         }>
-          <StandingsClient 
-            standings={calculatedStandings}
-            seasons={allSeasons.map(s => ({ id: s.id, name: s.name }))}
-            divisions={seasonDivisions.map(d => ({ id: d.id, name: d.name }))}
-            selectedSeasonId={selectedSeasonId || undefined}
-            selectedDivisionId={selectedDivisionId || undefined}
-            resultsByWeek={resultsByWeek}
-            fixturesByWeek={fixturesByWeek}
+          <StandingsTableSection
+            selectedSeasonId={selectedSeasonId}
+            selectedDivisionId={selectedDivisionId}
+            allSeasons={formattedSeasons}
+            seasonDivisions={formattedDivisions}
             isTopTier={isTopTier}
           />
         </Suspense>

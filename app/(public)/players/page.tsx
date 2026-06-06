@@ -121,6 +121,29 @@ const getCachedPlayersData = (selectedSeasonId: number | null, selectedDivisionI
   { revalidate: 60, tags: ["players"] }
 )();
 
+async function PlayerStatsSection({
+  selectedSeasonId,
+  selectedDivisionId,
+  allSeasons,
+  allDivisions,
+}: {
+  selectedSeasonId: number | null;
+  selectedDivisionId: number | null;
+  allSeasons: { id: number; name: string }[];
+  allDivisions: { id: number; name: string }[];
+}) {
+  const calculatedPlayers = await getCachedPlayersData(selectedSeasonId, selectedDivisionId);
+  return (
+    <PlayerStatsClient
+      initialPlayers={calculatedPlayers}
+      seasons={allSeasons}
+      divisions={allDivisions}
+      selectedSeasonId={selectedSeasonId || undefined}
+      selectedDivisionId={selectedDivisionId || undefined}
+    />
+  );
+}
+
 export default async function PublicPlayersPage({ searchParams }: PageProps) {
   const params = await searchParams;
 
@@ -130,7 +153,8 @@ export default async function PublicPlayersPage({ searchParams }: PageProps) {
   const selectedSeasonId = params.seasonId ? Number(params.seasonId) : (allSeasons[0]?.id || null);
   const selectedDivisionId = params.divisionId ? Number(params.divisionId) : (allDivisions[0]?.id || null);
 
-  const calculatedPlayers = await getCachedPlayersData(selectedSeasonId, selectedDivisionId);
+  const formattedSeasons = allSeasons.map((s) => ({ id: s.id, name: s.name }));
+  const formattedDivisions = allDivisions.map((d) => ({ id: d.id, name: d.name }));
 
   return (
     <div className="min-h-screen bg-slate-950 pb-16 text-slate-100">
@@ -156,12 +180,11 @@ export default async function PublicPlayersPage({ searchParams }: PageProps) {
             Loading player statistics...
           </div>
         }>
-          <PlayerStatsClient
-            initialPlayers={calculatedPlayers}
-            seasons={allSeasons.map((s) => ({ id: s.id, name: s.name }))}
-            divisions={allDivisions.map((d) => ({ id: d.id, name: d.name }))}
-            selectedSeasonId={selectedSeasonId || undefined}
-            selectedDivisionId={selectedDivisionId || undefined}
+          <PlayerStatsSection
+            selectedSeasonId={selectedSeasonId}
+            selectedDivisionId={selectedDivisionId}
+            allSeasons={formattedSeasons}
+            allDivisions={formattedDivisions}
           />
         </Suspense>
       </div>

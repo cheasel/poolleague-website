@@ -253,6 +253,30 @@ const getCachedStandingsForSeason = (seasonId: number) => unstable_cache(
   { revalidate: 60, tags: ["standings", "matches", "teams"] }
 )();
 
+async function MatchHubSection({
+  selectedSeasonId,
+  allSeasons,
+}: {
+  selectedSeasonId: number;
+  allSeasons: { id: number; name: string }[];
+}) {
+  const [seasonDivisions, allMatches, standingsMap] = await Promise.all([
+    getCachedDivisionsForSeason(selectedSeasonId),
+    getCachedMatchesForSeason(selectedSeasonId),
+    getCachedStandingsForSeason(selectedSeasonId),
+  ]);
+
+  return (
+    <MatchHubClient 
+      seasons={allSeasons}
+      divisions={seasonDivisions.map(d => ({ id: d.id, name: d.name, tier: d.tier }))}
+      matches={allMatches}
+      standingsMap={standingsMap}
+      selectedSeasonId={selectedSeasonId}
+    />
+  );
+}
+
 export default async function MatchHubPage({ searchParams }: PageProps) {
   const params = await searchParams;
 
@@ -268,10 +292,7 @@ export default async function MatchHubPage({ searchParams }: PageProps) {
     );
   }
 
-  // 2. Fetch season-specific data
-  const seasonDivisions = await getCachedDivisionsForSeason(selectedSeasonId);
-  const allMatches = await getCachedMatchesForSeason(selectedSeasonId);
-  const standingsMap = await getCachedStandingsForSeason(selectedSeasonId);
+  const formattedSeasons = allSeasons.map(s => ({ id: s.id, name: s.name }));
 
   return (
     <div className="min-h-screen bg-slate-950 pb-16 text-slate-100 relative">
@@ -280,12 +301,9 @@ export default async function MatchHubPage({ searchParams }: PageProps) {
           Loading Match Hub...
         </div>
       }>
-        <MatchHubClient 
-          seasons={allSeasons.map(s => ({ id: s.id, name: s.name }))}
-          divisions={seasonDivisions.map(d => ({ id: d.id, name: d.name, tier: d.tier }))}
-          matches={allMatches}
-          standingsMap={standingsMap}
+        <MatchHubSection 
           selectedSeasonId={selectedSeasonId}
+          allSeasons={formattedSeasons}
         />
       </Suspense>
     </div>

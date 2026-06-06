@@ -75,30 +75,21 @@ const getCachedMatchesData = (
   { revalidate: 60, tags: ["matches", "teams"] }
 )();
 
-export default async function PublicMatchesPage({ searchParams }: PageProps) {
-  const params = await searchParams;
-
-  // 1. Fetch lookup criteria sequentially to prevent deadlock
-  const allSeasons = await getCachedSeasons();
-  const allDivisions = await getCachedDivisions();
-
-  const selectedSeasonId = params.seasonId ? Number(params.seasonId) : (allSeasons[0]?.id || null);
-
-  // Filter divisions to only show the ones belonging to the selected season
-  const seasonDivisions = allDivisions.filter(d => d.seasonId === selectedSeasonId);
-
-  let selectedDivisionId = params.divisionId ? Number(params.divisionId) : null;
-  if (!selectedDivisionId || !seasonDivisions.some(d => d.id === selectedDivisionId)) {
-    selectedDivisionId = seasonDivisions[0]?.id || null;
-  }
-  
-  // 🎯 Default sorting direction to 'asc' if not explicitly defined in URL
-  const sortDirection = params.sort === "desc" ? "desc" : "asc";
-
-  // 3. Query dataset with sorting order applied dynamically
+async function MatchesScheduleSection({
+  selectedSeasonId,
+  selectedDivisionId,
+  sortDirection,
+  allSeasons,
+  seasonDivisions,
+}: {
+  selectedSeasonId: number | null;
+  selectedDivisionId: number | null;
+  sortDirection: "asc" | "desc";
+  allSeasons: { id: number; name: string }[];
+  seasonDivisions: { id: number; name: string }[];
+}) {
   const allMatchesRaw = await getCachedMatchesData(selectedSeasonId, selectedDivisionId, sortDirection);
 
-  // 4. Format structural attributes safely
   const formattedMatches = allMatchesRaw.map((m) => ({
     id: m.id,
     date: m.date ? new Date(m.date).toLocaleDateString("en-GB", { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' }) : "TBD",
@@ -112,6 +103,39 @@ export default async function PublicMatchesPage({ searchParams }: PageProps) {
 
   const completedResults = formattedMatches.filter((m) => m.status === "completed");
   const upcomingFixtures = formattedMatches.filter((m) => m.status !== "completed");
+
+  return (
+    <MatchPageClient 
+      upcomingFixtures={upcomingFixtures}
+      completedResults={completedResults}
+      seasons={allSeasons}
+      divisions={seasonDivisions}
+      selectedSeasonId={selectedSeasonId || undefined}
+      selectedDivisionId={selectedDivisionId || undefined}
+      sortDirection={sortDirection}
+    />
+  );
+}
+
+export default async function PublicMatchesPage({ searchParams }: PageProps) {
+  const params = await searchParams;
+
+  const allSeasons = await getCachedSeasons();
+  const allDivisions = await getCachedDivisions();
+
+  const selectedSeasonId = params.seasonId ? Number(params.seasonId) : (allSeasons[0]?.id || null);
+
+  const seasonDivisions = allDivisions.filter(d => d.seasonId === selectedSeasonId);
+
+  let selectedDivisionId = params.divisionId ? Number(params.divisionId) : null;
+  if (!selectedDivisionId || !seasonDivisions.some(d => d.id === selectedDivisionId)) {
+    selectedDivisionId = seasonDivisions[0]?.id || null;
+  }
+  
+  const sortDirection = params.sort === "desc" ? "desc" : "asc";
+
+  const formattedSeasons = allSeasons.map(s => ({ id: s.id, name: s.name }));
+  const formattedDivisions = seasonDivisions.map(d => ({ id: d.id, name: d.name }));
 
   return (
     <div className="min-h-screen bg-slate-950 pb-16 text-slate-100">
@@ -137,14 +161,12 @@ export default async function PublicMatchesPage({ searchParams }: PageProps) {
             Loading match schedules...
           </div>
         }>
-          <MatchPageClient 
-            upcomingFixtures={upcomingFixtures}
-            completedResults={completedResults}
-            seasons={allSeasons.map(s => ({ id: s.id, name: s.name }))}
-            divisions={seasonDivisions.map(d => ({ id: d.id, name: d.name }))}
-            selectedSeasonId={selectedSeasonId || undefined}
-            selectedDivisionId={selectedDivisionId || undefined}
+          <MatchesScheduleSection
+            selectedSeasonId={selectedSeasonId}
+            selectedDivisionId={selectedDivisionId}
             sortDirection={sortDirection}
+            allSeasons={formattedSeasons}
+            seasonDivisions={formattedDivisions}
           />
         </Suspense>
       </div>
