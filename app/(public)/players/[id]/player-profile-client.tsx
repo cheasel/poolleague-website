@@ -36,7 +36,7 @@ interface PlayerProfileClientProps {
   memberships?: { seasonId: number | null; teamName: string | null }[];
 }
 
-function CareerChart({ data }: { data: any[] }) {
+function CareerChart({ data, selectedSeasonId }: { data: any[]; selectedSeasonId: number | string }) {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
   const sortedData = useMemo(() => {
@@ -58,7 +58,7 @@ function CareerChart({ data }: { data: any[] }) {
       ? width / 2
       : padding + (idx / (sortedData.length - 1)) * (width - padding * 2);
     const y = height - padding - (winRate / 100) * (height - padding * 2);
-    return { x, y, winRate, seasonName: s.seasonName, total };
+    return { x, y, winRate, seasonName: s.seasonName, total, seasonId: s.seasonId };
   });
 
   const linePath = sortedData.length > 1
@@ -122,32 +122,43 @@ function CareerChart({ data }: { data: any[] }) {
             />
           )}
 
-          {points.map((p, idx) => (
-            <g key={idx}>
-              <circle
-                cx={p.x}
-                cy={p.y}
-                r="16"
-                className="fill-transparent cursor-pointer"
-                onMouseEnter={() => setHoveredIdx(idx)}
-                onMouseLeave={() => setHoveredIdx(null)}
-              />
-              <circle
-                cx={p.x}
-                cy={p.y}
-                r={hoveredIdx === idx ? 6 : 3.5}
-                className="fill-indigo-400 stroke-slate-950 stroke-2 pointer-events-none transition-all duration-150"
-              />
-              <text 
-                x={p.x} 
-                y={height - 10} 
-                className="fill-slate-500 text-[8px] font-black uppercase tracking-wider" 
-                textAnchor="middle"
-              >
-                {p.seasonName}
-              </text>
-            </g>
-          ))}
+          {points.map((p, idx) => {
+            const isSelected = Number(selectedSeasonId) === p.seasonId;
+            return (
+              <g key={idx}>
+                <circle
+                  cx={p.x}
+                  cy={p.y}
+                  r="16"
+                  className="fill-transparent cursor-pointer"
+                  onMouseEnter={() => setHoveredIdx(idx)}
+                  onMouseLeave={() => setHoveredIdx(null)}
+                />
+                {isSelected && (
+                  <circle
+                    cx={p.x}
+                    cy={p.y}
+                    r="9"
+                    className="fill-pink-500/30 animate-pulse pointer-events-none"
+                  />
+                )}
+                <circle
+                  cx={p.x}
+                  cy={p.y}
+                  r={isSelected ? 6 : (hoveredIdx === idx ? 5 : 3.5)}
+                  className={`${isSelected ? 'fill-pink-500 stroke-pink-300' : 'fill-indigo-400 stroke-slate-950'} stroke-2 pointer-events-none transition-all duration-150`}
+                />
+                <text 
+                  x={p.x} 
+                  y={height - 10} 
+                  className={`text-[8px] font-black uppercase tracking-wider ${isSelected ? 'fill-pink-400 font-bold' : 'fill-slate-500'}`} 
+                  textAnchor="middle"
+                >
+                  {p.seasonName}
+                </text>
+              </g>
+            );
+          })}
         </svg>
 
         {hoveredIdx !== null && (
@@ -264,8 +275,6 @@ export default function PlayerProfileClient({
   }, [filteredGames, playerId]);
 
   const seasonStats = useMemo(() => {
-    if (selectedSeasonId !== "all") return [];
-    
     const statsBySeason: Record<number, {
       seasonId: number;
       seasonName: string;
@@ -319,7 +328,7 @@ export default function PlayerProfileClient({
     });
 
     return Object.values(statsBySeason).sort((a, b) => b.seasonName.localeCompare(a.seasonName));
-  }, [games, memberships, seasons, playerId, selectedSeasonId]);
+  }, [games, memberships, seasons, playerId]);
 
   const displayedSeasonStats = useMemo(() => {
     if (showAllHistory) return seasonStats;
@@ -373,7 +382,7 @@ export default function PlayerProfileClient({
       </div>
 
       {/* Career Trend Chart & History Limit Toggles */}
-      {selectedSeasonId === "all" && seasonStats.length > 0 && (
+      {seasonStats.length > 0 && (
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -400,7 +409,7 @@ export default function PlayerProfileClient({
             )}
           </div>
           
-          <CareerChart data={displayedSeasonStats} />
+          <CareerChart data={displayedSeasonStats} selectedSeasonId={selectedSeasonId} />
         </div>
       )}
 
