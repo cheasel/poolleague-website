@@ -13,11 +13,27 @@ interface PageProps {
   }>;
 }
 
-const getCachedMatchPageData = unstable_cache(
-  async (matchId: number) => {
+interface MatchPageData {
+  id: number;
+  matchDate: string | Date | null;
+  status: string | null;
+  homeTeamId: number | null;
+  awayTeamId: number | null;
+  homeTeamScoreTotal: number | null;
+  awayTeamScoreTotal: number | null;
+  divisionId: number | null;
+  divisionName: string | null;
+  seasonId: number | null;
+  seasonName: string | null;
+  homeTeamRank?: number | null;
+  awayTeamRank?: number | null;
+}
+
+const getCachedMatchPageData = (matchId: number) => unstable_cache(
+  async () => {
 
     // 1. Fetch complete Match Details with Season and Division hierarchy data
-    const [matchData] = await db
+    const [rawMatchData] = await db
       .select({
         id: matches.id,
         matchDate: matches.date,
@@ -36,7 +52,9 @@ const getCachedMatchPageData = unstable_cache(
       .leftJoin(seasons, eq(matches.seasonId, seasons.id))
       .where(eq(matches.id, matchId));
 
-    if (!matchData) return null;
+    if (!rawMatchData) return null;
+
+    const matchData = rawMatchData as MatchPageData;
 
     // 2. Fetch all teams in this specific division to compute live leaderboard ranks
     const divisionTeams = matchData.divisionId
@@ -64,46 +82,51 @@ const getCachedMatchPageData = unstable_cache(
           )
         );
 
-      const statsMap = new Map<number, { points: number; diff: number; won: number }>();
-      divisionTeams.forEach(t => {
-        statsMap.set(t.id, { points: 0, diff: 0, won: 0 });
-      });
+      const standingsMap = divisionTeams.reduce((acc, t) => {
+        acc[t.id] = { id: t.id, name: t.name, wins: 0, draws: 0, points: 0 };
+        return acc;
+      }, {} as Record<number, { id: number; name: string; wins: number; draws: number; points: number }>);
 
-      completedMatches.forEach(m => {
-        const home = statsMap.get(m.homeTeamId!);
-        const away = statsMap.get(m.awayTeamId!);
+      completedMatches.forEach((m) => {
+        const home = standingsMap[m.homeTeamId!];
+        const away = standingsMap[m.awayTeamId!];
         if (!home || !away) return;
-
         const hScore = Number(m.homeScore || 0);
         const aScore = Number(m.awayScore || 0);
-
-        home.diff += (hScore - aScore);
-        home.won += hScore;
-        away.diff += (aScore - hScore);
-        away.won += aScore;
-
-        if (hScore > aScore) {
-          home.points += 2;
-        } else if (hScore < aScore) {
-          away.points += 2;
-        } else {
-          home.points += 1;
-          away.points += 1;
+        if (hScore > aScore) home.wins += 1;
+        else if (hScore < aScore) away.wins += 1;
+        else {
+          home.draws += 1;
+          away.draws += 1;
         }
       });
 
-      divisionTeams.sort((a, b) => {
-        const sa = statsMap.get(a.id)!;
-        const sb = statsMap.get(b.id)!;
-        if (sa.points !== sb.points) return sb.points - sa.points;
-        if (sa.diff !== sb.diff) return sb.diff - sa.diff;
-        return sb.won - sa.won;
+      Object.values(standingsMap).forEach((t) => {
+        t.points = (t.wins * 2) + (t.draws * 1);
       });
+
+      const sorted = Object.values(standingsMap).sort((a, b) => b.points - a.points);
+      
+      const homeRank = sorted.findIndex(t => t.id === matchData.homeTeamId) + 1;
+      const awayRank = sorted.findIndex(t => t.id === matchData.awayTeamId) + 1;
+
+      matchData.homeTeamRank = homeRank > 0 ? homeRank : null;
+      matchData.awayTeamRank = awayRank > 0 ? awayRank : null;
     }
 
-    // 3. Fetch individual frame details
+    // 3. Fetch all frames/games corresponding to the target Match
     const frames = await db
-      .select()
+      .select({
+        id: matchGames.id,
+        gameType: matchGames.gameType,
+        gameOrder: matchGames.gameOrder,
+        player1Id: matchGames.player1Id,
+        player1PartnerId: matchGames.player1PartnerId,
+        player2Id: matchGames.player2Id,
+        player2PartnerId: matchGames.player2PartnerId,
+        player1Score: matchGames.player1Score,
+        player2Score: matchGames.player2Score,
+      })
       .from(matchGames)
       .where(eq(matchGames.matchId, matchId))
       .orderBy(asc(matchGames.gameOrder));
@@ -127,9 +150,9 @@ const getCachedMatchPageData = unstable_cache(
       relevantPlayers
     };
   },
-  ["match-detail-page"],
+  ["match-detail-page", String(matchId)],
   { revalidate: 60, tags: ["matches", "teams", "divisions", "seasons", "matchGames", "players"] }
-);
+)();
 
 export default async function PublicMatchDetailPage({ params }: PageProps) {
   const { id } = await params;

@@ -91,8 +91,8 @@ async function getTopFormStreaks(seasonId: number, divisionId: number) {
 }
 
 // 🎯 ADDED: Aggregates game/frame level data inside the active season/division context
-const getCachedTopPlayerStats = unstable_cache(
-  async (seasonId: number, divisionId: number, limit: number = 5) => {
+const getCachedTopPlayerStats = (seasonId: number, divisionId: number, limit: number = 5) => unstable_cache(
+  async () => {
     const result = await db.execute(sql`
       WITH player_wins AS (
         SELECT 
@@ -169,9 +169,9 @@ const getCachedTopPlayerStats = unstable_cache(
       image: r.image ? String(r.image) : null,
     }));
   },
-  ["top-player-stats"],
+  ["top-player-stats", String(seasonId), String(divisionId), String(limit)],
   { revalidate: 300, tags: ["players", "matchGames", "matches"] }
-);
+)();
 
 const getCachedSeasons = unstable_cache(
   async () => {
@@ -195,23 +195,23 @@ const getCachedSeasons = unstable_cache(
   { revalidate: 300, tags: ["seasons"] }
 );
 
-const getCachedDivisions = unstable_cache(
-  async (seasonId: number) => db.select().from(divisions).where(eq(divisions.seasonId, seasonId)).orderBy(divisions.tier),
-  ["homepage-divisions-list"],
+const getCachedDivisions = (seasonId: number) => unstable_cache(
+  async () => db.select().from(divisions).where(eq(divisions.seasonId, seasonId)).orderBy(divisions.tier),
+  ["homepage-divisions-list", String(seasonId)],
   { revalidate: 300, tags: ["divisions"] }
-);
+)();
 
-const getCachedRecentResults = unstable_cache(
-  async (seasonId: number, divisionId: number) => getRecentResults(seasonId, divisionId),
-  ["homepage-recent-results"],
+const getCachedRecentResults = (seasonId: number, divisionId: number) => unstable_cache(
+  async () => getRecentResults(seasonId, divisionId),
+  ["homepage-recent-results", String(seasonId), String(divisionId)],
   { revalidate: 60, tags: ["matches", "teams"] }
-);
+)();
 
-const getCachedTopFormStreaks = unstable_cache(
-  async (seasonId: number, divisionId: number) => getTopFormStreaks(seasonId, divisionId),
-  ["homepage-top-form-streaks"],
+const getCachedTopFormStreaks = (seasonId: number, divisionId: number) => unstable_cache(
+  async () => getTopFormStreaks(seasonId, divisionId),
+  ["homepage-top-form-streaks", String(seasonId), String(divisionId)],
   { revalidate: 60, tags: ["matches", "teams"] }
-);
+)();
 
 
 interface PageProps {

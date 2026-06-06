@@ -60,20 +60,20 @@ const getCachedSeasons = unstable_cache(
   { revalidate: 300, tags: ["seasons"] }
 );
 
-const getCachedDivisionsForSeason = unstable_cache(
-  async (seasonId: number) => {
+const getCachedDivisionsForSeason = (seasonId: number) => unstable_cache(
+  async () => {
     return db
       .select()
       .from(divisions)
       .where(eq(divisions.seasonId, seasonId))
       .orderBy(divisions.tier);
   },
-  ["divisions-season-list"],
+  ["divisions-season-list", String(seasonId)],
   { revalidate: 300, tags: ["divisions"] }
-);
+)();
 
-const getCachedMatchesForSeason = unstable_cache(
-  async (seasonId: number) => {
+const getCachedMatchesForSeason = (seasonId: number) => unstable_cache(
+  async () => {
     return db
       .select({
         id: matches.id,
@@ -96,12 +96,12 @@ const getCachedMatchesForSeason = unstable_cache(
       .where(eq(matches.seasonId, seasonId))
       .orderBy(asc(matches.date), asc(matches.id));
   },
-  ["matches-season-list"],
+  ["matches-season-list", String(seasonId)],
   { revalidate: 60, tags: ["matches", "teams"] }
-);
+)();
 
-const getCachedStandingsForSeason = unstable_cache(
-  async (seasonId: number) => {
+const getCachedStandingsForSeason = (seasonId: number) => unstable_cache(
+  async () => {
     // 1. Fetch completed matches in this season
     const completedMatches = await db
       .select({
@@ -121,58 +121,52 @@ const getCachedStandingsForSeason = unstable_cache(
     const registrations = await db
       .select({
         teamId: teamRegistrations.teamId,
-        teamName: teams.name,
-        teamLogo: teams.logoUrl,
         divisionId: teamRegistrations.divisionId,
+        teamName: teams.name,
+        logoUrl: teams.logoUrl,
       })
       .from(teamRegistrations)
       .innerJoin(teams, eq(teamRegistrations.teamId, teams.id))
       .where(eq(teamRegistrations.seasonId, seasonId));
 
-    // Get all divisions in this season
-    const divs = await db
+    const allDivisions = await db
       .select()
       .from(divisions)
-      .where(eq(divisions.seasonId, seasonId))
-      .orderBy(divisions.tier);
+      .where(eq(divisions.seasonId, seasonId));
 
     const standingsMap: Record<number, StandingItem[]> = {};
 
-    for (const div of divs) {
-      const divisionTeams = registrations.filter(r => r.divisionId === div.id);
-      const divMatches = completedMatches.filter(m => m.divisionId === div.id);
+    for (const div of allDivisions) {
+      const divisionTeams = registrations.filter((r) => r.divisionId === div.id);
+      const divisionCompletedMatches = completedMatches.filter((m) => m.divisionId === div.id);
 
-      // Initialize form list for each team
-      const formMap = divisionTeams.reduce((acc, r) => {
-        acc[r.teamId as number] = [];
+      const formMap = divisionTeams.reduce((acc, team) => {
+        acc[team.teamId] = [];
         return acc;
       }, {} as Record<number, ('W' | 'L' | 'D')[]>);
 
-      // Initialize ledger matrix to calculate stats
-      const ledgerMap = divisionTeams.reduce((acc, r) => {
-        acc[r.teamId as number] = {
-          id: r.teamId as number,
-          name: r.teamName,
-          logoUrl: r.teamLogo,
+      const ledgerMap = divisionTeams.reduce((acc, team) => {
+        acc[team.teamId] = {
+          id: team.teamId,
+          name: team.teamName,
+          logoUrl: team.logoUrl,
           homePlayed: 0, homeWins: 0, homeDraws: 0, homeLosses: 0, homeFramesWon: 0, homeFramesLost: 0,
           awayPlayed: 0, awayWins: 0, awayDraws: 0, awayLosses: 0, awayFramesWon: 0, awayFramesLost: 0,
         };
         return acc;
       }, {} as Record<number, TeamLedger>);
 
-      // Loop through match metrics to populate ledger
-      divMatches.forEach((match) => {
+      divisionCompletedMatches.forEach((match) => {
         const home = ledgerMap[match.homeTeamId!];
         const away = ledgerMap[match.awayTeamId!];
 
-        if (!home || !away) return; // Guard against out-of-scope records
+        if (!home || !away) return;
 
         const hScore = Number(match.homeScore || 0);
         const aScore = Number(match.awayScore || 0);
 
         home.homePlayed += 1;
         away.awayPlayed += 1;
-
         home.homeFramesWon += hScore;
         home.homeFramesLost += aScore;
         away.awayFramesWon += aScore;
@@ -203,7 +197,6 @@ const getCachedStandingsForSeason = unstable_cache(
         }
       });
 
-      // Map to clean response nodes & sort
       const calculatedStandings = Object.values(ledgerMap).map((t: TeamLedger) => {
         const overallPlayed = t.homePlayed + t.awayPlayed;
         const overallWins = t.homeWins + t.awayWins;
@@ -256,9 +249,9 @@ const getCachedStandingsForSeason = unstable_cache(
 
     return standingsMap;
   },
-  ["standings-season-map"],
+  ["standings-season-map", String(seasonId)],
   { revalidate: 60, tags: ["standings", "matches", "teams"] }
-);
+)();
 
 export default async function MatchHubPage({ searchParams }: PageProps) {
   const params = await searchParams;

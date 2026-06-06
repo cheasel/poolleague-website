@@ -31,11 +31,11 @@ const getCachedDivisions = unstable_cache(
   { revalidate: 300, tags: ["divisions"] }
 );
 
-const getCachedTeamStatsData = unstable_cache(
-  async (
-    selectedSeasonId: number | null,
-    selectedDivisionId: number | null
-  ) => {
+const getCachedTeamStatsData = (
+  selectedSeasonId: number | null,
+  selectedDivisionId: number | null
+) => unstable_cache(
+  async () => {
     const completedMatches = await db
       .select({
         id: matches.id,
@@ -88,9 +88,9 @@ const getCachedTeamStatsData = unstable_cache(
       gamesPlayed
     );
   },
-  ["teams-stats-data"],
+  ["teams-stats-data", String(selectedSeasonId), String(selectedDivisionId)],
   { revalidate: 60, tags: ["teams", "matches"] }
-);
+)();
 
 export default async function PublicTeamsPage({ searchParams }: PageProps) {
   const params = await searchParams;

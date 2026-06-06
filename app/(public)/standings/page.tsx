@@ -14,8 +14,8 @@ interface TeamLedger {
 }
 
 
-const getCachedMatchesForStandings = unstable_cache(
-  async (seasonId: number | null, divisionId: number | null) => {
+const getCachedMatchesForStandings = (seasonId: number | null, divisionId: number | null) => unstable_cache(
+  async () => {
     const conditions = [];
     if (seasonId) {
       conditions.push(eq(matches.seasonId, seasonId));
@@ -43,9 +43,9 @@ const getCachedMatchesForStandings = unstable_cache(
       .where(conditions.length > 0 ? and(...conditions) : undefined)
       .orderBy(asc(matches.weekNumber), asc(matches.date));
   },
-  ["standings-matches-list"],
+  ["standings-matches-list", String(seasonId), String(divisionId)],
   { revalidate: 60, tags: ["matches", "teams"] }
-);
+)();
 
 
 export const revalidate = 60;
@@ -66,8 +66,8 @@ const getCachedDivisions = unstable_cache(
   { revalidate: 300, tags: ["divisions"] }
 );
 
-const getCachedStandingsData = unstable_cache(
-  async (seasonId: number | null, divisionId: number | null) => {
+const getCachedStandingsData = (seasonId: number | null, divisionId: number | null) => unstable_cache(
+  async () => {
     // 2. Build target conditions
     const conditions = [eq(matches.status, "completed")];
     if (seasonId) conditions.push(eq(matches.seasonId, seasonId));
@@ -228,9 +228,9 @@ const getCachedStandingsData = unstable_cache(
 
     return calculatedStandings;
   },
-  ["standings-data"],
+  ["standings-data", String(seasonId), String(divisionId)],
   { revalidate: 60, tags: ["standings"] }
-);
+)();
 
 interface PageProps {
   searchParams: Promise<{

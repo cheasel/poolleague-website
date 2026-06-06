@@ -87,11 +87,11 @@ async function getTitleRaceStandings(divisionId: number, seasonId: number) {
     .sort((a, b) => b.points - a.points);
 }
 
-const getCachedTitleRaceStandings = unstable_cache(
-  async (divisionId: number, seasonId: number) => getTitleRaceStandings(divisionId, seasonId),
-  ["title-race-standings"],
+const getCachedTitleRaceStandings = (divisionId: number, seasonId: number) => unstable_cache(
+  async () => getTitleRaceStandings(divisionId, seasonId),
+  ["title-race-standings", String(divisionId), String(seasonId)],
   { revalidate: 60, tags: ["matches", "teams"] }
-);
+)();
 
 
 export default async function TitleRace({ divisionId, seasonId }: TitleRaceProps) {
