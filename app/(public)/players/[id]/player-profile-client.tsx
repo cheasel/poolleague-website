@@ -36,6 +36,138 @@ interface PlayerProfileClientProps {
   memberships?: { seasonId: number | null; teamName: string | null }[];
 }
 
+function CareerChart({ data }: { data: any[] }) {
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+
+  const sortedData = useMemo(() => {
+    return [...data].sort((a, b) => a.seasonName.localeCompare(b.seasonName));
+  }, [data]);
+
+  if (sortedData.length === 0) return null;
+
+  const width = 600;
+  const height = 180;
+  const padding = 35;
+
+  const points = sortedData.map((s, idx) => {
+    const totalWins = s.singlesWins + s.doublesWins;
+    const total = totalWins + s.singlesLosses + s.doublesLosses;
+    const winRate = total > 0 ? (totalWins / total) * 100 : 0;
+
+    const x = sortedData.length === 1
+      ? width / 2
+      : padding + (idx / (sortedData.length - 1)) * (width - padding * 2);
+    const y = height - padding - (winRate / 100) * (height - padding * 2);
+    return { x, y, winRate, seasonName: s.seasonName, total };
+  });
+
+  const linePath = sortedData.length > 1
+    ? points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ')
+    : '';
+  const areaPath = sortedData.length > 1 && points.length > 0
+    ? `${linePath} L ${points[points.length - 1].x} ${height - padding} L ${points[0].x} ${height - padding} Z`
+    : '';
+
+  return (
+    <div className="bg-slate-900/40 border border-slate-900 rounded-[2rem] p-6 shadow-xl relative overflow-hidden">
+      <div className="absolute top-0 right-0 w-64 h-full bg-indigo-600/5 blur-[80px] rounded-full pointer-events-none"></div>
+      
+      <div className="relative">
+        <svg viewBox={`0 0 ${width} ${height}`} className="w-full overflow-visible">
+          <defs>
+            <linearGradient id="chartGlow" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#6366f1" stopOpacity="0.2" />
+              <stop offset="100%" stopColor="#6366f1" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+
+          {[0, 25, 50, 75, 100].map((val) => {
+            const y = height - padding - (val / 100) * (height - padding * 2);
+            return (
+              <g key={val} className="opacity-80">
+                <line 
+                  x1={padding} 
+                  y1={y} 
+                  x2={width - padding} 
+                  y2={y} 
+                  className="stroke-slate-800/40" 
+                  strokeWidth="1" 
+                  strokeDasharray="4 4" 
+                />
+                <text 
+                  x={padding - 10} 
+                  y={y + 3} 
+                  className="fill-slate-600 font-mono text-[8px] font-bold" 
+                  textAnchor="end"
+                >
+                  {val}%
+                </text>
+              </g>
+            );
+          })}
+
+          {areaPath && (
+            <path d={areaPath} fill="url(#chartGlow)" />
+          )}
+
+          {linePath && (
+            <path 
+              d={linePath} 
+              fill="none" 
+              stroke="#6366f1" 
+              strokeWidth="2.5" 
+              strokeLinecap="round" 
+              strokeLinejoin="round" 
+              className="drop-shadow-[0_2px_8px_rgba(99,102,241,0.4)]"
+            />
+          )}
+
+          {points.map((p, idx) => (
+            <g key={idx}>
+              <circle
+                cx={p.x}
+                cy={p.y}
+                r="16"
+                className="fill-transparent cursor-pointer"
+                onMouseEnter={() => setHoveredIdx(idx)}
+                onMouseLeave={() => setHoveredIdx(null)}
+              />
+              <circle
+                cx={p.x}
+                cy={p.y}
+                r={hoveredIdx === idx ? 6 : 3.5}
+                className="fill-indigo-400 stroke-slate-950 stroke-2 pointer-events-none transition-all duration-150"
+              />
+              <text 
+                x={p.x} 
+                y={height - 10} 
+                className="fill-slate-500 text-[8px] font-black uppercase tracking-wider" 
+                textAnchor="middle"
+              >
+                {p.seasonName}
+              </text>
+            </g>
+          ))}
+        </svg>
+
+        {hoveredIdx !== null && (
+          <div className="absolute top-2 right-4 bg-slate-950/90 backdrop-blur border border-slate-800 rounded-xl px-3.5 py-2 text-xs shadow-2xl transition-all pointer-events-none duration-150 animate-in fade-in zoom-in-95">
+            <div className="font-black text-indigo-400 uppercase tracking-widest text-[8px]">
+              {points[hoveredIdx].seasonName}
+            </div>
+            <div className="font-black text-slate-100 mt-0.5 text-[11px] tabular-nums">
+              {points[hoveredIdx].winRate.toFixed(1)}% Win Rate
+            </div>
+            <div className="text-[8px] text-slate-500 font-bold uppercase tracking-wider mt-0.5">
+              {points[hoveredIdx].total} Frames Played
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function PlayerProfileClient({ 
   playerId, 
   playerName, 
@@ -47,6 +179,7 @@ export default function PlayerProfileClient({
 }: PlayerProfileClientProps) {
   
   const [selectedSeasonId, setSelectedSeasonId] = useState<number | string>(seasons[0]?.id || "all");
+  const [showAllHistory, setShowAllHistory] = useState<boolean>(false);
 
   const filteredGames = useMemo(() => {
     if (selectedSeasonId === "all") return games;
@@ -188,6 +321,11 @@ export default function PlayerProfileClient({
     return Object.values(statsBySeason).sort((a, b) => b.seasonName.localeCompare(a.seasonName));
   }, [games, memberships, seasons, playerId, selectedSeasonId]);
 
+  const displayedSeasonStats = useMemo(() => {
+    if (showAllHistory) return seasonStats;
+    return seasonStats.slice(0, 5);
+  }, [seasonStats, showAllHistory]);
+
   return (
     <div className="space-y-8">
       {/* Jumbotron Hero Card Container */}
@@ -234,6 +372,38 @@ export default function PlayerProfileClient({
         </div>
       </div>
 
+      {/* Career Trend Chart & History Limit Toggles */}
+      {selectedSeasonId === "all" && seasonStats.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-sm font-black uppercase tracking-tight text-slate-200 italic">Career Win Rate Trend</h3>
+              <p className="text-[10px] text-slate-500 uppercase tracking-widest mt-0.5">Frame win percentage overview over seasons</p>
+            </div>
+            
+            {/* History Limit Switch Tab Controls */}
+            {seasonStats.length > 5 && (
+              <div className="flex bg-slate-950 border border-slate-900 rounded-2xl p-1 self-start sm:self-center">
+                <button
+                  onClick={() => setShowAllHistory(false)}
+                  className={`text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all duration-150 ${!showAllHistory ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+                >
+                  Last 5 Seasons
+                </button>
+                <button
+                  onClick={() => setShowAllHistory(true)}
+                  className={`text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all duration-150 ${showAllHistory ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-300'}`}
+                >
+                  All History ({seasonStats.length})
+                </button>
+              </div>
+            )}
+          </div>
+          
+          <CareerChart data={displayedSeasonStats} />
+        </div>
+      )}
+
       {/* Cards Matrix Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-slate-900/40 p-6 rounded-[2rem] border border-slate-900 shadow-xl flex justify-between items-center">
@@ -279,7 +449,7 @@ export default function PlayerProfileClient({
 
         <div className="divide-y divide-slate-800/60">
           {selectedSeasonId === "all" ? (
-            seasonStats.map((s) => {
+            displayedSeasonStats.map((s) => {
               const totalWins = s.singlesWins + s.doublesWins;
               const totalPlayed = totalWins + s.singlesLosses + s.doublesLosses;
               const winPct = totalPlayed > 0 ? ((totalWins / totalPlayed) * 100).toFixed(1) : "0.0";
