@@ -28,19 +28,20 @@ export default async function MatchScheduleGeneratorPage({ searchParams }: Gener
   const clashingAway = params.away ? decodeURIComponent(params.away) : "";
   const selectedDivId = params.divisionId || "";
 
-  // 1. Fetch seasons and divisions so the admin can choose which season and league tier bracket to schedule
-  const allSeasons = await db.select().from(seasons).orderBy(desc(seasons.startDate));
-
-  const allDivisionsRaw = await db
-    .select({
-      id: divisions.id,
-      name: divisions.name,
-      seasonId: divisions.seasonId,
-      seasonStartDate: seasons.startDate,
-    })
-    .from(divisions)
-    .leftJoin(seasons, eq(divisions.seasonId, seasons.id))
-    .orderBy(asc(divisions.tier));
+  // 1. Fetch seasons and divisions concurrently to optimize setup loading times
+  const [allSeasons, allDivisionsRaw] = await Promise.all([
+    db.select().from(seasons).orderBy(desc(seasons.startDate)),
+    db
+      .select({
+        id: divisions.id,
+        name: divisions.name,
+        seasonId: divisions.seasonId,
+        seasonStartDate: seasons.startDate,
+      })
+      .from(divisions)
+      .leftJoin(seasons, eq(divisions.seasonId, seasons.id))
+      .orderBy(asc(divisions.tier))
+  ]);
 
   const formatLocalDate = (dateObj: Date | null) => {
     if (!dateObj) return "";

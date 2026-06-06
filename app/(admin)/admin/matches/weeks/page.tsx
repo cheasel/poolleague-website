@@ -26,9 +26,11 @@ interface WeekItem {
 export default async function MatchweeksPage({ searchParams }: WeeksPageProps) {
   const params = await searchParams;
 
-  // 1. Fetch seasons & divisions sequentially to avoid connection pooling deadlocks
-  const allSeasons = await db.select().from(seasons).orderBy(desc(seasons.startDate));
-  const allDivisions = await db.select().from(divisions).orderBy(asc(divisions.name));
+  // 1. Fetch seasons & divisions concurrently to optimize setup loading times
+  const [allSeasons, allDivisions] = await Promise.all([
+    db.select().from(seasons).orderBy(desc(seasons.startDate)),
+    db.select().from(divisions).orderBy(asc(divisions.name))
+  ]);
 
   const latestSeasonId = allSeasons[0]?.id.toString() || "";
   const seasonIdParam = params.seasonId && params.seasonId !== "all" ? params.seasonId : latestSeasonId;

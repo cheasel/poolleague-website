@@ -20,18 +20,20 @@ export default async function AdminMatchesPage({ searchParams }: PageProps) {
   const sortParam = params.sort === "asc" ? "asc" : "desc";
   const sortOrder = sortParam === "asc" ? asc(matches.date) : desc(matches.date);
 
-  // Fetch reference metadata from DB sequentially to prevent connection pooling deadlocks
-  const allSeasons = await db.select().from(seasons).orderBy(desc(seasons.startDate));
-  const allDivisions = await db.select().from(divisions).orderBy(asc(divisions.name));
-  const rawTeams = await db
-    .select({
-      id: teams.id,
-      name: teams.name,
-      divisionId: teamRegistrations.divisionId,
-      homeVenueId: teams.homeVenueId,
-    })
-    .from(teamRegistrations)
-    .innerJoin(teams, eq(teamRegistrations.teamId, teams.id));
+  // Fetch reference metadata from DB concurrently to optimize dashboard loading times
+  const [allSeasons, allDivisions, rawTeams] = await Promise.all([
+    db.select().from(seasons).orderBy(desc(seasons.startDate)),
+    db.select().from(divisions).orderBy(asc(divisions.name)),
+    db
+      .select({
+        id: teams.id,
+        name: teams.name,
+        divisionId: teamRegistrations.divisionId,
+        homeVenueId: teams.homeVenueId,
+      })
+      .from(teamRegistrations)
+      .innerJoin(teams, eq(teamRegistrations.teamId, teams.id))
+  ]);
 
   // Determine active filtering parameters (URL-driven)
   const latestSeasonId = allSeasons[0]?.id?.toString() || "all";
