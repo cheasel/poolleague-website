@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Calendar, Filter, Save, Undo, AlertTriangle, AlertCircle, ArrowLeft, Sliders, GripVertical } from "lucide-react";
+import { Filter, Save, Undo, AlertTriangle, AlertCircle, ArrowLeft, Sliders, GripVertical } from "lucide-react";
 import Link from "next/link";
 
 interface SeasonRow {
@@ -172,8 +172,9 @@ export default function MatchweekManagerForm({
         }));
         await saveAction(Number(selectedDivisionId), adjustments);
         setSaveSuccess(true);
-      } catch (err: any) {
-        alert(err.message || "Failed to save matchweek adjustments.");
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        alert(message);
       }
     });
   };

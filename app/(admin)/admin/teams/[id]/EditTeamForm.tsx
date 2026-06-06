@@ -18,7 +18,7 @@ interface EditTeamFormProps {
     logoUrl: string | null;
   };
   venuesList: VenueOption[];
-  updateTeamAction: (prevState: any, formData: FormData) => Promise<{ error?: string; success?: boolean }>;
+  updateTeamAction: (prevState: { error?: string; success?: boolean } | null, formData: FormData) => Promise<{ error?: string; success?: boolean }>;
 }
 
 export default function EditTeamForm({ team, venuesList, updateTeamAction }: EditTeamFormProps) {

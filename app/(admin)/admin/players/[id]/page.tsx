@@ -55,7 +55,7 @@ export default async function EditPlayerPage({ params }: PageProps) {
   };
 
   // --- SERVER ACTION: PROCESS UPDATE, CLEAN OLD IMAGE, AND UPLOAD ---
-  async function updatePlayer(prevState: any, formData: FormData) {
+  async function updatePlayer(prevState: { error?: string; success?: boolean } | null, formData: FormData) {
     "use server";
 
     const targetPlayerId = Number(formData.get("playerId"));
@@ -74,7 +74,7 @@ export default async function EditPlayerPage({ params }: PageProps) {
     try {
       // 🔍 STEP A: SUPABASE NODE CONNECTION TESTS
       console.log("\n--- Checking Supabase Node Connection ---");
-      const { data: buckets, error: testError } = await supabaseAdmin.storage.listBuckets();
+      const { error: testError } = await supabaseAdmin.storage.listBuckets();
       
       if (testError) {
         console.error("❌ Supabase connection failed:", testError.message);
@@ -146,7 +146,7 @@ export default async function EditPlayerPage({ params }: PageProps) {
 
         console.log(`🚀 Executing fresh upload to path: "${filePath}"`);
 
-        const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+        const { error: uploadError } = await supabaseAdmin.storage
           .from(bucketName)
           .upload(filePath, fileBuffer, {
             contentType: playerImageFile.type,

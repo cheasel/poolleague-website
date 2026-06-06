@@ -7,7 +7,10 @@ import { eq, sql } from "drizzle-orm";
  * @param seasonId The ID of the season to update
  * @param tx Optional Drizzle transaction client
  */
-export async function updateSeasonEndDate(seasonId: number, tx?: any) {
+export async function updateSeasonEndDate(
+  seasonId: number,
+  tx?: Parameters<Parameters<typeof db.transaction>[0]>[0]
+) {
   const client = tx || db;
 
   // 1. Fetch the maximum match date for this season

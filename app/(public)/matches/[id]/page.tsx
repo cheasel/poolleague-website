@@ -1,10 +1,9 @@
 import { db } from "@/src/db";
 import { matches, teams, matchGames, divisions, seasons, players, teamRegistrations } from "@/src/db/schema";
-import { eq, asc, desc, sql, inArray, and } from "drizzle-orm";
-import { alias } from "drizzle-orm/pg-core";
+import { eq, asc, inArray, and } from "drizzle-orm";
 import Link from "next/link";
 import { unstable_cache } from "next/cache";
-import { Calendar, Trophy, Layers, Shield, ArrowLeft, User, HelpCircle } from "lucide-react";
+import { Calendar, Trophy, Layers, Shield, ArrowLeft, User } from "lucide-react";
 
 export const revalidate = 60;
 
@@ -16,7 +15,6 @@ interface PageProps {
 
 const getCachedMatchPageData = unstable_cache(
   async (matchId: number) => {
-    const homeTeams = alias(teams, "homeTeams");
 
     // 1. Fetch complete Match Details with Season and Division hierarchy data
     const [matchData] = await db

@@ -167,6 +167,16 @@ const RackRow = memo(function RackRow({
   );
 });
 
+interface GameRecord {
+  gameType: string | null;
+  player1Id: number | null;
+  player1PartnerId: number | null;
+  player2Id: number | null;
+  player2PartnerId: number | null;
+  player1Score: number | null;
+  player2Score: number | null;
+}
+
 export default function RackEntrySystem({ 
   homePlayers, 
   awayPlayers, 
@@ -178,14 +188,14 @@ export default function RackEntrySystem({
   homePlayers: Player[];
   awayPlayers: Player[];
   onSave: (formData: FormData) => Promise<void>;
-  initialGames?: any[];
+  initialGames?: GameRecord[];
   initialHomeScore?: number;
   initialAwayScore?: number;
 }) {
   // Initialize state using the database frames
   const [racks, setRacks] = useState<Rack[]>(() => {
     if (initialGames.length > 0) {
-      return initialGames.map((g: any) => ({
+      return initialGames.map((g: GameRecord) => ({
         type: g.gameType || (g.player1PartnerId || g.player2PartnerId ? 'double' : 'single'),
         homePlayer1Id: String(g.player1Id || ''),
         homePlayer2Id: String(g.player1PartnerId || ''),
@@ -259,7 +269,7 @@ export default function RackEntrySystem({
   const hasScoreMismatch = repHome !== null && repAway !== null && (calcHomeWins !== repHome || calcAwayWins !== repAway);
 
   // Wrap the submit action in React 19's useActionState to manage isPending/loading states
-  const [state, formAction, isPending] = useActionState(async (prevState: any, formData: FormData) => {
+  const [, formAction, isPending] = useActionState(async (prevState: unknown, formData: FormData) => {
     await onSave(formData);
     return null;
   }, null);

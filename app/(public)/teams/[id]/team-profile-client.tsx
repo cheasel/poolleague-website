@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { Users, CalendarDays, ArrowUpRight, User, BarChart4, Trophy } from "lucide-react";
+import { Users, CalendarDays, ArrowUpRight, User, BarChart4 } from "lucide-react";
 import Image from "next/image";
 
 interface RosterPlayer {
@@ -28,7 +28,7 @@ interface PlayerStats {
   matchPlayPercentage: string;
 }
 
-interface MatchLog {
+export interface MatchLog {
   id: number;
   matchDate: Date | string | null;
   status: "scheduled" | "live" | "completed" | "cancelled" | string;

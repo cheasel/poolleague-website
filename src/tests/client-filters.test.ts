@@ -1,9 +1,30 @@
 import { test, describe } from "node:test";
 import assert from "node:assert";
 
+interface TestPlayer {
+  id: number;
+  name: string;
+  teamId: number | null;
+}
+
+interface TestVenue {
+  id: number;
+  name: string;
+  address: string | null;
+}
+
+interface TestMatch {
+  id: number;
+  status: string;
+  seasonId: number;
+  divisionId: number;
+  homeTeam: { name: string } | null;
+  awayTeam: { name: string } | null;
+}
+
 // Pure replication of client-side filtering logic to assert algorithmic correctness
 function filterPlayers(
-  players: any[],
+  players: TestPlayer[],
   searchQuery: string,
   teamFilter: string
 ) {
@@ -17,7 +38,7 @@ function filterPlayers(
   });
 }
 
-function filterVenues(venues: any[], searchQuery: string) {
+function filterVenues(venues: TestVenue[], searchQuery: string) {
   return venues.filter((v) => {
     const nameMatch = v.name.toLowerCase().includes(searchQuery.toLowerCase());
     const addressMatch = (v.address || "").toLowerCase().includes(searchQuery.toLowerCase());
@@ -26,7 +47,7 @@ function filterVenues(venues: any[], searchQuery: string) {
 }
 
 function filterMatches(
-  matches: any[],
+  matches: TestMatch[],
   searchQuery: string,
   activeTab: 'fixtures' | 'results',
   selectedSeasonId: string,

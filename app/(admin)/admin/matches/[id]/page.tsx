@@ -3,7 +3,7 @@ import { matches, teams, divisions } from "@/src/db/schema";
 import { eq, asc, and, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import Link from "next/link";
-import { Calendar, Shield, Trophy, Edit, Save, AlertTriangle } from "lucide-react";
+import { Calendar, Trophy, Edit, Save, AlertTriangle } from "lucide-react";
 import { revalidatePath } from "next/cache";
 import BackButton from "./BackButton";
 import { updateSeasonEndDate } from "@/src/utils/season-utils";
@@ -158,7 +158,7 @@ export default async function AdminMatchDetailPage({ params }: PageProps) {
             <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
             <div className="text-xs">
               <span className="font-black uppercase tracking-wider block mb-0.5">⚠️ Venue Conflict Warning</span>
-              Another scheduled match is booked at this team's home venue on the same date.
+              Another scheduled match is booked at this team&apos;s home venue on the same date.
             </div>
           </div>
         )}

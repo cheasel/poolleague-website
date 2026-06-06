@@ -53,6 +53,40 @@ export interface RosterGame {
   player2Score: number | null;
 }
 
+interface TeamAccumulator {
+  id: number;
+  name: string;
+  logoUrl: string | null;
+  singlePlay: number;
+  singleWin: number;
+  singleLost: number;
+  doublePlay: number;
+  doubleWin: number;
+  doubleLost: number;
+}
+
+interface PlayerAccumulator {
+  id: number;
+  name: string;
+  imageUrl: string | null;
+  teamName: string;
+  matchPlayCount: number;
+  matchPlayGames: Set<number>;
+  framePlay: number;
+  singlePlay: number;
+  singleWin: number;
+  singleLost: number;
+  singlePct: string;
+  doublePlay: number;
+  doubleWin: number;
+  doubleLost: number;
+  doublePct: string;
+  totalPlay: number;
+  totalWin: number;
+  totalLost: number;
+  totalPct: string;
+}
+
 /**
  * Calculates statistics for all teams inside a division scope.
  */
@@ -74,7 +108,7 @@ export function calculateTeamStats(
       doubleLost: 0,
     };
     return acc;
-  }, {} as Record<number, any>);
+  }, {} as Record<number, TeamAccumulator>);
 
   if (completedMatches.length > 0 && gamesPlayed.length > 0) {
     const matchTeamMap = new Map<number, { homeTeamId: number | null; awayTeamId: number | null }>();
@@ -120,7 +154,7 @@ export function calculateTeamStats(
     });
   }
 
-  return Object.values(statsMap).map((t: any) => {
+  return Object.values(statsMap).map((t: TeamAccumulator) => {
     const totalPlay = t.singlePlay + t.doublePlay;
     const totalWin = t.singleWin + t.doubleWin;
     const totalLost = t.singleLost + t.doubleLost;
@@ -179,7 +213,7 @@ export function calculatePlayerStats(
       totalPct: "0.0",
     };
     return acc;
-  }, {} as Record<number, any>);
+  }, {} as Record<number, PlayerAccumulator>);
 
   if (completedMatchIds.length > 0 && gamesPlayed.length > 0) {
     const completedSet = new Set(completedMatchIds);
@@ -228,7 +262,7 @@ export function calculatePlayerStats(
     });
   }
 
-  return Object.values(statsMap).map((p: any) => {
+  return Object.values(statsMap).map((p: PlayerAccumulator) => {
     const totalPlay = p.singlePlay + p.doublePlay;
     const totalWin = p.singleWin + p.doubleWin;
     const totalLost = p.singleLost + p.doubleLost;

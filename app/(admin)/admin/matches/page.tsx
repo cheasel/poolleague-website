@@ -1,8 +1,8 @@
 import { db } from "@/src/db";
-import { matches, teams, matchGames, players, seasons, divisions, teamMemberships, teamRegistrations } from "@/src/db/schema";
-import { eq, asc, desc, sql, inArray, and } from "drizzle-orm";
+import { matches, teams, seasons, divisions, teamRegistrations } from "@/src/db/schema";
+import { eq, asc, desc, inArray, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import MatchDashboard from "./MatchDashboard";
+import MatchDashboard, { MatchWithRelations } from "./MatchDashboard";
 import { updateSeasonEndDate } from "@/src/utils/season-utils";
 
 export const dynamic = "force-dynamic";
@@ -191,7 +191,7 @@ export default async function AdminMatchesPage({ searchParams }: PageProps) {
   return (
     <MatchDashboard
       sortParam={sortParam}
-      allMatches={allMatches as any}
+      allMatches={allMatches as unknown as MatchWithRelations[]}
       rawTeams={rawTeams}
       addMatchAction={addMatchAction}
       clearDivisionScheduleAction={clearDivisionScheduleAction}

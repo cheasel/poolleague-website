@@ -32,6 +32,21 @@ interface ActivityItem {
   timestamp: Date | null;
 }
 
+interface CountsRow {
+  seasons_count: number;
+  divisions_count: number;
+  teams_count: number;
+  players_count: number;
+  scheduled_matches_count: number;
+}
+
+interface HealthRow {
+  unassigned_players: number;
+  unassigned_teams: number;
+  teams_without_players: number;
+  double_booked: number;
+}
+
 export default async function AdminDashboardPage() {
   // Ensure database state is synchronized
   await syncMemberships();
@@ -164,7 +179,7 @@ export default async function AdminDashboardPage() {
       .limit(3)
   ]);
 
-  const countsRow = (countsResult[0] || {}) as Record<string, any>;
+  const countsRow = (countsResult[0] || {}) as unknown as CountsRow;
   const seasonCount = { count: Number(countsRow.seasons_count || 0) };
   const divisionCount = { count: Number(countsRow.divisions_count || 0) };
   const teamCount = { count: Number(countsRow.teams_count || 0) };
@@ -177,7 +192,7 @@ export default async function AdminDashboardPage() {
   let doubleBookedVenuesCount = 0;
 
   if (currentSeason && healthChecksResult.length > 0) {
-    const healthRow = (healthChecksResult[0] || {}) as Record<string, any>;
+    const healthRow = (healthChecksResult[0] || {}) as unknown as HealthRow;
     unassignedPlayers = { count: Number(healthRow.unassigned_players || 0) };
     unassignedTeams = { count: Number(healthRow.unassigned_teams || 0) };
     teamsWithoutPlayers = { count: Number(healthRow.teams_without_players || 0) };

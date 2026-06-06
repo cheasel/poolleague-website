@@ -3,7 +3,6 @@ import { players, teams, seasons, teamMemberships, teamRegistrations, matchGames
 import { eq, asc, and, desc, sql, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { revalidatePath } from "next/cache";
-import { Plus } from "lucide-react";
 import PlayersList from "./players-list";
 import AddPlayerForm from "./add-player-form";
 import { syncMemberships } from "@/src/utils/sync-memberships";

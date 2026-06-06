@@ -9,12 +9,7 @@ import {
   CalendarDays, 
   ChevronLeft, 
   ChevronRight, 
-  ArrowRight,
-  Sparkles,
-  Zap,
-  Activity,
-  History,
-  LayoutList
+  Activity
 } from "lucide-react";
 
 interface MatchRow {
@@ -214,7 +209,6 @@ export default function MatchHubClient({
     router.push(`${pathname}?${params.toString()}`);
   };
 
-  const activeSeasonName = seasons.find(s => s.id === selectedSeasonId)?.name || "Season";
 
   const renderByeTeams = (divisionId: number, divisionMatches: MatchRow[]) => {
     const allTeams = standingsMap[divisionId] || [];

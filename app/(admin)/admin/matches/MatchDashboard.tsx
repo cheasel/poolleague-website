@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition, useEffect } from 'react';
-import { Calendar, CheckSquare, Plus, Search, Eye, MapPin, Shield, Filter, AlertTriangle } from 'lucide-react';
+import { Calendar, CheckSquare, Plus, Search, Eye, MapPin, Filter, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -30,7 +30,7 @@ interface TeamWithVenue {
   venue: VenueRow | null;
 }
 
-interface MatchWithRelations {
+export interface MatchWithRelations {
   id: number;
   date: Date | null;
   status: string | null;
@@ -173,8 +173,9 @@ export default function MatchDashboard({
     startTransition(async () => {
       try {
         await clearDivisionScheduleAction(Number(selectedDivisionId));
-      } catch (err: any) {
-        alert(err.message || "Failed to clear schedule");
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        alert(message);
       }
     });
   };

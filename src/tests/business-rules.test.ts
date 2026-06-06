@@ -66,7 +66,7 @@ describe("Venue Roster Capacity Business Rule", () => {
         rolledBack = true;
         tx.rollback();
       });
-    } catch (err: any) {
+    } catch (err) {
       // Drizzle ORM throws a specific rollback exception when tx.rollback() is called.
       // We swallow it if it is the rollback we triggered.
       if (!rolledBack) {

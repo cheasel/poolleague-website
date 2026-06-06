@@ -211,7 +211,7 @@ export default function AddMatchForm({ teams, seasons, divisions, action }: Prop
         </div>
 
         <div className="space-y-4.5">
-          {matchups.map((row, index) => {
+          {matchups.map((row) => {
             // Rule 1: A team cannot play itself. 
             // We filter out the selected Home team from the Away team options (and vice-versa)
             const homeOptions = filteredTeams.filter(t => t.id.toString() !== row.awayTeamId);

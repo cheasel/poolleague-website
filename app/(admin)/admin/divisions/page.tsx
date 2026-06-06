@@ -1,5 +1,5 @@
 import { db } from "@/src/db";
-import { divisions, teams, seasons, teamRegistrations } from "@/src/db/schema";
+import { divisions, seasons, teamRegistrations } from "@/src/db/schema";
 import { eq, asc, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { Plus, FolderTree } from "lucide-react";
@@ -131,7 +131,7 @@ export default async function AdminDivisionsPage({ searchParams }: PageProps) {
         
         {/* LEFT COLUMN: ACTIVE DIVISIONS LIST */}
         <DivisionsList 
-          initialDivisions={allDivisions as any} 
+          initialDivisions={allDivisions} 
           deleteDivisionAction={deleteDivisionAction} 
         />
 

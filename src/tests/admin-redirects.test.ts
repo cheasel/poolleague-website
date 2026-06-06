@@ -1,6 +1,6 @@
 import { test, describe, before, after } from "node:test";
 import assert from "node:assert";
-import { spawn, execSync } from "child_process";
+import { spawn, execSync, ChildProcess } from "child_process";
 import http from "http";
 
 // Wait utility
@@ -28,7 +28,7 @@ async function fetchHeaders(url: string): Promise<{ status: number; location: st
 }
 
 describe("Admin Route Protection Middleware", () => {
-  let serverProcess: any;
+  let serverProcess: ChildProcess | undefined;
   const port = 3002;
   const serverUrl = `http://localhost:${port}`;
 
@@ -38,16 +38,16 @@ describe("Admin Route Protection Middleware", () => {
       shell: true,
       stdio: 'pipe'
     });
-    serverProcess.on('error', (err: any) => {
+    serverProcess.on('error', (err: Error) => {
       console.error(`[Next.js Server Process Error]`, err);
     });
     serverProcess.on('exit', (code: number | null, signal: string | null) => {
       console.log(`[Next.js Server Process Exit] code=${code} signal=${signal}`);
     });
-    serverProcess.stdout.on('data', (data: any) => {
+    serverProcess.stdout?.on('data', (data: Buffer | string) => {
       console.log(`[Next.js Server] ${data.toString().trim()}`);
     });
-    serverProcess.stderr.on('data', (data: any) => {
+    serverProcess.stderr?.on('data', (data: Buffer | string) => {
       console.error(`[Next.js Server ERR] ${data.toString().trim()}`);
     });
     // Wait for server to boot up
@@ -60,7 +60,7 @@ describe("Admin Route Protection Middleware", () => {
       if (process.platform === 'win32') {
         try {
           execSync(`taskkill /pid ${serverProcess.pid} /f /t`, { stdio: 'ignore' });
-        } catch (e) {
+        } catch {
           // Ignore errors if already terminated
         }
       } else {

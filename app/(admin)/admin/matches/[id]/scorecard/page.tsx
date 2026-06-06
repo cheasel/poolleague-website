@@ -1,6 +1,6 @@
 import { db } from "@/src/db";
 import { matches, matchGames, players, teams, teamMemberships } from "@/src/db/schema";
-import { eq, asc, or, and } from "drizzle-orm";
+import { eq, asc, and } from "drizzle-orm";
 import { revalidatePath, revalidateTag } from "next/cache";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";

@@ -50,27 +50,35 @@ function invalidatePublicCaches() {
   tags.forEach(tag => {
     try {
       revalidateTag(tag);
-    } catch (e) {
+    } catch {
       // Ignore errors when called during build/prerender or other environments
     }
   });
 }
 
-function wrapBuilder(builder: any) {
+function wrapBuilder<T extends object>(builder: T): T {
   return new Proxy(builder, {
     get(bTarget, bProp, bReceiver) {
       const bValue = Reflect.get(bTarget, bProp, bReceiver);
       if (bProp === 'then') {
-        return function (onfulfilled?: Function, onrejected?: Function) {
-          return bValue.call(bTarget, (res: any) => {
+        return function (
+          onfulfilled?: ((value: unknown) => unknown) | null,
+          onrejected?: ((reason: unknown) => unknown) | null
+        ) {
+          const thenFn = bValue as (
+            onfulfilled?: ((value: unknown) => unknown) | null,
+            onrejected?: ((reason: unknown) => unknown) | null
+          ) => unknown;
+          return thenFn.call(bTarget, (res: unknown) => {
             invalidatePublicCaches();
             return onfulfilled ? onfulfilled(res) : res;
           }, onrejected);
         };
       }
       if (bProp === 'execute') {
-        return async function (...args: any[]) {
-          const res = await (bValue as Function).apply(bTarget, args);
+        return async function (...args: unknown[]) {
+          const executeFn = bValue as (...args: unknown[]) => Promise<unknown>;
+          const res = await executeFn.apply(bTarget, args);
           invalidatePublicCaches();
           return res;
         };
@@ -89,16 +97,20 @@ export const db = new Proxy(rawDb, {
     const value = Reflect.get(target, prop, receiver);
 
     if (prop === 'insert' || prop === 'update' || prop === 'delete') {
-      return function (...args: any[]) {
-        const builder = (value as Function).apply(target, args);
+      return function (...args: unknown[]) {
+        const mutationFn = value as (...args: unknown[]) => object;
+        const builder = mutationFn.apply(target, args);
         return wrapBuilder(builder);
       };
     }
 
     if (prop === 'transaction') {
-      return async function (transactionCallback: Function, ...args: any[]) {
-        const wrappedCallback = async (tx: any) => {
-          const proxiedTx = new Proxy(tx, {
+      return async function (
+        transactionCallback: (tx: unknown) => Promise<unknown>,
+        ...args: unknown[]
+      ) {
+        const wrappedCallback = async (tx: unknown) => {
+          const proxiedTx = new Proxy(tx as object, {
             get(tTarget, tProp, tReceiver) {
               const tValue = Reflect.get(tTarget, tProp, tReceiver);
               if (typeof tValue === 'function') {
@@ -109,7 +121,11 @@ export const db = new Proxy(rawDb, {
           });
           return transactionCallback(proxiedTx);
         };
-        const res = await (value as Function).call(target, wrappedCallback, ...args);
+        const transactionFn = value as (
+          cb: (tx: unknown) => Promise<unknown>,
+          ...args: unknown[]
+        ) => Promise<unknown>;
+        const res = await transactionFn.call(target, wrappedCallback, ...args);
         invalidatePublicCaches();
         return res;
       };

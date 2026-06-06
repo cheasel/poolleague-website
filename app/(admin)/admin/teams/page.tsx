@@ -1,8 +1,8 @@
 import { db } from "@/src/db";
-import { teams, divisions, seasons, venues, players, teamRegistrations, teamMemberships, matches } from "@/src/db/schema";
-import { eq, asc, desc, count, sql, and } from "drizzle-orm";
+import { teams, divisions, seasons, venues, teamRegistrations, teamMemberships, matches } from "@/src/db/schema";
+import { eq, asc, desc, count, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { Trophy, Users, Hash, Plus, Trash2, Pencil, MapPin } from "lucide-react";
+import { Plus, Trash2, MapPin } from "lucide-react";
 import Link from 'next/link';
 import Image from 'next/image';
 import SeasonSelector from "./SeasonSelector";

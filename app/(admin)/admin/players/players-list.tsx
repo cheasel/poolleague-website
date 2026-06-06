@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition, useEffect } from "react";
-import { User, Trash2, Pencil, Shield, Search, Check, Loader2 } from "lucide-react";
+import { Trash2, Pencil, Search, Check, Loader2 } from "lucide-react";
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, usePathname, useSearchParams } from "next/navigation";

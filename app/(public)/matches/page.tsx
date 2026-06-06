@@ -1,5 +1,5 @@
 import { db } from "@/src/db";
-import { matches, teams, seasons, divisions } from "@/src/db/schema";
+import { matches, seasons, divisions } from "@/src/db/schema";
 import { eq, sql, desc, asc, and } from "drizzle-orm";
 import MatchPageClient from "./MatchPageClient";
 import { Suspense } from "react";

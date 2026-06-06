@@ -5,6 +5,15 @@ import StandingsClient from "./StandingsClient";
 import { unstable_cache } from "next/cache";
 import { Suspense } from "react";
 
+interface TeamLedger {
+  id: number;
+  name: string;
+  logoUrl: string | null;
+  homePlayed: number; homeWins: number; homeDraws: number; homeLosses: number; homeFramesWon: number; homeFramesLost: number;
+  awayPlayed: number; awayWins: number; awayDraws: number; awayLosses: number; awayFramesWon: number; awayFramesLost: number;
+}
+
+
 const getCachedMatchesForStandings = unstable_cache(
   async (seasonId: number | null, divisionId: number | null) => {
     const conditions = [];
@@ -115,7 +124,7 @@ const getCachedStandingsData = unstable_cache(
         awayPlayed: 0, awayWins: 0, awayDraws: 0, awayLosses: 0, awayFramesWon: 0, awayFramesLost: 0,
       };
       return acc;
-    }, {} as Record<number, any>);
+    }, {} as Record<number, TeamLedger>);
 
     // Loop through match metrics to populate the ledger
     completedMatches.forEach((match) => {
@@ -165,7 +174,7 @@ const getCachedStandingsData = unstable_cache(
     });
 
     // 6. Map to clean response nodes & compute final standing points
-    const calculatedStandings = Object.values(standingsMap).map((t: any) => {
+    const calculatedStandings = Object.values(standingsMap).map((t: TeamLedger) => {
       // Aggregated Totals
       const overallPlayed = t.homePlayed + t.awayPlayed;
       const overallWins = t.homeWins + t.awayWins;

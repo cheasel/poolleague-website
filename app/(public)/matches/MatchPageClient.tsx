@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { Calendar, Users, Trophy, CalendarDays, ArrowRight, ChevronLeft, ChevronRight, ArrowUpDown } from "lucide-react";
+import { Calendar, Trophy, CalendarDays, ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface MatchRow {
   id: number;

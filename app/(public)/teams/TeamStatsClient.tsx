@@ -70,7 +70,7 @@ export default function TeamStatsClient({
   };
 
   const processedTeams = useMemo(() => {
-    let result = [...initialTeams];
+    const result = [...initialTeams];
 
     result.sort((a, b) => {
       if (sortBy === "totalwin") {

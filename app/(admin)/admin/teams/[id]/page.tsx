@@ -52,7 +52,7 @@ export default async function EditTeamPage({ params }: PageProps) {
   }));
 
   // --- SERVER ACTION: PERSIST TEAM CHANGES & PURGE OLD ASSET ---
-  async function updateTeam(prevState: any, formData: FormData) {
+  async function updateTeam(prevState: { error?: string; success?: boolean } | null, formData: FormData) {
     "use server";
 
     const targetTeamId = Number(formData.get("teamId"));
@@ -113,7 +113,7 @@ export default async function EditTeamPage({ params }: PageProps) {
 
         console.log(`🚀 Uploading new logo to path: "${filePath}"`);
 
-        const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+        const { error: uploadError } = await supabaseAdmin.storage
           .from(bucketName)
           .upload(filePath, fileBuffer, {
             contentType: logoFile.type,

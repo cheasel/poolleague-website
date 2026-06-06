@@ -4,7 +4,7 @@ import { eq, desc, or } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import PlayerProfileClient from "./player-profile-client";
+import PlayerProfileClient, { GameLog } from "./player-profile-client";
 import { unstable_cache } from "next/cache";
 
 export const revalidate = 60;
@@ -153,7 +153,7 @@ export default async function PlayerProfilePage({ params }: PageProps) {
           playerName={player.name}
           imageUrl={player.imageUrl}
           teamName="Unassigned Agent"
-          games={rawGames as any}
+          games={rawGames as unknown as GameLog[]}
           seasons={allSeasons}
           memberships={memberships}
         />

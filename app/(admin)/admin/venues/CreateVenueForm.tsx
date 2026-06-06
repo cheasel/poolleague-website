@@ -5,7 +5,7 @@ import { Plus } from "lucide-react";
 
 interface CreateVenueFormProps {
   // Pass the server action from the server component wrapper
-  createVenueAction: (prevState: any, formData: FormData) => Promise<{ error?: string; success?: boolean }>;
+  createVenueAction: (prevState: { error?: string; success?: boolean } | null, formData: FormData) => Promise<{ error?: string; success?: boolean }>;
 }
 
 export default function CreateVenueForm({ createVenueAction }: CreateVenueFormProps) {

@@ -1,6 +1,6 @@
 import { db } from "@/src/db";
 import { teams, matches, seasons, divisions, matchGames, teamRegistrations } from "@/src/db/schema";
-import { eq, and, desc, sql, inArray } from "drizzle-orm";
+import { eq, and, desc, inArray } from "drizzle-orm";
 import { unstable_cache } from "next/cache";
 import { Suspense } from "react";
 import TeamStatsClient from "./TeamStatsClient";

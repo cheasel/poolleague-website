@@ -1,8 +1,8 @@
 import TitleRace from "@/components/TitleRace";
 import { db } from "@/src/db";
-import { seasons, divisions, matches, teams, matchGames, players } from "@/src/db/schema";
+import { seasons, divisions, matches } from "@/src/db/schema";
 import { desc, eq, and, sql, asc } from "drizzle-orm";
-import { Trophy, CalendarDays, ArrowRight, Zap, Star, Flame, Award, Medal, Crown, TrendingUp, Target, ChevronRight, Sparkles } from "lucide-react";
+import { Trophy, CalendarDays, ArrowRight, Zap, Flame, Crown, TrendingUp, Target } from "lucide-react";
 import Link from "next/link";
 import { unstable_cache } from "next/cache";
 import { Suspense } from "react";

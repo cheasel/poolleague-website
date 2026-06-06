@@ -82,9 +82,10 @@ export default async function EditSeasonPage({ params }: PageProps) {
       revalidatePath("/admin/seasons");
       revalidatePath("/admin");
       return { success: true };
-    } catch (err: any) {
+    } catch (err) {
       console.error("Failed to delete season:", err);
-      return { success: false, error: err.message || "Database execution failed" };
+      const message = err instanceof Error ? err.message : String(err);
+      return { success: false, error: message };
     }
   }
 

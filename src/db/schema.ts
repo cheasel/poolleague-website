@@ -155,7 +155,7 @@ export const venuesRelations = relations(venues, ({ many }) => ({
   teams: many(teams),
 }));
 
-export const playersRelations = relations(players, ({ one, many }) => ({
+export const playersRelations = relations(players, ({ many }) => ({
   memberships: many(teamMemberships),
   matchGamesAsPlayer1: many(matchGames, { relationName: "player1" }),
   matchGamesAsPlayer1Partner: many(matchGames, { relationName: "player1Partner" }),

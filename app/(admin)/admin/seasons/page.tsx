@@ -1,8 +1,8 @@
 import { db } from "@/src/db";
-import { seasons, divisions, teamRegistrations, teamMemberships, matches } from "@/src/db/schema";
+import { seasons, divisions, teamRegistrations } from "@/src/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { History, Plus, Calendar, Trash2, ToggleLeft,Edit2 } from "lucide-react";
+import { History, Plus, Calendar, Edit2 } from "lucide-react";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -97,42 +97,7 @@ export default async function AdminSeasonsPage() {
     revalidatePath("/admin");
   }
 
-  // =========================================================================
-  // SERVER ACTION: TOGGLE ACTIVE STATUS
-  // =========================================================================
-  async function activateSeasonAction(formData: FormData) {
-    "use server";
-    const seasonIdStr = formData.get("seasonId") as string;
-    if (!seasonIdStr) return;
-    const seasonId = Number(seasonIdStr);
 
-    await db.update(seasons).set({ isActive: false });
-    await db.update(seasons).set({ isActive: true }).where(eq(seasons.id, seasonId));
-
-    revalidatePath("/admin/seasons");
-    revalidatePath("/admin");
-  }
-
-  // =========================================================================
-  // SERVER ACTION: DELETE A SEASON
-  // =========================================================================
-  async function deleteSeasonAction(formData: FormData) {
-    "use server";
-    const seasonIdStr = formData.get("seasonId") as string;
-    if (!seasonIdStr) return;
-    const seasonId = Number(seasonIdStr);
-
-    await db.transaction(async (tx) => {
-      await tx.delete(teamMemberships).where(eq(teamMemberships.seasonId, seasonId));
-      await tx.delete(teamRegistrations).where(eq(teamRegistrations.seasonId, seasonId));
-      await tx.delete(matches).where(eq(matches.seasonId, seasonId));
-      await tx.delete(divisions).where(eq(divisions.seasonId, seasonId));
-      await tx.delete(seasons).where(eq(seasons.id, seasonId));
-    });
-
-    revalidatePath("/admin/seasons");
-    revalidatePath("/admin");
-  }
 
   return (
     <div className="space-y-10 max-w-5xl mx-auto text-slate-100">

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { Trophy, Shield, Columns, LayoutList, Home, Plane, Award, History, Calendar, ArrowRight, CalendarDays } from "lucide-react";
+import { Columns, LayoutList, Home, Plane, Award, History, ArrowRight, CalendarDays } from "lucide-react";
 import Image from "next/image";
 
 interface StandingRow {

@@ -3,22 +3,30 @@ import assert from "node:assert";
 
 // Mock implementation of the proxy wrapper logic from src/db/index.ts
 // to test its correctness in isolation from Supabase connection settings.
-function createMockDbProxy(rawDb: any, onInvalidate: () => void) {
-  function wrapBuilder(builder: any) {
+function createMockDbProxy<T extends object>(rawDb: T, onInvalidate: () => void) {
+  function wrapBuilder<B extends object>(builder: B): B {
     return new Proxy(builder, {
       get(bTarget, bProp, bReceiver) {
         const bValue = Reflect.get(bTarget, bProp, bReceiver);
         if (bProp === 'then') {
-          return function (onfulfilled?: Function, onrejected?: Function) {
-            return bValue.call(bTarget, (res: any) => {
+          return function (
+            onfulfilled?: ((value: unknown) => unknown) | null,
+            onrejected?: ((reason: unknown) => unknown) | null
+          ) {
+            const thenFn = bValue as (
+              onfulfilled?: ((value: unknown) => unknown) | null,
+              onrejected?: ((reason: unknown) => unknown) | null
+            ) => unknown;
+            return thenFn.call(bTarget, (res: unknown) => {
               onInvalidate();
               return onfulfilled ? onfulfilled(res) : res;
             }, onrejected);
           };
         }
         if (bProp === 'execute') {
-          return async function (...args: any[]) {
-            const res = await (bValue as Function).apply(bTarget, args);
+          return async function (...args: unknown[]) {
+            const executeFn = bValue as (...args: unknown[]) => Promise<unknown>;
+            const res = await executeFn.apply(bTarget, args);
             onInvalidate();
             return res;
           };
@@ -36,16 +44,20 @@ function createMockDbProxy(rawDb: any, onInvalidate: () => void) {
       const value = Reflect.get(target, prop, receiver);
 
       if (prop === 'insert' || prop === 'update' || prop === 'delete') {
-        return function (...args: any[]) {
-          const builder = (value as Function).apply(target, args);
+        return function (...args: unknown[]) {
+          const mutationFn = value as (...args: unknown[]) => object;
+          const builder = mutationFn.apply(target, args);
           return wrapBuilder(builder);
         };
       }
 
       if (prop === 'transaction') {
-        return async function (transactionCallback: Function, ...args: any[]) {
-          const wrappedCallback = async (tx: any) => {
-            const proxiedTx = new Proxy(tx, {
+        return async function (
+          transactionCallback: (tx: unknown) => Promise<unknown>,
+          ...args: unknown[]
+        ) {
+          const wrappedCallback = async (tx: unknown) => {
+            const proxiedTx = new Proxy(tx as object, {
               get(tTarget, tProp, tReceiver) {
                 const tValue = Reflect.get(tTarget, tProp, tReceiver);
                 if (typeof tValue === 'function') {
@@ -56,7 +68,11 @@ function createMockDbProxy(rawDb: any, onInvalidate: () => void) {
             });
             return transactionCallback(proxiedTx);
           };
-          const res = await (value as Function).call(target, wrappedCallback, ...args);
+          const transactionFn = value as (
+            cb: (tx: unknown) => Promise<unknown>,
+            ...args: unknown[]
+          ) => Promise<unknown>;
+          const res = await transactionFn.call(target, wrappedCallback, ...args);
           onInvalidate();
           return res;
         };
@@ -67,7 +83,7 @@ function createMockDbProxy(rawDb: any, onInvalidate: () => void) {
       }
       return value;
     }
-  });
+  }) as T;
 }
 
 describe("Database Cache Invalidation Proxy Wrapper", () => {
@@ -96,7 +112,7 @@ describe("Database Cache Invalidation Proxy Wrapper", () => {
   test("should intercept update operations and trigger invalidation callback on then (Promise-like)", async () => {
     let invalidateCalledCount = 0;
     const mockBuilder = {
-      then: function(resolve: any) {
+      then: function(resolve: (value: { rowsAffected: number }) => unknown) {
         return resolve({ rowsAffected: 1 });
       }
     };
@@ -111,7 +127,8 @@ describe("Database Cache Invalidation Proxy Wrapper", () => {
     const builder = proxiedDb.update();
     const result = await new Promise((resolve) => {
       // Simulate promise resolving
-      (builder as any).then((res: any) => resolve(res));
+      const thenable = builder as { then: (resolve: (res: unknown) => void) => void };
+      thenable.then((res: unknown) => resolve(res));
     });
 
     assert.deepStrictEqual(result, { rowsAffected: 1 });
@@ -130,7 +147,7 @@ describe("Database Cache Invalidation Proxy Wrapper", () => {
       insert: () => mockTxBuilder,
     };
     const mockRawDb = {
-      transaction: async (callback: Function) => {
+      transaction: async (callback: (tx: typeof mockTx) => Promise<unknown>) => {
         return callback(mockTx);
       }
     };
@@ -139,7 +156,7 @@ describe("Database Cache Invalidation Proxy Wrapper", () => {
       invalidateCalledCount++;
     });
 
-    await proxiedDb.transaction(async (tx: any) => {
+    await proxiedDb.transaction(async (tx: typeof mockTx) => {
       const builder1 = tx.delete();
       await builder1.execute();
       const builder2 = tx.insert();

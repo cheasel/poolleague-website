@@ -160,7 +160,6 @@ export default async function MatchScheduleGeneratorPage({ searchParams }: Gener
     });
 
     const singleLegRounds = roundsCount;
-    const totalRounds = singleLegRounds * 2;
 
     // Helper functions for checking/booking venue slots
     const isVenueBooked = (dateKey: string, venueId: number) => {
@@ -215,20 +214,19 @@ export default async function MatchScheduleGeneratorPage({ searchParams }: Gener
           aIsHome1 = false;
         }
 
-        let homeTeamId1 = aIsHome1 ? teamA.id : teamB.id;
-        let awayTeamId1 = aIsHome1 ? teamB.id : teamA.id;
+        const homeTeamId1 = aIsHome1 ? teamA.id : teamB.id;
+        const awayTeamId1 = aIsHome1 ? teamB.id : teamA.id;
 
         // Leg 2 is the exact reverse of Leg 1 (venue mirrored)
-        let homeTeamId2 = awayTeamId1;
-        let awayTeamId2 = homeTeamId1;
+        const homeTeamId2 = awayTeamId1;
+        const awayTeamId2 = homeTeamId1;
 
         const homeTeamDetails1 = divisionTeams.find((t) => t.id === homeTeamId1);
         const awayTeamDetails1 = divisionTeams.find((t) => t.id === awayTeamId1);
         const homeTeamDetails2 = divisionTeams.find((t) => t.id === homeTeamId2);
-        const awayTeamDetails2 = divisionTeams.find((t) => t.id === awayTeamId2);
 
-        const venueId1 = homeTeamDetails1?.homeVenueId!;
-        const venueId2 = homeTeamDetails2?.homeVenueId!;
+        const venueId1 = homeTeamDetails1!.homeVenueId!;
+        const venueId2 = homeTeamDetails2!.homeVenueId!;
 
         let finalHomeId1 = homeTeamId1;
         let finalAwayId1 = awayTeamId1;

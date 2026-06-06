@@ -4,7 +4,7 @@ import { useState, useMemo } from "react";
 import { Trophy, Calendar, Users, TrendingUp, User } from "lucide-react";
 import Image from "next/image";
 
-interface GameLog {
+export interface GameLog {
   id: number;
   gameType: "single" | "double" | string;
   player1Id: number | null;
@@ -26,6 +26,16 @@ interface GameLog {
   divisionName: string | null;
 }
 
+export interface SeasonStatItem {
+  seasonId: number;
+  seasonName: string;
+  teamName: string;
+  singlesWins: number;
+  singlesLosses: number;
+  doublesWins: number;
+  doublesLosses: number;
+}
+
 interface PlayerProfileClientProps {
   playerId: number;
   playerName: string;
@@ -36,7 +46,7 @@ interface PlayerProfileClientProps {
   memberships?: { seasonId: number | null; teamName: string | null }[];
 }
 
-function CareerChart({ data, selectedSeasonId }: { data: any[]; selectedSeasonId: number | string }) {
+function CareerChart({ data, selectedSeasonId }: { data: SeasonStatItem[]; selectedSeasonId: number | string }) {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
   const sortedData = useMemo(() => {
@@ -497,7 +507,7 @@ export default function PlayerProfileClient({
             filteredGames.map((game) => {
               const isHome = game.player1Id === playerId || game.player1PartnerId === playerId;
               const isWin = isHome ? (game.player1Score! > game.player2Score!) : (game.player2Score! > game.player1Score!);
-              let opponentNames: string[] = [];
+              const opponentNames: string[] = [];
               if (isHome) {
                 if (game.player2Id) opponentNames.push(game.player2Name || "Unknown");
                 if (game.player2PartnerId) opponentNames.push(game.player2PartnerName || "Unknown");

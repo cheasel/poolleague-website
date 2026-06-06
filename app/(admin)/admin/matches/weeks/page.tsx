@@ -14,6 +14,15 @@ interface WeeksPageProps {
   }>;
 }
 
+interface WeekItem {
+  weekNumber: number;
+  originalWeek: number;
+  date: string;
+  matchups: string[];
+  completedMatches: number;
+  totalMatches: number;
+}
+
 export default async function MatchweeksPage({ searchParams }: WeeksPageProps) {
   const params = await searchParams;
 
@@ -25,7 +34,7 @@ export default async function MatchweeksPage({ searchParams }: WeeksPageProps) {
   const seasonIdParam = params.seasonId && params.seasonId !== "all" ? params.seasonId : latestSeasonId;
   const divisionIdParam = params.divisionId || "";
 
-  let weekData: any[] = [];
+  let weekData: WeekItem[] = [];
 
   // 2. Fetch matches for the division if selected
   if (divisionIdParam) {
@@ -38,14 +47,7 @@ export default async function MatchweeksPage({ searchParams }: WeeksPageProps) {
       orderBy: asc(matches.weekNumber),
     });
 
-    const weeksMap = new Map<number, {
-      weekNumber: number;
-      originalWeek: number;
-      date: string;
-      matchups: string[];
-      completedMatches: number;
-      totalMatches: number;
-    }>();
+    const weeksMap = new Map<number, WeekItem>();
 
     const formatLocalDate = (dateObj: Date | null) => {
       if (!dateObj) return "";

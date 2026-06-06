@@ -4,7 +4,7 @@ import { eq, or, and, asc, desc, inArray } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import TeamProfileClient from "./team-profile-client";
+import TeamProfileClient, { MatchLog } from "./team-profile-client";
 import { calculateRosterStats } from "@/src/utils/stats-calculator";
 import { unstable_cache } from "next/cache";
 
@@ -169,7 +169,7 @@ export default async function PublicTeamProfilePage({ params }: PageProps) {
           seasonName={team.seasonName || "Active Season"}
           roster={roster}
           rosterStats={rosterStats}
-          matches={teamMatches as any}
+          matches={teamMatches as unknown as MatchLog[]}
         />
       </div>
     </div>

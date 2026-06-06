@@ -13,6 +13,45 @@ interface PageProps {
   }>;
 }
 
+interface TeamLedger {
+  id: number;
+  name: string;
+  logoUrl: string | null;
+  homePlayed: number; homeWins: number; homeDraws: number; homeLosses: number; homeFramesWon: number; homeFramesLost: number;
+  awayPlayed: number; awayWins: number; awayDraws: number; awayLosses: number; awayFramesWon: number; awayFramesLost: number;
+}
+
+interface StandingItem {
+  id: number;
+  name: string;
+  logoUrl: string | null;
+  overallPlayed: number;
+  overallWins: number;
+  overallDraws: number;
+  overallLosses: number;
+  overallFramesWon: number;
+  overallFramesLost: number;
+  frameDifference: number;
+  overallPoints: number;
+  form: ('W' | 'L' | 'D')[];
+  home: {
+    played: number;
+    wins: number;
+    draws: number;
+    losses: number;
+    fw: number;
+    fl: number;
+  };
+  away: {
+    played: number;
+    wins: number;
+    draws: number;
+    losses: number;
+    fw: number;
+    fl: number;
+  };
+}
+
 const getCachedSeasons = unstable_cache(
   async () => {
     return db.select().from(seasons).orderBy(desc(seasons.startDate));
@@ -97,7 +136,7 @@ const getCachedStandingsForSeason = unstable_cache(
       .where(eq(divisions.seasonId, seasonId))
       .orderBy(divisions.tier);
 
-    const standingsMap: Record<number, any[]> = {};
+    const standingsMap: Record<number, StandingItem[]> = {};
 
     for (const div of divs) {
       const divisionTeams = registrations.filter(r => r.divisionId === div.id);
@@ -119,7 +158,7 @@ const getCachedStandingsForSeason = unstable_cache(
           awayPlayed: 0, awayWins: 0, awayDraws: 0, awayLosses: 0, awayFramesWon: 0, awayFramesLost: 0,
         };
         return acc;
-      }, {} as Record<number, any>);
+      }, {} as Record<number, TeamLedger>);
 
       // Loop through match metrics to populate ledger
       divMatches.forEach((match) => {
@@ -165,7 +204,7 @@ const getCachedStandingsForSeason = unstable_cache(
       });
 
       // Map to clean response nodes & sort
-      const calculatedStandings = Object.values(ledgerMap).map((t: any) => {
+      const calculatedStandings = Object.values(ledgerMap).map((t: TeamLedger) => {
         const overallPlayed = t.homePlayed + t.awayPlayed;
         const overallWins = t.homeWins + t.awayWins;
         const overallDraws = t.homeDraws + t.awayDraws;

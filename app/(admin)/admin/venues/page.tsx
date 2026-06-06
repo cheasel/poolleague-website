@@ -17,7 +17,7 @@ export default async function VenuesPage() {
   });
 
   // --- SERVER ACTION: CREATE VENUE ---
-  async function createVenue(prevState: any, formData: FormData) {
+  async function createVenue(prevState: { error?: string; success?: boolean } | null, formData: FormData) {
     "use server";
     
     const rawName = formData.get("name") as string;
@@ -47,7 +47,7 @@ export default async function VenuesPage() {
         isActive,
       });
   
-    } catch (err) {
+    } catch {
       return { error: "Database rejected transaction execution parameter constraints." };
     }
 
