@@ -6,9 +6,11 @@ import { useRouter } from 'next/navigation';
 
 interface DeleteSeasonButtonProps {
   action: () => Promise<{ success: boolean; error?: string }>;
+  seasonName: string;
+  isFinished: boolean;
 }
 
-export default function DeleteSeasonButton({ action }: DeleteSeasonButtonProps) {
+export default function DeleteSeasonButton({ action, seasonName, isFinished }: DeleteSeasonButtonProps) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
@@ -17,6 +19,15 @@ export default function DeleteSeasonButton({ action }: DeleteSeasonButtonProps) 
       "Are you sure you want to delete this season?\n\nThis will permanently delete all associated divisions, teams registrations, matchweeks, fixtures, results, and player memberships. This action cannot be undone."
     );
     if (confirmed) {
+      if (isFinished) {
+        const typedName = window.prompt(
+          `This season is already finished/archived.\n\nTo confirm permanent deletion, please type the exact name of the season: "${seasonName}"`
+        );
+        if (typedName !== seasonName) {
+          alert("Deletion cancelled. Typed name does not match the season name.");
+          return;
+        }
+      }
       startTransition(async () => {
         const result = await action();
         if (result && !result.success) {

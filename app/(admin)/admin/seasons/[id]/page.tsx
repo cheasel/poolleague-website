@@ -89,6 +89,8 @@ export default async function EditSeasonPage({ params }: PageProps) {
     }
   }
 
+  const isFinished = !season.isActive || (season.endDate ? new Date(season.endDate) < new Date() : false);
+
   return (
     <div className="max-w-2xl mx-auto space-y-10 pb-16 px-4 text-slate-200">
       <header className="flex items-center justify-between">
@@ -159,7 +161,7 @@ export default async function EditSeasonPage({ params }: PageProps) {
         </form>
 
         <div className="mt-6 border-t border-slate-900/60 pt-6">
-          <DeleteSeasonButton action={deleteSeason} />
+          <DeleteSeasonButton action={deleteSeason} seasonName={season.name} isFinished={isFinished} />
         </div>
       </div>
     </div>
