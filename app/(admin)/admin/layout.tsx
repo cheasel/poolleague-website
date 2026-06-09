@@ -19,7 +19,8 @@ import {
   MapPin,
   Sliders,
   Sun,
-  Moon
+  Moon,
+  UserCheck
 } from "lucide-react";
 import { signOutAction } from "@/src/app/auth-actions";
 
@@ -64,6 +65,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { href: "/admin/teams", label: "Squad Directory", icon: Trophy },
     { href: "/admin/players", label: "Roster Controls", icon: Users },
     { href: "/admin/venues", label: "Venue Profiles", icon: MapPin },
+    { href: "/admin/users", label: "Users Manager", icon: UserCheck },
   ];
 
   const renderNavList = (items: typeof operationalItems, closeMobile = false) => {
