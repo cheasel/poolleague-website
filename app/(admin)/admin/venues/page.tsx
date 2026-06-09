@@ -4,10 +4,12 @@ import { asc, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import CreateVenueForm from "./CreateVenueForm";
 import VenuesList from "./venues-list";
+import { assertWritePrivilege, getIsReadOnly } from "@/src/utils/auth-guards";
 
 export const dynamic = "force-dynamic";
 
 export default async function VenuesPage() {
+  const isReadOnly = await getIsReadOnly();
   // 1. Fetch all venues sorted alphabetically, loading their team relations
   const allVenues = await db.query.venues.findMany({
     with: {
@@ -19,6 +21,7 @@ export default async function VenuesPage() {
   // --- SERVER ACTION: CREATE VENUE ---
   async function createVenue(prevState: { error?: string; success?: boolean } | null, formData: FormData) {
     "use server";
+    await assertWritePrivilege();
     
     const rawName = formData.get("name") as string;
     const name = rawName ? rawName.trim() : "";
@@ -58,6 +61,7 @@ export default async function VenuesPage() {
   // --- SERVER ACTION: DELETE VENUE ---
   async function deleteVenue(formData: FormData) {
     "use server";
+    await assertWritePrivilege();
     const idVal = formData.get("venueId");
     if (!idVal) return;
     const venueId = Number(idVal);
@@ -75,6 +79,7 @@ export default async function VenuesPage() {
   // --- SERVER ACTION: TOGGLE ACTIVE STATUS ---
   async function toggleVenueStatus(formData: FormData) {
     "use server";
+    await assertWritePrivilege();
     const venueId = Number(formData.get("venueId"));
     const currentActive = formData.get("currentActive") === "true";
     
@@ -105,13 +110,14 @@ export default async function VenuesPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         
         {/* COLUMN 1: INTERACTIVE FORM FOR SUBMISSIONS */}
-        <CreateVenueForm createVenueAction={createVenue} />
-
+        {!isReadOnly && <CreateVenueForm createVenueAction={createVenue} />}
+ 
         {/* COLUMN 2 & 3: DIRECTORY LIST WITH SEARCH & TOGGLES */}
         <VenuesList 
           initialVenues={allVenues} 
           deleteVenueAction={deleteVenue} 
           toggleVenueAction={toggleVenueStatus} 
+          isReadOnly={isReadOnly}
         />
 
       </div>

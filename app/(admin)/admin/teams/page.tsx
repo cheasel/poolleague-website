@@ -2,11 +2,12 @@ import { db } from "@/src/db";
 import { teams, divisions, seasons, venues, teamRegistrations, teamMemberships, matches } from "@/src/db/schema";
 import { eq, asc, desc, count, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { Plus, Trash2, MapPin } from "lucide-react";
+import { Plus, Trash2, MapPin, Eye } from "lucide-react";
 import Link from 'next/link';
 import Image from 'next/image';
 import SeasonSelector from "./SeasonSelector";
 import { syncTeamRegistrations } from "@/src/utils/sync-team-registrations";
+import { assertWritePrivilege, getIsReadOnly } from "@/src/utils/auth-guards";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,7 @@ interface PageProps {
 export default async function AdminTeamsPage({ searchParams }: PageProps) {
   // Ensure team division registrations are synchronized
   await syncTeamRegistrations();
+  const isReadOnly = await getIsReadOnly();
 
   const params = await searchParams;
 
@@ -109,6 +111,7 @@ export default async function AdminTeamsPage({ searchParams }: PageProps) {
   // 5. Server Action to register/add a team
   async function addTeam(formData: FormData) {
     "use server";
+    await assertWritePrivilege();
     const existingTeamIdVal = formData.get("existingTeamId");
     const existingTeamId = existingTeamIdVal ? Number(existingTeamIdVal) : null;
     const name = formData.get("name") as string;
@@ -187,6 +190,7 @@ export default async function AdminTeamsPage({ searchParams }: PageProps) {
   // 6. Server Action to delete a team
   async function deleteTeam(formData: FormData) {
     "use server";
+    await assertWritePrivilege();
     const id = Number(formData.get("id"));
 
     await db.transaction(async (tx) => {
@@ -217,8 +221,9 @@ export default async function AdminTeamsPage({ searchParams }: PageProps) {
         </header>
 
         {/* Add Team Form */}
-        <div className="bg-slate-900/40 rounded-[2.5rem] p-8 shadow-2xl border border-slate-900">
-          <form action={addTeam} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+        {!isReadOnly && (
+          <div className="bg-slate-900/40 rounded-[2.5rem] p-8 shadow-2xl border border-slate-900">
+            <form action={addTeam} className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
             <div className="md:col-span-3 space-y-2">
               <label className="text-[10px] font-black uppercase tracking-widest text-slate-600 ml-2">New Team Name</label>
               <input 
@@ -284,8 +289,9 @@ export default async function AdminTeamsPage({ searchParams }: PageProps) {
                 <Plus className="w-4 h-4" /> Register
               </button>
             </div>
-          </form>
-        </div>
+            </form>
+          </div>
+        )}
 
         {/* Teams List */}
         <div className="bg-slate-900/40 rounded-[2.5rem] border border-slate-900 shadow-2xl overflow-hidden">
@@ -356,16 +362,27 @@ export default async function AdminTeamsPage({ searchParams }: PageProps) {
                     <Link 
                       href={`/admin/teams/${team.id}`}
                       className="p-2 text-slate-600 hover:text-indigo-400 transition-colors"
+                      title={isReadOnly ? "View Details" : "Edit Team"}
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                      {isReadOnly ? (
+                        <Eye className="w-5 h-5 text-indigo-400" />
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                      )}
                     </Link>
 
-                    <form action={deleteTeam}>
-                      <input type="hidden" name="id" value={team.id} />
-                      <button className="p-2 text-slate-800 hover:text-red-500 transition-colors cursor-pointer">
-                        <Trash2 className="w-5 h-5" />
-                      </button>
-                    </form>
+                    {!isReadOnly && (
+                      <form action={deleteTeam} onSubmit={(e) => {
+                        if (!confirm("Are you sure you want to delete this team? All memberships and registrations will be deleted.")) {
+                          e.preventDefault();
+                        }
+                      }}>
+                        <input type="hidden" name="id" value={team.id} />
+                        <button className="p-2 text-slate-800 hover:text-red-500 transition-colors cursor-pointer">
+                          <Trash2 className="w-5 h-5" />
+                        </button>
+                      </form>
+                    )}
                   </div>
                 </div>
               );

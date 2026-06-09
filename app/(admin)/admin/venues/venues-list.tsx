@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from "react";
-import { MapPin, Store, ToggleLeft, Edit2, ShieldCheck, ShieldAlert, Search, ExternalLink, Loader2 } from "lucide-react";
+import { MapPin, Store, ToggleLeft, Edit2, ShieldCheck, ShieldAlert, Search, ExternalLink, Loader2, Eye } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import DeleteVenueButton from "./DeleteVenueButton";
@@ -24,12 +24,14 @@ interface VenuesListProps {
   initialVenues: Venue[];
   deleteVenueAction: (formData: FormData) => Promise<void>;
   toggleVenueAction: (formData: FormData) => Promise<void>;
+  isReadOnly?: boolean;
 }
 
 export default function VenuesList({ 
   initialVenues, 
   deleteVenueAction, 
-  toggleVenueAction 
+  toggleVenueAction,
+  isReadOnly = false
 }: VenuesListProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [updatingId, setUpdatingId] = useState<number | null>(null);
@@ -63,7 +65,7 @@ export default function VenuesList({
   };
 
   return (
-    <div className="lg:col-span-2 space-y-4">
+    <div className={`${isReadOnly ? "lg:col-span-3" : "lg:col-span-2"} space-y-4`}>
       {/* Search Input Bar */}
       <div className="relative">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
@@ -120,10 +122,11 @@ export default function VenuesList({
                       <Link 
                         href={`/admin/venues/${venue.id}`}
                         className="p-2 bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 rounded-lg text-slate-500 hover:text-slate-100 transition-all shadow-sm"
+                        title={isReadOnly ? "View Details" : "Edit Venue"}
                       >
-                        <Edit2 className="w-3 h-3" />
+                        {isReadOnly ? <Eye className="w-3 h-3 text-indigo-400" /> : <Edit2 className="w-3 h-3" />}
                       </Link>
-                      <DeleteVenueButton venueId={venue.id} deleteAction={deleteVenueAction} />
+                      {!isReadOnly && <DeleteVenueButton venueId={venue.id} deleteAction={deleteVenueAction} />}
                     </div>
                   </div>
 
@@ -192,33 +195,54 @@ export default function VenuesList({
                 </div>
 
                 {/* Inline Status Toggle Action Button */}
-                <button
-                  type="button"
-                  disabled={isUpdating}
-                  onClick={() => handleToggleActive(venue.id, !!venue.isActive)}
-                  className={`w-full mt-5 pt-3 border-t border-slate-800/60 flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-slate-400 cursor-pointer hover:bg-slate-950/20 transition-all rounded px-1.5 py-1 -mx-1.5 ${
-                    isUpdating ? 'animate-pulse' : ''
-                  }`}
-                >
-                  <span className="flex items-center gap-1.5 text-slate-500">
-                    <ToggleLeft className={`w-3.5 h-3.5 transition-colors ${venue.isActive ? 'text-indigo-400' : 'text-slate-600'}`} /> Operational State
-                  </span>
-                  
-                  <div className="flex items-center gap-2">
-                    {isUpdating && (
-                      <Loader2 className="w-3 h-3 text-indigo-400 animate-spin" />
-                    )}
-                    {venue.isActive ? (
-                      <span className="flex items-center gap-1 text-emerald-400 bg-emerald-500/5 px-2.5 py-1 rounded border border-emerald-500/10 font-mono text-[9px] shadow-sm">
-                        <ShieldCheck className="w-3 h-3" /> Online
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1 text-rose-400 bg-rose-500/5 px-2.5 py-1 rounded border border-rose-500/10 font-mono text-[9px] shadow-sm">
-                        <ShieldAlert className="w-3 h-3" /> Suspended
-                      </span>
-                    )}
+                {isReadOnly ? (
+                  <div
+                    className="w-full mt-5 pt-3 border-t border-slate-800/60 flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-slate-400 px-1.5 py-1 -mx-1.5"
+                  >
+                    <span className="flex items-center gap-1.5 text-slate-500">
+                      <Store className="w-3.5 h-3.5 text-slate-600" /> Operational State
+                    </span>
+                    <div className="flex items-center gap-2">
+                      {venue.isActive ? (
+                        <span className="flex items-center gap-1 text-emerald-400 bg-emerald-500/5 px-2.5 py-1 rounded border border-emerald-500/10 font-mono text-[9px] shadow-sm">
+                          <ShieldCheck className="w-3.5 h-3.5" /> Online
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 text-rose-400 bg-rose-500/5 px-2.5 py-1 rounded border border-rose-500/10 font-mono text-[9px] shadow-sm">
+                          <ShieldAlert className="w-3.5 h-3.5" /> Suspended
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </button>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={isUpdating}
+                    onClick={() => handleToggleActive(venue.id, !!venue.isActive)}
+                    className={`w-full mt-5 pt-3 border-t border-slate-800/60 flex items-center justify-between text-[10px] font-black uppercase tracking-wider text-slate-400 cursor-pointer hover:bg-slate-950/20 transition-all rounded px-1.5 py-1 -mx-1.5 ${
+                      isUpdating ? 'animate-pulse' : ''
+                    }`}
+                  >
+                    <span className="flex items-center gap-1.5 text-slate-500">
+                      <ToggleLeft className={`w-3.5 h-3.5 transition-colors ${venue.isActive ? 'text-indigo-400' : 'text-slate-600'}`} /> Operational State
+                    </span>
+                    
+                    <div className="flex items-center gap-2">
+                      {isUpdating && (
+                        <Loader2 className="w-3 h-3 text-indigo-400 animate-spin" />
+                      )}
+                      {venue.isActive ? (
+                        <span className="flex items-center gap-1 text-emerald-400 bg-emerald-500/5 px-2.5 py-1 rounded border border-emerald-500/10 font-mono text-[9px] shadow-sm">
+                          <ShieldCheck className="w-3 h-3" /> Online
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 text-rose-400 bg-rose-500/5 px-2.5 py-1 rounded border border-rose-500/10 font-mono text-[9px] shadow-sm">
+                          <ShieldAlert className="w-3 h-3" /> Suspended
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                )}
               </div>
             );
           })}

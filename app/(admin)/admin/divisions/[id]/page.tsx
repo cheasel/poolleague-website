@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Save, ArrowLeft, FolderTree, Calendar, Shield } from "lucide-react";
+import { assertWritePrivilege, getIsReadOnly } from "@/src/utils/auth-guards";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,7 @@ interface PageProps {
 export default async function EditDivisionPage({ params }: PageProps) {
   const { id } = await params;
   const divisionId = Number(id);
+  const isReadOnly = await getIsReadOnly();
 
   // 1. Fetch target division, all seasons, and current division teams in parallel
   const [divisionResult, allSeasons, divisionTeams] = await Promise.all([
@@ -43,6 +45,7 @@ export default async function EditDivisionPage({ params }: PageProps) {
   // --- MUTATION: UPDATE DIVISION SETTINGS ---
   async function updateDivision(formData: FormData) {
     "use server";
+    await assertWritePrivilege();
     const name = formData.get("name") as string;
     const tier = Number(formData.get("tier"));
     const seasonIdVal = formData.get("seasonId");
@@ -99,7 +102,8 @@ export default async function EditDivisionPage({ params }: PageProps) {
                 name="name" 
                 defaultValue={division.name} 
                 required 
-                className="w-full p-4 bg-slate-950 border border-slate-800 rounded-xl outline-none font-bold text-slate-100 text-sm placeholder:text-slate-500" 
+                disabled={isReadOnly}
+                className="w-full p-4 bg-slate-950 border border-slate-800 rounded-xl outline-none font-bold text-slate-100 text-sm placeholder:text-slate-500 disabled:opacity-60 disabled:cursor-not-allowed" 
               />
             </div>
 
@@ -111,7 +115,8 @@ export default async function EditDivisionPage({ params }: PageProps) {
                 name="tier" 
                 defaultValue={division.tier} 
                 required 
-                className="w-full p-4 bg-slate-950 border border-slate-800 rounded-xl outline-none font-bold text-slate-100 text-sm placeholder:text-slate-500" 
+                disabled={isReadOnly}
+                className="w-full p-4 bg-slate-950 border border-slate-800 rounded-xl outline-none font-bold text-slate-100 text-sm placeholder:text-slate-500 disabled:opacity-60 disabled:cursor-not-allowed" 
               />
             </div>
 
@@ -125,7 +130,8 @@ export default async function EditDivisionPage({ params }: PageProps) {
                 <select 
                   name="seasonId" 
                   defaultValue={division.seasonId || ""}
-                  className="w-full p-4 bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl outline-none font-bold text-slate-100 appearance-none text-sm pr-10 cursor-pointer"
+                  disabled={isReadOnly}
+                  className="w-full p-4 bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl outline-none font-bold text-slate-100 appearance-none text-sm pr-10 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   <option value="">No Active Season Link</option>
                   {allSeasons.map(s => (
@@ -138,11 +144,13 @@ export default async function EditDivisionPage({ params }: PageProps) {
               </div>
             </div>
 
-            <div className="pt-4 flex justify-end">
-              <button type="submit" className="px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-black uppercase tracking-widest text-xs flex items-center gap-2.5 transition-all cursor-pointer">
-                <Save className="w-4 h-4 stroke-[2.5]" /> Commit Bracket Settings
-              </button>
-            </div>
+            {!isReadOnly && (
+              <div className="pt-4 flex justify-end">
+                <button type="submit" className="px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-black uppercase tracking-widest text-xs flex items-center gap-2.5 transition-all cursor-pointer">
+                  <Save className="w-4 h-4 stroke-[2.5]" /> Commit Bracket Settings
+                </button>
+              </div>
+            )}
           </form>
         </div>
       </div>

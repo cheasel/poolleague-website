@@ -4,6 +4,7 @@ import { eq, asc, desc, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import MatchweekManagerForm from "./MatchweekManagerForm";
 import { updateSeasonEndDate } from "@/src/utils/season-utils";
+import { assertWritePrivilege, getIsReadOnly } from "@/src/utils/auth-guards";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,7 @@ interface WeekItem {
 
 export default async function MatchweeksPage({ searchParams }: WeeksPageProps) {
   const params = await searchParams;
+  const isReadOnly = await getIsReadOnly();
 
   // 1. Fetch seasons & divisions concurrently to optimize setup loading times
   const [allSeasons, allDivisions] = await Promise.all([
@@ -93,6 +95,7 @@ export default async function MatchweeksPage({ searchParams }: WeeksPageProps) {
     adjustments: Array<{ originalWeek: number; newWeek: number; newDate: string }>
   ) {
     "use server";
+    await assertWritePrivilege();
 
     if (!divisionId || !adjustments || adjustments.length === 0) return;
 
@@ -156,6 +159,7 @@ export default async function MatchweeksPage({ searchParams }: WeeksPageProps) {
       seasonIdParam={seasonIdParam}
       divisionIdParam={divisionIdParam}
       saveAction={saveMatchweeksAction}
+      isReadOnly={isReadOnly}
     />
   );
 }

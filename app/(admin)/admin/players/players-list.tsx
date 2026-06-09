@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition, useEffect } from "react";
-import { Trash2, Pencil, Search, Check, Loader2 } from "lucide-react";
+import { Trash2, Pencil, Search, Check, Loader2, Eye } from "lucide-react";
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
@@ -30,6 +30,7 @@ interface PlayersListProps {
   deletePlayerAction: (formData: FormData) => Promise<void>;
   changePlayerTeamAction: (formData: FormData) => Promise<void>;
   bulkAssignPlayersAction: (formData: FormData) => Promise<void>;
+  isReadOnly?: boolean;
 }
 
 export default function PlayersList({ 
@@ -39,7 +40,8 @@ export default function PlayersList({
   selectedSeasonId,
   deletePlayerAction, 
   changePlayerTeamAction,
-  bulkAssignPlayersAction
+  bulkAssignPlayersAction,
+  isReadOnly = false
 }: PlayersListProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -229,7 +231,7 @@ export default function PlayersList({
       </div>
 
       {/* Bulk Action Bar */}
-      {selectedPlayerIds.length > 0 && (
+      {!isReadOnly && selectedPlayerIds.length > 0 && (
         <div className="bg-indigo-950/20 border border-indigo-900/30 rounded-[2rem] p-6 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="flex items-center gap-3">
             <span className="w-6 h-6 rounded-full bg-indigo-600 text-white font-mono text-xs font-black flex items-center justify-center shadow-md animate-bounce">
@@ -280,7 +282,7 @@ export default function PlayersList({
       <div className="bg-slate-900/40 rounded-[2.5rem] border border-slate-900 shadow-2xl overflow-hidden">
         <div className="px-8 py-6 border-b border-slate-800 bg-slate-900/60 flex justify-between items-center gap-4">
           <div className="flex items-center gap-3">
-            {filteredPlayers.length > 0 && (
+            {!isReadOnly && filteredPlayers.length > 0 && (
               <input 
                 type="checkbox"
                 checked={allFilteredSelected}
@@ -311,12 +313,14 @@ export default function PlayersList({
               >
                 <div className="flex items-center gap-5">
                   {/* Row Selection Checkbox */}
-                  <input 
-                    type="checkbox"
-                    checked={selectedPlayerIds.includes(player.id)}
-                    onChange={() => handleSelectToggle(player.id)}
-                    className="w-4.5 h-4.5 text-indigo-600 bg-slate-950 border-slate-850 rounded focus:ring-0 accent-indigo-600 cursor-pointer shrink-0"
-                  />
+                  {!isReadOnly && (
+                    <input 
+                      type="checkbox"
+                      checked={selectedPlayerIds.includes(player.id)}
+                      onChange={() => handleSelectToggle(player.id)}
+                      className="w-4.5 h-4.5 text-indigo-600 bg-slate-950 border-slate-850 rounded focus:ring-0 accent-indigo-600 cursor-pointer shrink-0"
+                    />
+                  )}
 
                   {/* Avatar Container */}
                   <div className={`relative w-12 h-12 rounded-2xl overflow-hidden shrink-0 border transition-all ${
@@ -387,13 +391,13 @@ export default function PlayersList({
                   <div className="flex items-center gap-2 relative">
                     <select
                       value={player.teamId ?? ""}
-                      disabled={isPending && updatingId === player.id}
+                      disabled={isReadOnly || (isPending && updatingId === player.id)}
                       onChange={(e) => handleTeamChange(player.id, e.target.value)}
                       className={`p-2 bg-slate-950 border rounded-xl outline-none font-bold text-[10px] uppercase appearance-none pr-7 cursor-pointer transition-all ${
                         isFreeAgent 
                           ? 'border-amber-900/20 text-amber-500/80 focus:border-amber-500/50 hover:bg-slate-900/50' 
                           : 'border-slate-800 text-slate-400 focus:border-indigo-500 hover:bg-slate-900/50'
-                      }`}
+                      } ${isReadOnly ? 'opacity-70 cursor-not-allowed' : ''}`}
                     >
                       <option value="">Release (Free Agent)</option>
                       {teams.map((t) => (
@@ -418,16 +422,23 @@ export default function PlayersList({
                     <Link 
                       href={`/admin/players/${player.id}`}
                       className="p-2 text-slate-600 hover:text-indigo-400 transition-colors rounded-lg hover:bg-slate-950/40 border border-transparent hover:border-slate-800"
+                      title={isReadOnly ? "View Details" : "Edit Player"}
                     >
-                      <Pencil className="w-4 h-4" />
+                      {isReadOnly ? <Eye className="w-4 h-4 text-indigo-400" /> : <Pencil className="w-4 h-4" />}
                     </Link>
 
-                    <form action={deletePlayerAction}>
-                      <input type="hidden" name="id" value={player.id} />
-                      <button className="p-2 text-slate-800 hover:text-red-500 transition-colors rounded-lg hover:bg-slate-950/40 border border-transparent hover:border-slate-800 cursor-pointer">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </form>
+                    {!isReadOnly && (
+                      <form action={deletePlayerAction} onSubmit={(e) => {
+                        if (!confirm("Are you sure you want to delete this player?")) {
+                          e.preventDefault();
+                        }
+                      }}>
+                        <input type="hidden" name="id" value={player.id} />
+                        <button className="p-2 text-slate-800 hover:text-red-500 transition-colors rounded-lg hover:bg-slate-950/40 border border-transparent hover:border-slate-800 cursor-pointer">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </form>
+                    )}
                   </div>
                 </div>
               </div>

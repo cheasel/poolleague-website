@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from "react";
-import { FolderTree, Lock, Trash2, Edit2, Search, Users } from "lucide-react";
+import { FolderTree, Lock, Trash2, Edit2, Search, Users, Eye } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -28,11 +28,13 @@ interface Division {
 interface DivisionsListProps {
   initialDivisions: Division[];
   deleteDivisionAction: (formData: FormData) => Promise<void>;
+  isReadOnly?: boolean;
 }
 
 export default function DivisionsList({ 
   initialDivisions, 
-  deleteDivisionAction 
+  deleteDivisionAction,
+  isReadOnly = false
 }: DivisionsListProps) {
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -47,7 +49,7 @@ export default function DivisionsList({
   };
 
   return (
-    <div className="lg:col-span-7 space-y-4">
+    <div className={`${isReadOnly ? "lg:col-span-12" : "lg:col-span-7"} space-y-4`}>
       {/* Search Bar */}
       <div className="relative">
         <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
@@ -92,35 +94,38 @@ export default function DivisionsList({
                 <Link
                   href={`/admin/divisions/${division.id}`}
                   className="p-2 bg-slate-950 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 rounded-lg text-slate-500 hover:text-slate-100 transition-all shadow-sm"
+                  title={isReadOnly ? "View Details" : "Edit Tier"}
                 >
-                  <Edit2 className="w-3.5 h-3.5" />
+                  {isReadOnly ? <Eye className="w-3.5 h-3.5 text-indigo-400" /> : <Edit2 className="w-3.5 h-3.5" />}
                 </Link>
                 
                 {/* SAFEGUARD DELETION ACTION BLOCK */}
-                {hasTeams ? (
-                  <button 
-                    type="button"
-                    title="Active rosters are assigned. Clear teams first to unlock deletion."
-                    className="p-2 bg-slate-950/40 border border-slate-900/60 rounded-lg text-slate-500 cursor-not-allowed flex items-center justify-center"
-                    disabled
-                  >
-                    <Lock className="w-3.5 h-3.5" />
-                  </button>
-                ) : (
-                  <form action={deleteDivisionAction}>
-                    <input type="hidden" name="divisionId" value={division.id} />
+                {!isReadOnly && (
+                  hasTeams ? (
                     <button 
-                      type="submit"
-                      onClick={(e) => {
-                        if (!confirm("Are you sure you want to delete this division level? This action is permanent.")) {
-                          e.preventDefault();
-                        }
-                      }}
-                      className="p-2 bg-slate-950 hover:bg-rose-950 border border-slate-800 hover:border-rose-400/30 rounded-lg text-slate-500 hover:text-rose-400 transition-all shadow-sm cursor-pointer"
+                      type="button"
+                      title="Active rosters are assigned. Clear teams first to unlock deletion."
+                      className="p-2 bg-slate-950/40 border border-slate-900/60 rounded-lg text-slate-500 cursor-not-allowed flex items-center justify-center"
+                      disabled
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Lock className="w-3.5 h-3.5" />
                     </button>
-                  </form>
+                  ) : (
+                    <form action={deleteDivisionAction}>
+                      <input type="hidden" name="divisionId" value={division.id} />
+                      <button 
+                        type="submit"
+                        onClick={(e) => {
+                          if (!confirm("Are you sure you want to delete this division level? This action is permanent.")) {
+                            e.preventDefault();
+                          }
+                        }}
+                        className="p-2 bg-slate-950 hover:bg-rose-950 border border-slate-800 hover:border-rose-400/30 rounded-lg text-slate-500 hover:text-rose-400 transition-all shadow-sm cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </form>
+                  )
                 )}
               </div>
             </div>

@@ -35,6 +35,7 @@ interface MatchweekManagerFormProps {
     divisionId: number,
     adjustments: Array<{ originalWeek: number; newWeek: number; newDate: string }>
   ) => Promise<void>;
+  isReadOnly?: boolean;
 }
 
 export default function MatchweekManagerForm({
@@ -44,6 +45,7 @@ export default function MatchweekManagerForm({
   seasonIdParam,
   divisionIdParam,
   saveAction,
+  isReadOnly = false,
 }: MatchweekManagerFormProps) {
   const router = useRouter();
   const defaultSeasonId = seasonIdParam && seasonIdParam !== "all"
@@ -66,6 +68,10 @@ export default function MatchweekManagerForm({
   const [weeksNeedingDateReview, setWeeksNeedingDateReview] = useState<Set<number>>(new Set());
 
   const handleDragStart = (e: React.DragEvent, index: number) => {
+    if (isReadOnly) {
+      e.preventDefault();
+      return;
+    }
     e.dataTransfer.setData("text/plain", index.toString());
     e.dataTransfer.effectAllowed = "move";
   };
@@ -303,7 +309,7 @@ export default function MatchweekManagerForm({
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="border-b border-slate-900/80 bg-slate-950/80 text-[10px] font-black uppercase tracking-widest text-slate-500">
-                      <th className="p-4 w-12 text-center"></th>
+                      {!isReadOnly && <th className="p-4 w-12 text-center"></th>}
                       <th className="p-4 w-28 text-center">Week Number</th>
                       <th className="p-4 w-48">Scheduled Date</th>
                       <th className="p-4">Week Matches Preview</th>
@@ -316,12 +322,12 @@ export default function MatchweekManagerForm({
                       return (
                         <tr 
                           key={week.originalWeek}
-                          draggable={!isPending}
+                          draggable={!isReadOnly && !isPending}
                           onDragStart={(e) => handleDragStart(e, idx)}
-                          onDragOver={(e) => handleDragOver(e, idx)}
+                          onDragOver={(e) => !isReadOnly && handleDragOver(e, idx)}
                           onDragLeave={handleDragLeave}
                           onDragEnd={handleDragLeave}
-                          onDrop={(e) => handleDrop(e, idx)}
+                          onDrop={(e) => !isReadOnly && handleDrop(e, idx)}
                           className={`transition-all duration-200 ${
                             isPending ? "opacity-50 pointer-events-none" : ""
                           } ${
@@ -330,24 +336,28 @@ export default function MatchweekManagerForm({
                               : "hover:bg-slate-900/20"
                           }`}
                         >
-                          <td className="p-4 text-center cursor-grab active:cursor-grabbing text-slate-600 hover:text-slate-400 transition-colors">
-                            <GripVertical className="w-4 h-4 mx-auto" />
-                          </td>
+                          {!isReadOnly && (
+                            <td className="p-4 text-center cursor-grab active:cursor-grabbing text-slate-600 hover:text-slate-400 transition-colors">
+                              <GripVertical className="w-4 h-4 mx-auto" />
+                            </td>
+                          )}
                           <td className="p-4 text-center">
                             <input
                               type="number"
                               min="1"
                               value={week.weekNumber}
+                              disabled={isReadOnly}
                               onChange={(e) => handleWeekNumberChange(idx, parseInt(e.target.value) || 0)}
-                              className="w-16 p-2 bg-slate-950 border border-slate-800 rounded-lg text-center font-bold text-white text-xs focus:border-indigo-500 outline-none"
+                              className="w-16 p-2 bg-slate-950 border border-slate-800 rounded-lg text-center font-bold text-white text-xs focus:border-indigo-500 outline-none disabled:opacity-60 disabled:cursor-not-allowed"
                             />
                           </td>
                           <td className="p-4">
                             <input
                               type="date"
                               value={week.date}
+                              disabled={isReadOnly}
                               onChange={(e) => handleDateChange(idx, e.target.value)}
-                              className={`w-full p-2 bg-slate-950 border rounded-lg font-bold text-white text-xs uppercase tracking-wider outline-none transition-all ${
+                              className={`w-full p-2 bg-slate-950 border rounded-lg font-bold text-white text-xs uppercase tracking-wider outline-none transition-all disabled:opacity-60 disabled:cursor-not-allowed ${
                                 weeksNeedingDateReview.has(week.originalWeek)
                                   ? "border-amber-500/80 shadow-md shadow-amber-950/20 focus:border-amber-400 focus:ring-amber-500/20"
                                   : "border-slate-800 focus:border-indigo-500"
@@ -390,29 +400,31 @@ export default function MatchweekManagerForm({
               </div>
 
               {/* SAVE / RESET ACTIONS */}
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={handleReset}
-                  disabled={isPending}
-                  className="px-4 py-3 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
-                >
-                  <Undo className="w-4 h-4" /> Reset
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSave}
-                  disabled={isSaveDisabled}
-                  className={`px-6 py-3 font-black text-xs uppercase tracking-wider rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-lg ${
-                    isSaveDisabled
-                      ? "bg-slate-900 border border-slate-800 text-slate-600 cursor-not-allowed"
-                      : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-950/40"
-                  }`}
-                >
-                  <Save className="w-4 h-4" />
-                  {isPending ? "Saving changes..." : "Save Adjustments"}
-                </button>
-              </div>
+              {!isReadOnly && (
+                <div className="flex justify-end gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={handleReset}
+                    disabled={isPending}
+                    className="px-4 py-3 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    <Undo className="w-4 h-4" /> Reset
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSave}
+                    disabled={isSaveDisabled}
+                    className={`px-6 py-3 font-black text-xs uppercase tracking-wider rounded-xl transition-all flex items-center gap-2 cursor-pointer shadow-lg ${
+                      isSaveDisabled
+                        ? "bg-slate-900 border border-slate-800 text-slate-600 cursor-not-allowed"
+                        : "bg-indigo-600 hover:bg-indigo-500 text-white shadow-indigo-950/40"
+                    }`}
+                  >
+                    <Save className="w-4 h-4" />
+                    {isPending ? "Saving changes..." : "Save Adjustments"}
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </section>

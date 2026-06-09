@@ -19,9 +19,10 @@ interface GeneratorFormProps {
   seasons: SeasonRow[];
   selectedDivId: string;
   action: (formData: FormData) => Promise<void>;
+  isReadOnly?: boolean;
 }
 
-export default function GeneratorForm({ divisions, seasons, selectedDivId, action }: GeneratorFormProps) {
+export default function GeneratorForm({ divisions, seasons, selectedDivId, action, isReadOnly = false }: GeneratorFormProps) {
   // Find initial season from initial selected division (if any)
   const initialSeasonId = () => {
     if (selectedDivId) {
@@ -78,7 +79,8 @@ export default function GeneratorForm({ divisions, seasons, selectedDivId, actio
           required
           value={selectedSeasonId}
           onChange={(e) => handleSeasonChange(e.target.value)}
-          className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-indigo-500 outline-none font-bold text-white text-xs uppercase tracking-[0.1em] appearance-none transition-all shadow-inner cursor-pointer"
+          disabled={isReadOnly}
+          className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-indigo-500 outline-none font-bold text-white text-xs uppercase tracking-[0.1em] appearance-none transition-all shadow-inner cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
         >
           <option value="">Select Season...</option>
           {seasons.map(s => (
@@ -97,7 +99,8 @@ export default function GeneratorForm({ divisions, seasons, selectedDivId, actio
           required
           value={selectedId}
           onChange={(e) => setSelectedId(e.target.value)}
-          className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-indigo-500 outline-none font-bold text-white text-xs uppercase tracking-[0.1em] appearance-none transition-all shadow-inner cursor-pointer"
+          disabled={isReadOnly}
+          className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-indigo-500 outline-none font-bold text-white text-xs uppercase tracking-[0.1em] appearance-none transition-all shadow-inner cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
         >
           <option value="">Select Division to Balance...</option>
           {filteredDivisions.map(d => (
@@ -116,16 +119,25 @@ export default function GeneratorForm({ divisions, seasons, selectedDivId, actio
           required
           value={startDate}
           onChange={(e) => setStartDate(e.target.value)}
-          className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-indigo-500 outline-none font-bold text-white text-xs uppercase tracking-widest transition-all shadow-inner"
+          disabled={isReadOnly}
+          className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-indigo-500 outline-none font-bold text-white text-xs uppercase tracking-widest transition-all shadow-inner disabled:opacity-60 disabled:cursor-not-allowed"
         />
       </div>
 
-      <button 
-        type="submit" 
-        className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-[0.2em] text-[10px] p-5 rounded-[1.5rem] transition-all shadow-lg shadow-indigo-900/20 mt-6 active:scale-[0.98] cursor-pointer"
-      >
-        Execute Matrix Generation
-      </button>
+      {isReadOnly ? (
+        <div className="p-4 bg-slate-950 border border-slate-800/80 rounded-[1.5rem] flex gap-3 text-slate-400 mt-6 justify-center text-center">
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+            Read-only mode: Schedule generation is disabled.
+          </p>
+        </div>
+      ) : (
+        <button 
+          type="submit" 
+          className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-[0.2em] text-[10px] p-5 rounded-[1.5rem] transition-all shadow-lg shadow-indigo-900/20 mt-6 active:scale-[0.98] cursor-pointer"
+        >
+          Execute Matrix Generation
+        </button>
+      )}
     </form>
   );
 }

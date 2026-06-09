@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import PlayersList from "./players-list";
 import AddPlayerForm from "./add-player-form";
 import { syncMemberships } from "@/src/utils/sync-memberships";
+import { assertWritePrivilege, getIsReadOnly } from "@/src/utils/auth-guards";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,7 @@ interface PageProps {
 export default async function AdminPlayersPage({ searchParams }: PageProps) {
   // Ensure team memberships are synchronized
   await syncMemberships();
+  const isReadOnly = await getIsReadOnly();
 
   const params = await searchParams;
 
@@ -75,6 +77,7 @@ export default async function AdminPlayersPage({ searchParams }: PageProps) {
   // 3. Server Action to add players (supports comma-separated names)
   async function addPlayer(formData: FormData) {
     "use server";
+    await assertWritePrivilege();
     const nameInput = formData.get("name") as string;
     const teamIdVal = formData.get("teamId");
     const teamId = teamIdVal ? Number(teamIdVal) : null;
@@ -135,6 +138,7 @@ export default async function AdminPlayersPage({ searchParams }: PageProps) {
   // 4. Server Action to delete a player
   async function deletePlayer(formData: FormData) {
     "use server";
+    await assertWritePrivilege();
     const id = Number(formData.get("id"));
 
     await db.transaction(async (tx) => {
@@ -156,6 +160,7 @@ export default async function AdminPlayersPage({ searchParams }: PageProps) {
   // 5. Server Action to change a player's team inline
   async function changePlayerTeam(formData: FormData) {
     "use server";
+    await assertWritePrivilege();
     const playerId = Number(formData.get("playerId"));
     const teamIdVal = formData.get("teamId");
     const teamId = teamIdVal ? Number(teamIdVal) : null;
@@ -203,6 +208,7 @@ export default async function AdminPlayersPage({ searchParams }: PageProps) {
   // 6. Server Action to bulk assign multiple players to a team
   async function bulkAssignPlayers(formData: FormData) {
     "use server";
+    await assertWritePrivilege();
     const playerIdsStr = formData.get("playerIds") as string;
     const teamIdVal = formData.get("teamId");
     const teamId = teamIdVal ? Number(teamIdVal) : null;
@@ -262,12 +268,14 @@ export default async function AdminPlayersPage({ searchParams }: PageProps) {
         </header>
 
         {/* Add Player Form (Preserves team select state) */}
-        <AddPlayerForm 
-          teams={allTeams}
-          seasonId={selectedSeasonId}
-          addPlayerAction={addPlayer}
-        />
-
+        {!isReadOnly && (
+          <AddPlayerForm 
+            teams={allTeams}
+            seasonId={selectedSeasonId}
+            addPlayerAction={addPlayer}
+          />
+        )}
+ 
         {/* Players List with Client-Side Interactive Filtering */}
         <PlayersList 
           initialPlayers={allPlayers}
@@ -277,9 +285,9 @@ export default async function AdminPlayersPage({ searchParams }: PageProps) {
           deletePlayerAction={deletePlayer}
           changePlayerTeamAction={changePlayerTeam}
           bulkAssignPlayersAction={bulkAssignPlayers}
+          isReadOnly={isReadOnly}
         />
       </div>
     </div>
   );
 }
-

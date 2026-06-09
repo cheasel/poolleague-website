@@ -7,6 +7,7 @@ import { Calendar, Trophy, Edit, Save, AlertTriangle } from "lucide-react";
 import { revalidatePath } from "next/cache";
 import BackButton from "./BackButton";
 import { updateSeasonEndDate } from "@/src/utils/season-utils";
+import { assertWritePrivilege, getIsReadOnly } from "@/src/utils/auth-guards";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,7 @@ interface PageProps {
 export default async function AdminMatchDetailPage({ params }: PageProps) {
   const { id } = await params;
   const matchId = Number(id);
+  const isReadOnly = await getIsReadOnly();
 
   // Set up aliases for joining the same table (teams) twice
   const homeTeamsAlias = alias(teams, "homeTeamsAlias");
@@ -96,6 +98,7 @@ export default async function AdminMatchDetailPage({ params }: PageProps) {
   // --- MUTATION: UPDATE MATCH DETAILS ---
   async function updateMatchDetails(formData: FormData) {
     "use server";
+    await assertWritePrivilege();
     const homeId = Number(formData.get("homeTeamId"));
     const awayId = Number(formData.get("awayTeamId"));
     const week = Number(formData.get("weekNumber"));
@@ -190,7 +193,7 @@ export default async function AdminMatchDetailPage({ params }: PageProps) {
             href={`/admin/matches/${matchId}/scorecard`}
             className="inline-flex items-center gap-2 px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-black uppercase tracking-widest text-[10px] rounded-2xl transition-all shadow-lg shadow-indigo-900/20 active:scale-95"
           >
-            Open Live Digital Scorecard Panel
+            {isReadOnly ? "View Digital Scorecard Panel" : "Open Live Digital Scorecard Panel"}
           </Link>
         </div>
       </section>
@@ -204,9 +207,11 @@ export default async function AdminMatchDetailPage({ params }: PageProps) {
             <Edit className="w-5 h-5" />
           </div>
           <div>
-            <h2 className="text-lg font-black text-white uppercase tracking-tight">Edit Match Details</h2>
+            <h2 className="text-lg font-black text-white uppercase tracking-tight">
+              {isReadOnly ? "Match Details" : "Edit Match Details"}
+            </h2>
             <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mt-0.5">
-              Update matchup, scheduling timestamp, or status
+              {isReadOnly ? "Scheduling timestamp, matchup, or status details" : "Update matchup, scheduling timestamp, or status"}
             </p>
           </div>
         </div>
@@ -221,7 +226,8 @@ export default async function AdminMatchDetailPage({ params }: PageProps) {
                 name="homeTeamId" 
                 defaultValue={match.homeTeamId || ""}
                 required 
-                className="w-full p-3.5 bg-slate-950 border border-slate-800 rounded-xl font-bold text-xs uppercase text-white outline-none focus:border-indigo-500 transition-all shadow-inner cursor-pointer"
+                disabled={isReadOnly}
+                className="w-full p-3.5 bg-slate-950 border border-slate-800 rounded-xl font-bold text-xs uppercase text-white outline-none focus:border-indigo-500 transition-all shadow-inner cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {allTeams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
               </select>
@@ -234,7 +240,8 @@ export default async function AdminMatchDetailPage({ params }: PageProps) {
                 name="awayTeamId" 
                 defaultValue={match.awayTeamId || ""}
                 required 
-                className="w-full p-3.5 bg-slate-950 border border-slate-800 rounded-xl font-bold text-xs uppercase text-white outline-none focus:border-indigo-500 transition-all shadow-inner cursor-pointer"
+                disabled={isReadOnly}
+                className="w-full p-3.5 bg-slate-950 border border-slate-800 rounded-xl font-bold text-xs uppercase text-white outline-none focus:border-indigo-500 transition-all shadow-inner cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {allTeams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
               </select>
@@ -249,7 +256,8 @@ export default async function AdminMatchDetailPage({ params }: PageProps) {
                 min="1"
                 defaultValue={match.weekNumber || 1}
                 required 
-                className="w-full p-3.5 bg-slate-950 border border-slate-800 rounded-xl font-bold text-xs text-white uppercase outline-none focus:border-indigo-500 transition-all shadow-inner" 
+                disabled={isReadOnly}
+                className="w-full p-3.5 bg-slate-950 border border-slate-800 rounded-xl font-bold text-xs text-white uppercase outline-none focus:border-indigo-500 transition-all shadow-inner disabled:opacity-60 disabled:cursor-not-allowed" 
               />
             </div>
 
@@ -261,7 +269,8 @@ export default async function AdminMatchDetailPage({ params }: PageProps) {
                 type="datetime-local" 
                 defaultValue={formatDateTimeLocal(match.matchDate)}
                 required 
-                className="w-full p-3.5 bg-slate-950 border border-slate-800 rounded-xl font-bold text-xs text-white uppercase outline-none focus:border-indigo-500 transition-all shadow-inner" 
+                disabled={isReadOnly}
+                className="w-full p-3.5 bg-slate-950 border border-slate-800 rounded-xl font-bold text-xs text-white uppercase outline-none focus:border-indigo-500 transition-all shadow-inner disabled:opacity-60 disabled:cursor-not-allowed" 
               />
             </div>
 
@@ -272,7 +281,8 @@ export default async function AdminMatchDetailPage({ params }: PageProps) {
                 name="status" 
                 defaultValue={match.status || "scheduled"}
                 required 
-                className="w-full p-3.5 bg-slate-950 border border-slate-800 rounded-xl font-bold text-xs uppercase text-white outline-none focus:border-indigo-500 transition-all shadow-inner cursor-pointer"
+                disabled={isReadOnly}
+                className="w-full p-3.5 bg-slate-950 border border-slate-800 rounded-xl font-bold text-xs uppercase text-white outline-none focus:border-indigo-500 transition-all shadow-inner cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 <option value="scheduled">Scheduled</option>
                 <option value="live">Live</option>
@@ -282,14 +292,16 @@ export default async function AdminMatchDetailPage({ params }: PageProps) {
             </div>
           </div>
 
-          <div className="flex justify-end pt-4">
-            <button 
-              type="submit" 
-              className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-4 rounded-xl font-black uppercase tracking-widest text-xs transition-all shadow-lg shadow-indigo-900/20 active:scale-95 flex items-center justify-center gap-2"
-            >
-              <Save className="w-4 h-4" /> Save Match Details
-            </button>
-          </div>
+          {!isReadOnly && (
+            <div className="flex justify-end pt-4">
+              <button 
+                type="submit" 
+                className="bg-indigo-600 hover:bg-indigo-500 text-white px-8 py-4 rounded-xl font-black uppercase tracking-widest text-xs transition-all shadow-lg shadow-indigo-900/20 active:scale-95 flex items-center justify-center gap-2"
+              >
+                <Save className="w-4 h-4" /> Save Match Details
+              </button>
+            </div>
+          )}
         </form>
       </section>
     </div>

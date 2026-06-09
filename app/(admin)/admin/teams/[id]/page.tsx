@@ -3,9 +3,9 @@ import { teams, venues } from "@/src/db/schema";
 import { eq, and, ne, count } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-// 🎯 Fixed import path exactly as requested
 import { supabaseAdmin } from "@/src/lib/supabase-storage"; 
 import EditTeamForm from "./EditTeamForm";
+import { assertWritePrivilege, getIsReadOnly } from "@/src/utils/auth-guards";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +16,7 @@ interface PageProps {
 export default async function EditTeamPage({ params }: PageProps) {
   const resolvedParams = await params;
   const teamId = Number(resolvedParams.id);
+  const isReadOnly = await getIsReadOnly();
 
   // 1. Fetch team, all venues, and current venue occupancy counts in parallel
   const [teamResult, allVenuesRaw, venueCounts] = await Promise.all([
@@ -54,6 +55,7 @@ export default async function EditTeamPage({ params }: PageProps) {
   // --- SERVER ACTION: PERSIST TEAM CHANGES & PURGE OLD ASSET ---
   async function updateTeam(prevState: { error?: string; success?: boolean } | null, formData: FormData) {
     "use server";
+    await assertWritePrivilege();
 
     const targetTeamId = Number(formData.get("teamId"));
     const updatedName = (formData.get("name") as string)?.trim();
@@ -167,6 +169,7 @@ export default async function EditTeamPage({ params }: PageProps) {
         team={team} 
         venuesList={venuesWithCounts} 
         updateTeamAction={updateTeam} 
+        isReadOnly={isReadOnly}
       />
     </div>
   );

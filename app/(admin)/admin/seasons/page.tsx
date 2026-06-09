@@ -2,12 +2,15 @@ import { db } from "@/src/db";
 import { seasons, divisions, teamRegistrations } from "@/src/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { History, Plus, Calendar, Edit2 } from "lucide-react";
+import { History, Plus, Calendar, Edit2, Eye } from "lucide-react";
 import Link from "next/link";
+import { assertWritePrivilege, getIsReadOnly } from "@/src/utils/auth-guards";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminSeasonsPage() {
+  const isReadOnly = await getIsReadOnly();
+
   // 1. Fetch all seasons, sorting the newest ones to the top
   const allSeasons = await db.select().from(seasons).orderBy(desc(seasons.startDate));
 
@@ -16,6 +19,7 @@ export default async function AdminSeasonsPage() {
   // =========================================================================
   async function createSeasonAction(formData: FormData) {
     "use server";
+    await assertWritePrivilege();
     const name = formData.get("seasonName") as string;
     const startStr = formData.get("startDate") as string;
     const endStr = formData.get("endDate") as string;
@@ -119,7 +123,7 @@ export default async function AdminSeasonsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
         {/* LEFT COLUMN: SEASONS LIST */}
-        <div className="lg:col-span-7 space-y-4">
+        <div className={`${isReadOnly ? "lg:col-span-12" : "lg:col-span-7"} space-y-4`}>
           <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 block px-1">
             Historical & Current Timelines ({allSeasons.length})
           </span>
@@ -155,8 +159,17 @@ export default async function AdminSeasonsPage() {
                 href={`/admin/seasons/${season.id}`}
                 className="flex items-center gap-2 px-4 py-2.5 bg-slate-950 hover:bg-slate-800/80 border border-slate-800 hover:border-slate-700 rounded-xl text-[10px] font-black uppercase tracking-wider text-slate-400 hover:text-slate-100 transition-all shadow-sm shrink-0"
               >
-                <Edit2 className="w-3 h-3 text-indigo-400" />
-                <span>Edit Timeline</span>
+                {isReadOnly ? (
+                  <>
+                    <Eye className="w-3 h-3 text-indigo-400" />
+                    <span>View Details</span>
+                  </>
+                ) : (
+                  <>
+                    <Edit2 className="w-3 h-3 text-indigo-400" />
+                    <span>Edit Timeline</span>
+                  </>
+                )}
               </Link>
             </div>
           ))}
@@ -169,7 +182,8 @@ export default async function AdminSeasonsPage() {
         </div>
  
         {/* RIGHT COLUMN: INITIALIZE SEASON FACTORY */}
-        <div className="lg:col-span-5 bg-slate-900/40 p-6 rounded-[2.5rem] border border-slate-900 shadow-2xl sticky top-6">
+        {!isReadOnly && (
+          <div className="lg:col-span-5 bg-slate-900/40 p-6 rounded-[2.5rem] border border-slate-900 shadow-2xl sticky top-6">
           <div className="flex items-center gap-2 pb-4 border-b border-slate-800 mb-6">
             <History className="w-4 h-4 text-rose-500" />
             <h3 className="text-xs font-black uppercase tracking-widest text-slate-500">Initialize New Season</h3>
@@ -226,8 +240,9 @@ export default async function AdminSeasonsPage() {
             >
               <Plus className="w-4 h-4 stroke-[2.5]" /> Launch Season Block
             </button>
-          </form>
+           </form>
         </div>
+        )}
  
       </div>
     </div>

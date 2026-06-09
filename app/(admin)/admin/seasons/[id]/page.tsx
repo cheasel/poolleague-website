@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Save, ArrowLeft, Trophy } from "lucide-react";
 import DeleteSeasonButton from "./DeleteSeasonButton";
+import { assertWritePrivilege, getIsReadOnly } from "@/src/utils/auth-guards";
 
 export const dynamic = "force-dynamic";
 
@@ -18,6 +19,7 @@ interface PageProps {
 export default async function EditSeasonPage({ params }: PageProps) {
   const { id } = await params;
   const seasonId = Number(id);
+  const isReadOnly = await getIsReadOnly();
 
   const [season] = await db.select().from(seasons).where(eq(seasons.id, seasonId));
 
@@ -38,6 +40,7 @@ export default async function EditSeasonPage({ params }: PageProps) {
 
   async function updateSeason(formData: FormData) {
     "use server";
+    await assertWritePrivilege();
     const name = formData.get("name") as string;
     const isActive = formData.get("isActive") === "true";
     const startStr = formData.get("startDate") as string;
@@ -70,6 +73,7 @@ export default async function EditSeasonPage({ params }: PageProps) {
 
   async function deleteSeason() {
     "use server";
+    await assertWritePrivilege();
     try {
       await db.transaction(async (tx) => {
         await tx.delete(teamMemberships).where(eq(teamMemberships.seasonId, seasonId));
@@ -119,7 +123,8 @@ export default async function EditSeasonPage({ params }: PageProps) {
               name="name" 
               defaultValue={season.name} 
               required 
-              className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-rose-500 outline-none font-bold text-slate-100 transition-all shadow-inner placeholder:text-slate-500"
+              disabled={isReadOnly}
+              className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-rose-500 outline-none font-bold text-slate-100 transition-all shadow-inner placeholder:text-slate-500 disabled:opacity-60 disabled:cursor-not-allowed"
             />
           </div>
 
@@ -129,7 +134,8 @@ export default async function EditSeasonPage({ params }: PageProps) {
               type="date"
               name="startDate" 
               defaultValue={formattedStartDate} 
-              className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-rose-500 outline-none font-bold text-slate-100 transition-all shadow-inner"
+              disabled={isReadOnly}
+              className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-rose-500 outline-none font-bold text-slate-100 transition-all shadow-inner disabled:opacity-60 disabled:cursor-not-allowed"
             />
           </div>
 
@@ -139,7 +145,8 @@ export default async function EditSeasonPage({ params }: PageProps) {
               type="date"
               name="endDate" 
               defaultValue={formattedEndDate} 
-              className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-rose-500 outline-none font-bold text-slate-100 transition-all shadow-inner"
+              disabled={isReadOnly}
+              className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-rose-500 outline-none font-bold text-slate-100 transition-all shadow-inner disabled:opacity-60 disabled:cursor-not-allowed"
             />
           </div>
 
@@ -148,21 +155,26 @@ export default async function EditSeasonPage({ params }: PageProps) {
             <select 
               name="isActive" 
               defaultValue={season.isActive ? "true" : "false"}
-              className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-rose-500 outline-none font-bold text-slate-100 appearance-none transition-all shadow-inner"
+              disabled={isReadOnly}
+              className="w-full p-4 bg-slate-950 border border-slate-800 rounded-2xl focus:border-rose-500 outline-none font-bold text-slate-100 appearance-none transition-all shadow-inner disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <option value="true">Active (Accepting Live Results)</option>
               <option value="false">Archived / Historic Split</option>
             </select>
           </div>
 
-          <button className="w-full bg-rose-600 hover:bg-rose-500 text-white p-5 rounded-[1.5rem] font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 transition-all shadow-lg shadow-rose-900/20 active:scale-95">
-            <Save className="w-4 h-4 stroke-[2.5]" /> Commit Season Parameter Changes
-          </button>
+          {!isReadOnly && (
+            <button className="w-full bg-rose-600 hover:bg-rose-500 text-white p-5 rounded-[1.5rem] font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 transition-all shadow-lg shadow-rose-900/20 active:scale-95">
+              <Save className="w-4 h-4 stroke-[2.5]" /> Commit Season Parameter Changes
+            </button>
+          )}
         </form>
 
-        <div className="mt-6 border-t border-slate-900/60 pt-6">
-          <DeleteSeasonButton action={deleteSeason} seasonName={season.name} isFinished={isFinished} />
-        </div>
+        {!isReadOnly && (
+          <div className="mt-6 border-t border-slate-900/60 pt-6">
+            <DeleteSeasonButton action={deleteSeason} seasonName={season.name} isFinished={isFinished} />
+          </div>
+        )}
       </div>
     </div>
   );

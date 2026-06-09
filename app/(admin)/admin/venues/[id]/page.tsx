@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Save, ArrowLeft, Store, MapPin, ToggleLeft, Shield } from "lucide-react";
+import { assertWritePrivilege, getIsReadOnly } from "@/src/utils/auth-guards";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,7 @@ interface PageProps {
 export default async function EditVenuePage({ params }: PageProps) {
   const { id } = await params;
   const venueId = Number(id);
+  const isReadOnly = await getIsReadOnly();
 
   // Fetch exact venue entry and registered home teams in parallel
   const [venueResult, localHomeTeams] = await Promise.all([
@@ -37,6 +39,7 @@ export default async function EditVenuePage({ params }: PageProps) {
   // --- MUTATION SERVER ACTION ---
   async function updateVenue(formData: FormData) {
     "use server";
+    await assertWritePrivilege();
     const name = formData.get("name") as string;
     const address = formData.get("address") as string;
     const isActive = formData.get("isActive") === "true";
@@ -91,7 +94,8 @@ export default async function EditVenuePage({ params }: PageProps) {
                 name="name" 
                 defaultValue={venue.name} 
                 required 
-                className="w-full p-4 bg-slate-950 border border-slate-800 rounded-xl outline-none font-bold text-slate-100 text-sm focus:border-indigo-500/80 transition-all placeholder:text-slate-500" 
+                disabled={isReadOnly}
+                className="w-full p-4 bg-slate-950 border border-slate-800 rounded-xl outline-none font-bold text-slate-100 text-sm focus:border-indigo-500/80 transition-all placeholder:text-slate-500 disabled:opacity-60 disabled:cursor-not-allowed" 
               />
             </div>
 
@@ -106,7 +110,8 @@ export default async function EditVenuePage({ params }: PageProps) {
                 name="address" 
                 defaultValue={venue.address || ""} 
                 placeholder="e.g., Suite B, 7th Pocket Avenue"
-                className="w-full p-4 bg-slate-950 border border-slate-800 rounded-xl outline-none font-bold text-slate-100 text-sm focus:border-indigo-500/80 transition-all placeholder:text-slate-500" 
+                disabled={isReadOnly}
+                className="w-full p-4 bg-slate-950 border border-slate-800 rounded-xl outline-none font-bold text-slate-100 text-sm focus:border-indigo-500/80 transition-all placeholder:text-slate-500 disabled:opacity-60 disabled:cursor-not-allowed" 
               />
             </div>
 
@@ -120,7 +125,8 @@ export default async function EditVenuePage({ params }: PageProps) {
                 <select 
                   name="isActive" 
                   defaultValue={venue.isActive ? "true" : "false"}
-                  className="w-full p-4 bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl outline-none font-bold text-slate-100 appearance-none text-sm pr-10 cursor-pointer"
+                  disabled={isReadOnly}
+                  className="w-full p-4 bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl outline-none font-bold text-slate-100 appearance-none text-sm pr-10 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   <option value="true">Operational / Active / Accepting Matches</option>
                   <option value="false">Deactivated / Offline / Block New Bookings</option>
@@ -129,11 +135,13 @@ export default async function EditVenuePage({ params }: PageProps) {
               </div>
             </div>
 
-            <div className="pt-4 flex justify-end">
-              <button type="submit" className="w-full sm:w-auto px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-black uppercase tracking-widest text-xs flex items-center gap-2.5 transition-all cursor-pointer">
-                <Save className="w-4 h-4 stroke-[2.5]" /> Commit Location Data
-              </button>
-            </div>
+            {!isReadOnly && (
+              <div className="pt-4 flex justify-end">
+                <button type="submit" className="w-full sm:w-auto px-8 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-black uppercase tracking-widest text-xs flex items-center gap-2.5 transition-all cursor-pointer">
+                  <Save className="w-4 h-4 stroke-[2.5]" /> Commit Location Data
+                </button>
+              </div>
+            )}
           </form>
         </div>
       </div>

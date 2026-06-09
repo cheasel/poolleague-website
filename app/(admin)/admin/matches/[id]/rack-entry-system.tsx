@@ -27,6 +27,7 @@ const RackRow = memo(function RackRow({
   awayPlayers,
   onUpdate,
   onRemove,
+  isReadOnly = false,
 }: {
   idx: number;
   rack: Rack;
@@ -34,6 +35,7 @@ const RackRow = memo(function RackRow({
   awayPlayers: Player[];
   onUpdate: (index: number, field: keyof Rack, value: string | 'home' | 'away' | null) => void;
   onRemove: (index: number) => void;
+  isReadOnly?: boolean;
 }) {
   const isHomeDup = rack.type === 'double' && rack.homePlayer1Id && rack.homePlayer1Id === rack.homePlayer2Id;
   const isAwayDup = rack.type === 'double' && rack.awayPlayer1Id && rack.awayPlayer1Id === rack.awayPlayer2Id;
@@ -60,7 +62,8 @@ const RackRow = memo(function RackRow({
           required
           value={rack.homePlayer1Id} 
           onChange={(e) => onUpdate(idx, 'homePlayer1Id', e.target.value)}
-          className={`w-full p-3 bg-slate-950 border rounded-xl text-xs font-black uppercase text-white outline-none focus:border-indigo-500 transition-all shadow-inner cursor-pointer ${
+          disabled={isReadOnly}
+          className={`w-full p-3 bg-slate-950 border rounded-xl text-xs font-black uppercase text-white outline-none focus:border-indigo-500 transition-all shadow-inner cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${
             isHomeDup ? 'border-rose-900 text-rose-300' : 'border-slate-800'
           }`}
         >
@@ -80,7 +83,8 @@ const RackRow = memo(function RackRow({
             required
             value={rack.homePlayer2Id} 
             onChange={(e) => onUpdate(idx, 'homePlayer2Id', e.target.value)}
-            className={`w-full p-3 bg-slate-950 border rounded-xl text-xs font-black uppercase text-white outline-none focus:border-indigo-500 transition-all shadow-inner cursor-pointer ${
+            disabled={isReadOnly}
+            className={`w-full p-3 bg-slate-950 border rounded-xl text-xs font-black uppercase text-white outline-none focus:border-indigo-500 transition-all shadow-inner cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${
               isHomeDup ? 'border-rose-900 text-rose-300' : 'border-slate-800'
             }`}
           >
@@ -103,12 +107,14 @@ const RackRow = memo(function RackRow({
         <button 
           type="button" 
           onClick={() => onUpdate(idx, 'winner', 'home')}
-          className={`px-5 py-2.5 rounded-xl text-[9px] font-black tracking-widest transition-all cursor-pointer ${rack.winner === 'home' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-600 hover:text-slate-400'}`}
+          disabled={isReadOnly}
+          className={`px-5 py-2.5 rounded-xl text-[9px] font-black tracking-widest transition-all cursor-pointer disabled:pointer-events-none disabled:opacity-50 ${rack.winner === 'home' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-600 hover:text-slate-400'}`}
         >HOME WIN</button>
         <button 
           type="button" 
           onClick={() => onUpdate(idx, 'winner', 'away')}
-          className={`px-5 py-2.5 rounded-xl text-[9px] font-black tracking-widest transition-all cursor-pointer ${rack.winner === 'away' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-600 hover:text-slate-400'}`}
+          disabled={isReadOnly}
+          className={`px-5 py-2.5 rounded-xl text-[9px] font-black tracking-widest transition-all cursor-pointer disabled:pointer-events-none disabled:opacity-50 ${rack.winner === 'away' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-600 hover:text-slate-400'}`}
         >AWAY WIN</button>
       </div>
 
@@ -118,7 +124,8 @@ const RackRow = memo(function RackRow({
           required
           value={rack.awayPlayer1Id} 
           onChange={(e) => onUpdate(idx, 'awayPlayer1Id', e.target.value)}
-          className={`w-full p-3 bg-slate-950 border rounded-xl text-xs font-black uppercase text-white outline-none focus:border-indigo-500 transition-all shadow-inner cursor-pointer ${
+          disabled={isReadOnly}
+          className={`w-full p-3 bg-slate-950 border rounded-xl text-xs font-black uppercase text-white outline-none focus:border-indigo-500 transition-all shadow-inner cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${
             isAwayDup ? 'border-rose-900 text-rose-300' : 'border-slate-800'
           }`}
         >
@@ -138,7 +145,8 @@ const RackRow = memo(function RackRow({
             required
             value={rack.awayPlayer2Id} 
             onChange={(e) => onUpdate(idx, 'awayPlayer2Id', e.target.value)}
-            className={`w-full p-3 bg-slate-950 border rounded-xl text-xs font-black uppercase text-white outline-none focus:border-indigo-500 transition-all shadow-inner cursor-pointer ${
+            disabled={isReadOnly}
+            className={`w-full p-3 bg-slate-950 border rounded-xl text-xs font-black uppercase text-white outline-none focus:border-indigo-500 transition-all shadow-inner cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${
               isAwayDup ? 'border-rose-900 text-rose-300' : 'border-slate-800'
             }`}
           >
@@ -156,13 +164,15 @@ const RackRow = memo(function RackRow({
         )}
       </div>
 
-      <button 
-        type="button" 
-        onClick={() => onRemove(idx)}
-        className="text-slate-700 hover:text-rose-500 transition-colors p-2 outline-none cursor-pointer"
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
-      </button>
+      {!isReadOnly && (
+        <button 
+          type="button" 
+          onClick={() => onRemove(idx)}
+          className="text-slate-700 hover:text-rose-500 transition-colors p-2 outline-none cursor-pointer"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      )}
     </div>
   );
 });
@@ -183,7 +193,8 @@ export default function RackEntrySystem({
   onSave, 
   initialGames = [],
   initialHomeScore = 0,
-  initialAwayScore = 0
+  initialAwayScore = 0,
+  isReadOnly = false
 }: {
   homePlayers: Player[];
   awayPlayers: Player[];
@@ -191,6 +202,7 @@ export default function RackEntrySystem({
   initialGames?: GameRecord[];
   initialHomeScore?: number;
   initialAwayScore?: number;
+  isReadOnly?: boolean;
 }) {
   // Initialize state using the database frames
   const [racks, setRacks] = useState<Rack[]>(() => {
@@ -306,8 +318,9 @@ export default function RackEntrySystem({
               min="0"
               placeholder="e.g. 7"
               value={reportedHomeScore}
+              disabled={isReadOnly}
               onChange={(e) => setReportedHomeScore(e.target.value)}
-              className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white outline-none focus:border-indigo-500 transition-all font-mono"
+              className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white outline-none focus:border-indigo-500 transition-all font-mono disabled:opacity-60 disabled:cursor-not-allowed"
             />
           </div>
           <div className="space-y-1">
@@ -317,8 +330,9 @@ export default function RackEntrySystem({
               min="0"
               placeholder="e.g. 5"
               value={reportedAwayScore}
+              disabled={isReadOnly}
               onChange={(e) => setReportedAwayScore(e.target.value)}
-              className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white outline-none focus:border-indigo-500 transition-all font-mono"
+              className="w-full p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white outline-none focus:border-indigo-500 transition-all font-mono disabled:opacity-60 disabled:cursor-not-allowed"
             />
           </div>
         </div>
@@ -334,28 +348,31 @@ export default function RackEntrySystem({
             awayPlayers={awayPlayers}
             onUpdate={updateRack}
             onRemove={removeRack}
+            isReadOnly={isReadOnly}
           />
         ))}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <button 
-          type="button" 
-          disabled={isPending}
-          onClick={() => addRack('single')}
-          className="py-5 border-2 border-dashed border-slate-800 rounded-[1.5rem] text-slate-600 font-black hover:bg-indigo-950/20 hover:border-indigo-900/50 hover:text-indigo-400 disabled:opacity-20 disabled:cursor-not-allowed transition-all uppercase text-[10px] tracking-[0.2em] cursor-pointer animate-in fade-in"
-        >
-          + Add Singles Frame
-        </button>
-        <button 
-          type="button" 
-          disabled={isPending}
-          onClick={() => addRack('double')}
-          className="py-5 border-2 border-dashed border-slate-800 rounded-[1.5rem] text-slate-600 font-black hover:bg-purple-950/20 hover:border-purple-900/50 hover:text-purple-400 disabled:opacity-20 disabled:cursor-not-allowed transition-all uppercase text-[10px] tracking-[0.2em] cursor-pointer animate-in fade-in"
-        >
-          + Add Doubles Frame
-        </button>
-      </div>
+      {!isReadOnly && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <button 
+            type="button" 
+            disabled={isPending}
+            onClick={() => addRack('single')}
+            className="py-5 border-2 border-dashed border-slate-800 rounded-[1.5rem] text-slate-600 font-black hover:bg-indigo-950/20 hover:border-indigo-900/50 hover:text-indigo-400 disabled:opacity-20 disabled:cursor-not-allowed transition-all uppercase text-[10px] tracking-[0.2em] cursor-pointer animate-in fade-in"
+          >
+            + Add Singles Frame
+          </button>
+          <button 
+            type="button" 
+            disabled={isPending}
+            onClick={() => addRack('double')}
+            className="py-5 border-2 border-dashed border-slate-800 rounded-[1.5rem] text-slate-600 font-black hover:bg-purple-950/20 hover:border-purple-900/50 hover:text-purple-400 disabled:opacity-20 disabled:cursor-not-allowed transition-all uppercase text-[10px] tracking-[0.2em] cursor-pointer animate-in fade-in"
+          >
+            + Add Doubles Frame
+          </button>
+        </div>
+      )}
 
       {/* Verification and Warnings Area */}
       {(hasIncompleteRacks || hasScoreMismatch || hasDuplicateSelection) && (
@@ -405,13 +422,15 @@ export default function RackEntrySystem({
         </div>
       )}
 
-      <button 
-        type="submit" 
-        disabled={isPending || hasIncompleteRacks || hasScoreMismatch || hasDuplicateSelection}
-        className="w-full bg-indigo-600 text-white py-6 rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] hover:bg-indigo-500 disabled:opacity-20 disabled:cursor-not-allowed shadow-2xl shadow-indigo-900/20 transition-all active:scale-[0.98] border border-indigo-500/50 cursor-pointer"
-      >
-        {isPending ? "Submitting Final Match Report..." : "Submit Final Match Report"}
-      </button>
+      {!isReadOnly && (
+        <button 
+          type="submit" 
+          disabled={isPending || hasIncompleteRacks || hasScoreMismatch || hasDuplicateSelection}
+          className="w-full bg-indigo-600 text-white py-6 rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] hover:bg-indigo-500 disabled:opacity-20 disabled:cursor-not-allowed shadow-2xl shadow-indigo-900/20 transition-all active:scale-[0.98] border border-indigo-500/50 cursor-pointer"
+        >
+          {isPending ? "Submitting Final Match Report..." : "Submit Final Match Report"}
+        </button>
+      )}
     </form>
   );
 }

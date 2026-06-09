@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import RackEntrySystem from "../rack-entry-system";
 import { redirect } from "next/navigation";
+import { assertWritePrivilege, getIsReadOnly } from "@/src/utils/auth-guards";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,7 @@ interface PageProps {
 export default async function MatchScorecardPage({ params }: PageProps) {
   const { id } = await params;
   const matchId = Number(id);
+  const isReadOnly = await getIsReadOnly();
 
   // Fetch parent match metadata
   const [match] = await db
@@ -91,6 +93,7 @@ export default async function MatchScorecardPage({ params }: PageProps) {
   // Single comprehensive Server Action handling the client state structure
   async function saveFullScorecardAction(formData: FormData) {
     "use server";
+    await assertWritePrivilege();
     const jsonRaw = formData.get("racksJson") as string;
     if (!jsonRaw) return;
 
@@ -208,6 +211,7 @@ export default async function MatchScorecardPage({ params }: PageProps) {
         initialHomeScore={match.homeTeamScoreTotal ?? 0}
         initialAwayScore={match.awayTeamScoreTotal ?? 0}
         onSave={saveFullScorecardAction} 
+        isReadOnly={isReadOnly}
       />
     </div>
   );

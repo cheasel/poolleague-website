@@ -7,6 +7,7 @@ import Link from "next/link";
 import { updateSeasonEndDate } from "@/src/utils/season-utils";
 import { ArrowLeft, Sparkles, AlertTriangle } from "lucide-react";
 import GeneratorForm from "./GeneratorForm";
+import { assertWritePrivilege, getIsReadOnly } from "@/src/utils/auth-guards";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,7 @@ interface GeneratorPageProps {
 }
 
 export default async function MatchScheduleGeneratorPage({ searchParams }: GeneratorPageProps) {
+  const isReadOnly = await getIsReadOnly();
   const params = await searchParams;
   const error = params.error;
   const errorDate = params.date;
@@ -62,6 +64,7 @@ export default async function MatchScheduleGeneratorPage({ searchParams }: Gener
   // --- ROUND-ROBIN GENERATOR SERVER ACTION ---
   async function generateLeagueSchedule(formData: FormData) {
     "use server";
+    await assertWritePrivilege();
 
     const divisionId = Number(formData.get("divisionId"));
     const startDateStr = formData.get("startDate") as string;
@@ -378,6 +381,7 @@ export default async function MatchScheduleGeneratorPage({ searchParams }: Gener
           seasons={allSeasons}
           selectedDivId={selectedDivId}
           action={generateLeagueSchedule}
+          isReadOnly={isReadOnly}
         />
       </section>
     </div>

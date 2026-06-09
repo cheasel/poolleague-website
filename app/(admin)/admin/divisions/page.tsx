@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { Plus, FolderTree } from "lucide-react";
 import DivisionsList from "./divisions-list";
 import SeasonSelector from "@/components/SeasonSelector";
+import { assertWritePrivilege, getIsReadOnly } from "@/src/utils/auth-guards";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,7 @@ interface PageProps {
 
 export default async function AdminDivisionsPage({ searchParams }: PageProps) {
   const resolvedParams = await searchParams;
+  const isReadOnly = await getIsReadOnly();
 
   // 1. Fetch active season, latest season, and all seasons list in parallel
   const [activeSeasonResult, latestSeasonResult, allSeasons] = await Promise.all([
@@ -60,6 +62,7 @@ export default async function AdminDivisionsPage({ searchParams }: PageProps) {
   // =========================================================================
   async function createDivisionAction(formData: FormData) {
     "use server";
+    await assertWritePrivilege();
     const name = formData.get("divisionName") as string;
     const tierStr = formData.get("tierLevel") as string;
     const seasonIdVal = formData.get("seasonId");
@@ -82,6 +85,7 @@ export default async function AdminDivisionsPage({ searchParams }: PageProps) {
   // =========================================================================
   async function deleteDivisionAction(formData: FormData) {
     "use server";
+    await assertWritePrivilege();
     const divisionIdStr = formData.get("divisionId") as string;
     if (!divisionIdStr) return;
 
@@ -133,14 +137,16 @@ export default async function AdminDivisionsPage({ searchParams }: PageProps) {
         <DivisionsList 
           initialDivisions={allDivisions} 
           deleteDivisionAction={deleteDivisionAction} 
+          isReadOnly={isReadOnly}
         />
 
         {/* RIGHT COLUMN: QUICK GENERATION FACTORY */}
-        <div className="lg:col-span-5 bg-slate-900/40 p-6 rounded-[2.5rem] border border-slate-900 shadow-2xl sticky top-6">
-          <div className="flex items-center gap-2 pb-4 border-b border-slate-800 mb-6">
-            <FolderTree className="w-4 h-4 text-indigo-400" />
-            <h3 className="text-xs font-black uppercase tracking-widest text-slate-500">Initialize New Tier</h3>
-          </div>
+        {!isReadOnly && (
+          <div className="lg:col-span-5 bg-slate-900/40 p-6 rounded-[2.5rem] border border-slate-900 shadow-2xl sticky top-6">
+            <div className="flex items-center gap-2 pb-4 border-b border-slate-800 mb-6">
+              <FolderTree className="w-4 h-4 text-indigo-400" />
+              <h3 className="text-xs font-black uppercase tracking-widest text-slate-500">Initialize New Tier</h3>
+            </div>
 
           <form action={createDivisionAction} className="space-y-5">
             <div className="space-y-1.5">
@@ -194,6 +200,7 @@ export default async function AdminDivisionsPage({ searchParams }: PageProps) {
             </button>
           </form>
         </div>
+        )}
 
       </div>
     </div>

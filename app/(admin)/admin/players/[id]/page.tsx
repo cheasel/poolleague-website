@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { supabaseAdmin } from "@/src/lib/supabase-storage"; 
 import EditPlayerForm from "./EditPlayerForm";
+import { assertWritePrivilege, getIsReadOnly } from "@/src/utils/auth-guards";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,7 @@ interface PageProps {
 export default async function EditPlayerPage({ params }: PageProps) {
   const resolvedParams = await params;
   const playerId = Number(resolvedParams.id);
+  const isReadOnly = await getIsReadOnly();
 
   // 1. Fetch active season, player profile, and teams list in parallel
   const [activeSeasons, playerRawResult, activeTeams] = await Promise.all([
@@ -57,6 +59,7 @@ export default async function EditPlayerPage({ params }: PageProps) {
   // --- SERVER ACTION: PROCESS UPDATE, CLEAN OLD IMAGE, AND UPLOAD ---
   async function updatePlayer(prevState: { error?: string; success?: boolean } | null, formData: FormData) {
     "use server";
+    await assertWritePrivilege();
 
     const targetPlayerId = Number(formData.get("playerId"));
     const updatedName = (formData.get("name") as string)?.trim();
@@ -247,6 +250,7 @@ export default async function EditPlayerPage({ params }: PageProps) {
         player={player} 
         teamsList={activeTeams} 
         updatePlayerAction={updatePlayer} 
+        isReadOnly={isReadOnly}
       />
     </div>
   );

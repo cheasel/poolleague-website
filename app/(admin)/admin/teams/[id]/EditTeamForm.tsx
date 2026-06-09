@@ -19,9 +19,10 @@ interface EditTeamFormProps {
   };
   venuesList: VenueOption[];
   updateTeamAction: (prevState: { error?: string; success?: boolean } | null, formData: FormData) => Promise<{ error?: string; success?: boolean }>;
+  isReadOnly?: boolean;
 }
 
-export default function EditTeamForm({ team, venuesList, updateTeamAction }: EditTeamFormProps) {
+export default function EditTeamForm({ team, venuesList, updateTeamAction, isReadOnly = false }: EditTeamFormProps) {
   const [state, formAction, isPending] = useActionState(updateTeamAction, { error: "" });
   const [logoPreview, setLogoPreview] = useState<string | null>(team.logoUrl);
 
@@ -72,22 +73,28 @@ export default function EditTeamForm({ team, venuesList, updateTeamAction }: Edi
             </div>
             
             <div className="flex-1 w-full space-y-2">
-              <div className="relative flex items-center justify-center w-full h-24 border-2 border-dashed border-slate-800 hover:border-indigo-500/50 rounded-xl cursor-pointer bg-slate-900/20 transition-all group">
-                <input 
-                    type="file" 
-                    name="logoFile" // 🎯 Must match formData.get("logoFile") exactly!
-                    accept="image/*"
-                    onChange={handleLogoChange}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                />
-                <div className="text-center space-y-1 p-2 pointer-events-none">
-                  <UploadCloud className="w-5 h-5 text-slate-500 group-hover:text-indigo-400 mx-auto transition-colors" />
-                  <p className="text-[10px] font-black uppercase text-slate-400 group-hover:text-slate-100 transition-colors">
-                    Upload New Crest Image
-                  </p>
-                  <p className="text-[9px] text-slate-600 font-bold uppercase">PNG, JPG up to 2MB</p>
+              {!isReadOnly ? (
+                <div className="relative flex items-center justify-center w-full h-24 border-2 border-dashed border-slate-800 hover:border-indigo-500/50 rounded-xl cursor-pointer bg-slate-900/20 transition-all group">
+                  <input 
+                      type="file" 
+                      name="logoFile" // 🎯 Must match formData.get("logoFile") exactly!
+                      accept="image/*"
+                      onChange={handleLogoChange}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                  />
+                  <div className="text-center space-y-1 p-2 pointer-events-none">
+                    <UploadCloud className="w-5 h-5 text-slate-500 group-hover:text-indigo-400 mx-auto transition-colors" />
+                    <p className="text-[10px] font-black uppercase text-slate-400 group-hover:text-slate-100 transition-colors">
+                      Upload New Crest Image
+                    </p>
+                    <p className="text-[9px] text-slate-600 font-bold uppercase">PNG, JPG up to 2MB</p>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="flex items-center justify-center w-full h-24 border border-slate-800 rounded-xl bg-slate-950/30 text-slate-500 text-[10px] font-black uppercase tracking-wider">
+                  Emblem Editing Disabled
+                </div>
+              )}
               {/* Fallback hidden input to pass existing URL if file isn't updated */}
               <input type="hidden" name="existingLogoUrl" value={team.logoUrl || ""} />
             </div>
@@ -104,8 +111,9 @@ export default function EditTeamForm({ team, venuesList, updateTeamAction }: Edi
             name="name"
             required
             defaultValue={team.name}
+            disabled={isReadOnly}
             placeholder="e.g., Spitfire Shooters"
-            className="w-full p-3.5 bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl outline-none font-bold text-slate-100 text-xs transition-all"
+            className="w-full p-3.5 bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl outline-none font-bold text-slate-100 text-xs transition-all disabled:opacity-60 disabled:cursor-not-allowed"
           />
         </div>
 
@@ -118,7 +126,8 @@ export default function EditTeamForm({ team, venuesList, updateTeamAction }: Edi
             <select
               name="homeVenueId"
               defaultValue={team.homeVenueId ?? ""}
-              className="w-full p-3.5 bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl outline-none font-bold text-slate-100 text-xs appearance-none pr-10 cursor-pointer"
+              disabled={isReadOnly}
+              className="w-full p-3.5 bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl outline-none font-bold text-slate-100 text-xs appearance-none pr-10 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <option value="">-- No Home Venue Assigned --</option>
               {venuesList.map((venue) => {
@@ -151,17 +160,19 @@ export default function EditTeamForm({ team, venuesList, updateTeamAction }: Edi
             href="/admin/teams"
             className="px-5 py-3.5 bg-slate-950 hover:bg-slate-900 border border-slate-800 rounded-xl text-[10px] font-black uppercase tracking-widest text-slate-400 transition-all"
           >
-            Abort Modifications
+            {isReadOnly ? "Back to Squads" : "Abort Modifications"}
           </Link>
           
-          <button
-            type="submit"
-            disabled={isPending}
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 disabled:text-slate-500 text-white px-6 py-3.5 rounded-xl font-black uppercase tracking-widest text-[10px] transition-all shadow-md active:scale-[0.98]"
-          >
-            <Save className="w-3.5 h-3.5 stroke-[3]" />
-            {isPending ? "Syncing Roster..." : "Commit Team Records"}
-          </button>
+          {!isReadOnly && (
+            <button
+              type="submit"
+              disabled={isPending}
+              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 disabled:text-slate-500 text-white px-6 py-3.5 rounded-xl font-black uppercase tracking-widest text-[10px] transition-all shadow-md active:scale-[0.98]"
+            >
+              <Save className="w-3.5 h-3.5 stroke-[3]" />
+              {isPending ? "Syncing Roster..." : "Commit Team Records"}
+            </button>
+          )}
         </div>
       </form>
     </div>
