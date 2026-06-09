@@ -18,7 +18,7 @@ A full-stack, highly optimized web application built for local pool leagues in C
 - **Unique Cache Key Serialization**: Wrapper patterns around Next.js `unstable_cache` prevent query collisions across varying entities (players, teams, and seasons).
 
 ### 🛠️ Admin Management Panel
-- **Role-Based Protection**: Administrative paths protected via Supabase authentication middleware.
+- **Role-Based Protection**: Administrative paths protected via Supabase authentication middleware. Enforces strict Role-Based Access Control (RBAC) where users mapped to the `"viewer"` role are restricted to read-only access (hiding forms/buttons and disabling inputs), while `"admin"` and `"captain"` roles retain write access.
 - **League Schedule Generator**: Custom algorithm for automatic fixture creation and venue double-booking validations.
 - **Scorecard Entry System**: Live scorecard entry for team matches, supporting individual frame wins, singles/doubles game setups, and automatic stats aggregation.
 - **Safe Archiving Guard**: Confirmation safety checks requiring organizers to type the exact name of an archived or completed season before executing a delete command.
@@ -91,3 +91,10 @@ Compile the production optimized Next.js project layout:
 ```bash
 npm run build
 ```
+
+### 7. Supabase Database Backup
+For databases on the Supabase Free Tier, perform a local JSON backup of all database tables (seasons, divisions, venues, teams, players, memberships, match fixtures, game logs, and profiles) with a single command:
+```bash
+npm run db:backup
+```
+The backup creates a timestamped JSON file inside the local `backups/` directory (which is git-ignored).
