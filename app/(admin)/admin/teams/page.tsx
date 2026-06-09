@@ -2,12 +2,13 @@ import { db } from "@/src/db";
 import { teams, divisions, seasons, venues, teamRegistrations, teamMemberships, matches } from "@/src/db/schema";
 import { eq, asc, desc, count, and } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { Plus, Trash2, MapPin, Eye } from "lucide-react";
+import { Plus, MapPin, Eye } from "lucide-react";
 import Link from 'next/link';
 import Image from 'next/image';
 import SeasonSelector from "./SeasonSelector";
 import { syncTeamRegistrations } from "@/src/utils/sync-team-registrations";
 import { assertWritePrivilege, getIsReadOnly } from "@/src/utils/auth-guards";
+import DeleteTeamButton from "./DeleteTeamButton";
 
 export const dynamic = "force-dynamic";
 
@@ -372,16 +373,7 @@ export default async function AdminTeamsPage({ searchParams }: PageProps) {
                     </Link>
 
                     {!isReadOnly && (
-                      <form action={deleteTeam} onSubmit={(e) => {
-                        if (!confirm("Are you sure you want to delete this team? All memberships and registrations will be deleted.")) {
-                          e.preventDefault();
-                        }
-                      }}>
-                        <input type="hidden" name="id" value={team.id} />
-                        <button className="p-2 text-slate-800 hover:text-red-500 transition-colors cursor-pointer">
-                          <Trash2 className="w-5 h-5" />
-                        </button>
-                      </form>
+                      <DeleteTeamButton teamId={team.id} deleteAction={deleteTeam} />
                     )}
                   </div>
                 </div>
