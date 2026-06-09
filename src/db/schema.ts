@@ -2,7 +2,7 @@ import { pgTable, serial, text, integer, varchar, timestamp, boolean, uuid, pgEn
 import { relations, sql } from 'drizzle-orm';
 
 // 1. Enums for type safety
-export const roleEnum = pgEnum('role', ['admin', 'captain', 'viewer']);
+export const roleEnum = pgEnum('role', ['superadmin', 'admin', 'captain', 'viewer']);
 export const matchStatusEnum = pgEnum('match_status', ['scheduled', 'live', 'completed', 'cancelled']);
 export const gameTypeEnum = pgEnum('game_type', ['single', 'double']);
 

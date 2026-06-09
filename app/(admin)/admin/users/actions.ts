@@ -33,14 +33,31 @@ async function checkAdminAuthorization() {
     .from(profiles)
     .where(eq(profiles.id, user.id));
 
-  if (!callerProfile || callerProfile.role !== "admin") {
+  if (!callerProfile || (callerProfile.role !== "admin" && callerProfile.role !== "superadmin")) {
     throw new Error("Unauthorized: Only administrators can manage user accounts.");
   }
-  return user;
+  return callerProfile;
 }
 
-export async function updateUserRoleAction(targetUserId: string, newRole: "admin" | "captain" | "viewer") {
-  await checkAdminAuthorization();
+export async function updateUserRoleAction(
+  targetUserId: string,
+  newRole: "superadmin" | "admin" | "captain" | "viewer"
+) {
+  const caller = await checkAdminAuthorization();
+
+  // Enforce hierarchy: admins cannot set roles to admin/superadmin, nor edit admin/superadmin users
+  if (caller.role === "admin") {
+    if (newRole === "admin" || newRole === "superadmin") {
+      throw new Error("Unauthorized: Administrators cannot assign admin or superadmin privileges.");
+    }
+    const [targetProfile] = await db
+      .select()
+      .from(profiles)
+      .where(eq(profiles.id, targetUserId));
+    if (targetProfile && (targetProfile.role === "admin" || targetProfile.role === "superadmin")) {
+      throw new Error("Unauthorized: Administrators cannot modify other admin or superadmin accounts.");
+    }
+  }
 
   // Update target user's role in the database
   await db
@@ -55,9 +72,16 @@ export async function updateUserRoleAction(targetUserId: string, newRole: "admin
 export async function createUserAction(
   email: string,
   password: string,
-  role: "admin" | "captain" | "viewer"
+  role: "superadmin" | "admin" | "captain" | "viewer"
 ) {
-  await checkAdminAuthorization();
+  const caller = await checkAdminAuthorization();
+
+  // Enforce hierarchy: admins cannot create admin/superadmin users
+  if (caller.role === "admin") {
+    if (role === "admin" || role === "superadmin") {
+      throw new Error("Unauthorized: Administrators cannot create admin or superadmin accounts.");
+    }
+  }
 
   const adminClient = getAdminClient();
 
@@ -102,10 +126,21 @@ export async function createUserAction(
 }
 
 export async function deleteUserAction(targetUserId: string) {
-  const currentUser = await checkAdminAuthorization();
+  const caller = await checkAdminAuthorization();
 
-  if (currentUser.id === targetUserId) {
-    throw new Error("For safety, you cannot delete your own active administrator account.");
+  if (caller.id === targetUserId) {
+    throw new Error("For safety, you cannot delete your own active account.");
+  }
+
+  // Enforce hierarchy: admins cannot delete admin/superadmin users
+  if (caller.role === "admin") {
+    const [targetProfile] = await db
+      .select()
+      .from(profiles)
+      .where(eq(profiles.id, targetUserId));
+    if (targetProfile && (targetProfile.role === "admin" || targetProfile.role === "superadmin")) {
+      throw new Error("Unauthorized: Administrators cannot delete admin or superadmin accounts.");
+    }
   }
 
   const adminClient = getAdminClient();
@@ -141,7 +176,18 @@ export async function getCurrentUserProfileAction() {
 }
 
 export async function changeUserPasswordAction(targetUserId: string, newPassword: string) {
-  await checkAdminAuthorization();
+  const caller = await checkAdminAuthorization();
+
+  // Enforce hierarchy: admins cannot modify passwords for admin/superadmin accounts
+  if (caller.role === "admin") {
+    const [targetProfile] = await db
+      .select()
+      .from(profiles)
+      .where(eq(profiles.id, targetUserId));
+    if (targetProfile && (targetProfile.role === "admin" || targetProfile.role === "superadmin")) {
+      throw new Error("Unauthorized: Administrators cannot modify passwords for admin or superadmin accounts.");
+    }
+  }
 
   const adminClient = getAdminClient();
 

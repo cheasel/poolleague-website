@@ -7,16 +7,17 @@ import { updateUserRoleAction, createUserAction, deleteUserAction, changeUserPas
 interface UserProfile {
   id: string;
   email: string;
-  role: "admin" | "captain" | "viewer";
+  role: "superadmin" | "admin" | "captain" | "viewer";
   createdAt: Date;
 }
 
 interface UsersListProps {
   users: UserProfile[];
   currentUserId: string;
+  callerRole: "superadmin" | "admin";
 }
 
-export default function UsersList({ users, currentUserId }: UsersListProps) {
+export default function UsersList({ users, currentUserId, callerRole }: UsersListProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -25,7 +26,7 @@ export default function UsersList({ users, currentUserId }: UsersListProps) {
   // Create User Form state
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [newRole, setNewRole] = useState<"admin" | "captain" | "viewer">("viewer");
+  const [newRole, setNewRole] = useState<"superadmin" | "admin" | "captain" | "viewer">("viewer");
   const [isFormOpen, setIsFormOpen] = useState(false);
 
   // Password Reset Form state
@@ -36,7 +37,7 @@ export default function UsersList({ users, currentUserId }: UsersListProps) {
 
   const [isPending, startTransition] = useTransition();
 
-  const handleRoleChange = (userId: string, newRole: "admin" | "captain" | "viewer") => {
+  const handleRoleChange = (userId: string, newRole: "superadmin" | "admin" | "captain" | "viewer") => {
     setUpdatingId(userId);
     setSuccessMsg(null);
     setErrorMsg(null);
@@ -240,12 +241,17 @@ export default function UsersList({ users, currentUserId }: UsersListProps) {
                 <div className="relative">
                   <select
                     value={newRole}
-                    onChange={(e) => setNewRole(e.target.value as "admin" | "captain" | "viewer")}
+                    onChange={(e) => setNewRole(e.target.value as "superadmin" | "admin" | "captain" | "viewer")}
                     className="w-full p-3 bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl outline-none font-bold text-slate-100 appearance-none text-xs pr-10 cursor-pointer"
                   >
                     <option value="viewer">Viewer (Read-Only)</option>
                     <option value="captain">Captain (Roster / Scorecard)</option>
-                    <option value="admin">Administrator (Full Access)</option>
+                    {callerRole === "superadmin" && (
+                      <>
+                        <option value="admin">Administrator (Full Access)</option>
+                        <option value="superadmin">Super Admin (All Privilege)</option>
+                      </>
+                    )}
                   </select>
                   <span className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-[8px] text-slate-500">▼</span>
                 </div>
@@ -297,6 +303,12 @@ export default function UsersList({ users, currentUserId }: UsersListProps) {
                   const isUpdating = updatingId === user.id && isPending;
                   const isSelf = user.id === currentUserId;
 
+                  // Enforce hierarchy: admins cannot manage other admins or superadmins
+                  const isManageable = callerRole === "superadmin" || 
+                    (callerRole === "admin" && user.role !== "admin" && user.role !== "superadmin");
+
+                  const isUserAdmin = user.role === "admin" || user.role === "superadmin";
+
                   return (
                     <tr key={user.id} className="border-b border-slate-850/60 hover:bg-slate-900/10 transition-colors group">
                       {/* Email */}
@@ -322,23 +334,30 @@ export default function UsersList({ users, currentUserId }: UsersListProps) {
                           <div className="relative shrink-0">
                             <select
                               value={user.role}
-                              disabled={isUpdating || isSelf}
-                              onChange={(e) => handleRoleChange(user.id, e.target.value as "admin" | "captain" | "viewer")}
+                              disabled={isUpdating || isSelf || !isManageable}
+                              onChange={(e) => handleRoleChange(user.id, e.target.value as "superadmin" | "admin" | "captain" | "viewer")}
                               className={`bg-slate-950 border border-slate-800 focus:border-indigo-500 text-xs font-bold text-slate-200 rounded-lg py-1.5 pl-3 pr-8 outline-none appearance-none cursor-pointer transition-all shadow-sm ${
-                                isSelf ? "opacity-50 cursor-not-allowed" : ""
+                                isSelf || !isManageable ? "opacity-50 cursor-not-allowed" : ""
                               }`}
                             >
                               <option value="viewer">Viewer (Read-Only)</option>
                               <option value="captain">Captain (Roster / Scorecard)</option>
-                              <option value="admin">Administrator (Full Access)</option>
+                              {(callerRole === "superadmin" || user.role === "admin") && (
+                                <option value="admin">Administrator (Full Access)</option>
+                              )}
+                              {(callerRole === "superadmin" || user.role === "superadmin") && (
+                                <option value="superadmin">Super Admin (All Privilege)</option>
+                              )}
                             </select>
                             <span className="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-[8px] text-slate-500">▼</span>
                           </div>
 
                           {/* Action Loader/Identity indicator */}
-                          <div className="w-5 h-5 flex items-center justify-center shrink-0" title={user.role === "admin" ? "Full Administrator Access" : undefined}>
+                          <div className="w-5 h-5 flex items-center justify-center shrink-0" title={isUserAdmin ? "Administrative Account" : undefined}>
                             {isUpdating && updatingId === user.id ? (
                               <Loader2 className="w-3.5 h-3.5 text-indigo-400 animate-spin" />
+                            ) : user.role === "superadmin" ? (
+                              <ShieldCheck className="w-4 h-4 text-indigo-400" />
                             ) : user.role === "admin" ? (
                               <ShieldCheck className="w-4 h-4 text-emerald-400" />
                             ) : null}
@@ -350,18 +369,18 @@ export default function UsersList({ users, currentUserId }: UsersListProps) {
                       <td className="p-5 text-right">
                         <button
                           onClick={() => handleInitiatePasswordChange(user.id, user.email)}
-                          disabled={isUpdating}
+                          disabled={isUpdating || !isManageable}
                           className="p-2 bg-slate-950 hover:bg-indigo-950/30 border border-slate-800 hover:border-indigo-900/30 text-slate-500 hover:text-indigo-400 rounded-lg transition-all shadow-sm disabled:opacity-30 disabled:cursor-not-allowed select-none cursor-pointer mr-2"
-                          title="Change User Password"
+                          title={!isManageable ? "You do not have permission to modify this account" : "Change User Password"}
                         >
                           <Key className="w-3.5 h-3.5" />
                         </button>
 
                         <button
                           onClick={() => handleDeleteUser(user.id, user.email)}
-                          disabled={isSelf || isUpdating}
+                          disabled={isSelf || isUpdating || !isManageable}
                           className="p-2 bg-slate-950 hover:bg-rose-950/30 border border-slate-800 hover:border-rose-900/30 text-slate-500 hover:text-rose-400 rounded-lg transition-all shadow-sm disabled:opacity-30 disabled:cursor-not-allowed select-none cursor-pointer"
-                          title={isSelf ? "You cannot delete your own account" : "Permanently Delete User Account"}
+                          title={isSelf ? "You cannot delete your own account" : !isManageable ? "You do not have permission to delete this account" : "Permanently Delete User Account"}
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>

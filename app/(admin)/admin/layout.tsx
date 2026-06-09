@@ -61,6 +61,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   const getRoleLabel = (role: string) => {
     switch (role) {
+      case "superadmin": return "League Super Admin";
       case "admin": return "League Administrator";
       case "captain": return "Team Captain";
       default: return "League Viewer";

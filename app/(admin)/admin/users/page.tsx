@@ -19,7 +19,7 @@ export default async function AdminUsersPage() {
     .from(profiles)
     .where(eq(profiles.id, user.id));
 
-  if (!callerProfile || callerProfile.role !== "admin") {
+  if (!callerProfile || (callerProfile.role !== "admin" && callerProfile.role !== "superadmin")) {
     redirect("/admin");
   }
 
@@ -33,6 +33,7 @@ export default async function AdminUsersPage() {
     <UsersList 
       users={allUsers} 
       currentUserId={user.id} 
+      callerRole={callerProfile.role}
     />
   );
 }
