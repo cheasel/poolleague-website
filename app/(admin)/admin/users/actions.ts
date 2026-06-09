@@ -124,3 +124,18 @@ export async function deleteUserAction(targetUserId: string) {
   revalidatePath("/admin/users");
   return { success: true };
 }
+
+export async function getCurrentUserProfileAction() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const [profile] = await db
+    .select()
+    .from(profiles)
+    .where(eq(profiles.id, user.id));
+
+  return profile
+    ? { email: profile.email, role: profile.role }
+    : { email: user.email || "", role: "viewer" as const };
+}

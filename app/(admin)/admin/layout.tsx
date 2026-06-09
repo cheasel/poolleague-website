@@ -20,9 +20,11 @@ import {
   Sliders,
   Sun,
   Moon,
-  UserCheck
+  UserCheck,
+  Loader2
 } from "lucide-react";
 import { signOutAction } from "@/src/app/auth-actions";
+import { getCurrentUserProfileAction } from "./users/actions";
 
 
 interface AdminLayoutProps {
@@ -33,11 +35,37 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const pathname = usePathname();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [profile, setProfile] = useState<{ email: string; role: string } | null>(null);
 
   React.useEffect(() => {
     const isLight = document.documentElement.classList.contains('light');
     setTheme(isLight ? 'light' : 'dark');
   }, []);
+
+  React.useEffect(() => {
+    async function loadProfile() {
+      try {
+        const data = await getCurrentUserProfileAction();
+        setProfile(data);
+      } catch (err) {
+        console.error("Failed to load user profile in layout:", err);
+      }
+    }
+    loadProfile();
+  }, []);
+
+  const getInitials = (email: string) => {
+    if (!email) return "??";
+    return email.substring(0, 2).toUpperCase();
+  };
+
+  const getRoleLabel = (role: string) => {
+    switch (role) {
+      case "admin": return "League Administrator";
+      case "captain": return "Team Captain";
+      default: return "League Viewer";
+    }
+  };
 
   const toggleTheme = () => {
     const nextTheme = theme === 'dark' ? 'light' : 'dark';
@@ -165,13 +193,17 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
           {/* User Identity Context Footer */}
           <div className="flex items-center justify-between min-w-0 gap-2">
-            <div className="flex items-center gap-2.5 min-w-0">
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
               <div className="w-9 h-9 rounded-xl bg-slate-800 border border-slate-700/50 flex items-center justify-center text-xs font-black text-white uppercase shadow-md shrink-0">
-                OP
+                {profile ? getInitials(profile.email) : <Loader2 className="w-3.5 h-3.5 text-slate-500 animate-spin" />}
               </div>
-              <div className="min-w-0">
-                <div className="text-xs font-black text-white leading-none truncate">Operations Principal</div>
-                <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mt-1 block truncate">League Director</span>
+              <div className="min-w-0 flex-1">
+                <div className="text-xs font-black text-white leading-none truncate" title={profile?.email || "Loading..."}>
+                  {profile ? profile.email : "Loading user..."}
+                </div>
+                <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider mt-1 block truncate">
+                  {profile ? getRoleLabel(profile.role) : "Please wait..."}
+                </span>
               </div>
             </div>
             <button 
