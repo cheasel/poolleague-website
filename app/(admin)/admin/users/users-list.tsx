@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useTransition } from "react";
-import { Search, Shield, ShieldCheck, Loader2, AlertCircle, CheckCircle2, UserPlus, Trash2 } from "lucide-react";
-import { updateUserRoleAction, createUserAction, deleteUserAction } from "./actions";
+import { Search, Shield, ShieldCheck, Loader2, AlertCircle, CheckCircle2, UserPlus, Trash2, Key } from "lucide-react";
+import { updateUserRoleAction, createUserAction, deleteUserAction, changeUserPasswordAction } from "./actions";
 
 interface UserProfile {
   id: string;
@@ -27,6 +27,12 @@ export default function UsersList({ users, currentUserId }: UsersListProps) {
   const [newPassword, setNewPassword] = useState("");
   const [newRole, setNewRole] = useState<"admin" | "captain" | "viewer">("viewer");
   const [isFormOpen, setIsFormOpen] = useState(false);
+
+  // Password Reset Form state
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [passwordTargetUserId, setPasswordTargetUserId] = useState<string | null>(null);
+  const [passwordTargetEmail, setPasswordTargetEmail] = useState("");
+  const [newPasswordValue, setNewPasswordValue] = useState("");
 
   const [isPending, startTransition] = useTransition();
 
@@ -102,6 +108,41 @@ export default function UsersList({ users, currentUserId }: UsersListProps) {
         setUpdatingId(null);
       }
     });
+  };
+
+  const handlePasswordChange = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!passwordTargetUserId || !newPasswordValue) return;
+
+    setSuccessMsg(null);
+    setErrorMsg(null);
+    setUpdatingId(passwordTargetUserId);
+
+    startTransition(async () => {
+      try {
+        const res = await changeUserPasswordAction(passwordTargetUserId, newPasswordValue);
+        if (res.success) {
+          setSuccessMsg(`Password for ${passwordTargetEmail} updated successfully.`);
+          setIsPasswordModalOpen(false);
+          setNewPasswordValue("");
+          setPasswordTargetUserId(null);
+          setPasswordTargetEmail("");
+          setTimeout(() => setSuccessMsg(null), 3000);
+        }
+      } catch (err) {
+        console.error("Failed to update password:", err);
+        setErrorMsg(err instanceof Error ? err.message : "Failed to update user password.");
+      } finally {
+        setUpdatingId(null);
+      }
+    });
+  };
+
+  const handleInitiatePasswordChange = (userId: string, email: string) => {
+    setPasswordTargetUserId(userId);
+    setPasswordTargetEmail(email);
+    setNewPasswordValue("");
+    setIsPasswordModalOpen(true);
   };
 
   const filteredUsers = users.filter((u) =>
@@ -308,6 +349,15 @@ export default function UsersList({ users, currentUserId }: UsersListProps) {
                       {/* Actions */}
                       <td className="p-5 text-right">
                         <button
+                          onClick={() => handleInitiatePasswordChange(user.id, user.email)}
+                          disabled={isUpdating}
+                          className="p-2 bg-slate-950 hover:bg-indigo-950/30 border border-slate-800 hover:border-indigo-900/30 text-slate-500 hover:text-indigo-400 rounded-lg transition-all shadow-sm disabled:opacity-30 disabled:cursor-not-allowed select-none cursor-pointer mr-2"
+                          title="Change User Password"
+                        >
+                          <Key className="w-3.5 h-3.5" />
+                        </button>
+
+                        <button
                           onClick={() => handleDeleteUser(user.id, user.email)}
                           disabled={isSelf || isUpdating}
                           className="p-2 bg-slate-950 hover:bg-rose-950/30 border border-slate-800 hover:border-rose-900/30 text-slate-500 hover:text-rose-400 rounded-lg transition-all shadow-sm disabled:opacity-30 disabled:cursor-not-allowed select-none cursor-pointer"
@@ -334,6 +384,64 @@ export default function UsersList({ users, currentUserId }: UsersListProps) {
       <div className="text-[9px] font-bold text-slate-600 uppercase tracking-wide text-center pt-2">
         Showing {filteredUsers.length} of {users.length} registered profiles database entries
       </div>
+
+      {/* Password Reset Modal Overlay */}
+      {isPasswordModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-slate-900/95 border border-slate-800 rounded-3xl p-6 w-full max-w-md shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-full bg-indigo-600/5 blur-[80px] rounded-full pointer-events-none" />
+            
+            <h2 className="text-sm font-black text-slate-100 uppercase tracking-tight flex items-center gap-2 mb-4 relative z-10">
+              <Key className="w-4 h-4 text-indigo-400" /> Change User Password
+            </h2>
+            
+            <p className="text-xs text-slate-400 font-medium mb-4 leading-relaxed relative z-10">
+              Update password credentials for: <span className="font-bold text-indigo-400">{passwordTargetEmail}</span>
+            </p>
+
+            <form onSubmit={handlePasswordChange} className="space-y-4 relative z-10">
+              <div className="space-y-2">
+                <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">New Password</label>
+                <input
+                  type="password"
+                  placeholder="••••••••"
+                  required
+                  minLength={6}
+                  value={newPasswordValue}
+                  onChange={(e) => setNewPasswordValue(e.target.value)}
+                  className="w-full p-3.5 bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl outline-none font-bold text-slate-100 text-xs transition-all placeholder:text-slate-700"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsPasswordModalOpen(false);
+                    setNewPasswordValue("");
+                    setPasswordTargetUserId(null);
+                    setPasswordTargetEmail("");
+                  }}
+                  className="px-4 py-2.5 bg-slate-950 hover:bg-slate-900 border border-slate-800 text-slate-400 hover:text-white rounded-xl font-black text-[9px] uppercase tracking-widest transition-all cursor-pointer select-none"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isPending}
+                  className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-black text-[9px] uppercase tracking-widest transition-all shadow-md cursor-pointer select-none disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  {isPending ? (
+                    <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
+                  ) : (
+                    "Change Password"
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -139,3 +139,19 @@ export async function getCurrentUserProfileAction() {
     ? { email: profile.email, role: profile.role }
     : { email: user.email || "", role: "viewer" as const };
 }
+
+export async function changeUserPasswordAction(targetUserId: string, newPassword: string) {
+  await checkAdminAuthorization();
+
+  const adminClient = getAdminClient();
+
+  const { error } = await adminClient.auth.admin.updateUserById(targetUserId, {
+    password: newPassword,
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return { success: true };
+}
