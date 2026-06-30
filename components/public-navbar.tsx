@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Trophy, Users, Calendar, BarChart3, Menu, X, ChevronDown, Shield, CalendarDays, Sun, Moon } from 'lucide-react';
+import { Trophy, Users, Calendar, BarChart3, Menu, X, ChevronDown, Shield, CalendarDays, Sun, Moon, History } from 'lucide-react';
 
 export default function PublicNavbar() {
   const pathname = usePathname();
@@ -143,6 +143,19 @@ export default function PublicNavbar() {
               <Calendar className={`w-4 h-4 ${pathname.startsWith('/matches') ? 'text-indigo-400' : 'text-slate-500'}`} />
               Matches
             </Link>
+
+            {/* History */}
+            <Link
+              href="/history"
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+                pathname.startsWith('/history')
+                  ? 'bg-slate-900 text-slate-100'
+                  : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/60'
+              }`}
+            >
+              <History className={`w-4 h-4 ${pathname.startsWith('/history') ? 'text-indigo-400' : 'text-slate-500'}`} />
+              History
+            </Link>
           </div>
 
           {/* Desktop Admin Quick Link & Facebook */}
@@ -271,6 +284,20 @@ export default function PublicNavbar() {
           >
             <Calendar className={`w-4 h-4 ${pathname.startsWith('/matches') ? 'text-indigo-400' : 'text-slate-500'}`} />
             Matches
+          </Link>
+
+          {/* History */}
+          <Link
+            href="/history"
+            onClick={() => setIsOpen(false)}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl text-base font-bold transition-all ${
+              pathname.startsWith('/history')
+                ? 'bg-slate-900 text-slate-100 border-l-2 border-indigo-400'
+                : 'text-slate-400 hover:text-slate-100 hover:bg-slate-900/40'
+            }`}
+          >
+            <History className={`w-4 h-4 ${pathname.startsWith('/history') ? 'text-indigo-400' : 'text-slate-500'}`} />
+            History
           </Link>
           
           <div className="pt-4 mt-2 border-t border-slate-900 px-4 space-y-3">
