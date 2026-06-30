@@ -49,8 +49,12 @@ interface SeasonHistory {
 
 const getCachedHistoryData = unstable_cache(
   async (): Promise<SeasonHistory[]> => {
-    // 1. Fetch seasons chronologically (newest first)
-    const allSeasons = await db.select().from(seasons).orderBy(desc(seasons.startDate));
+    // 1. Fetch past/inactive seasons chronologically (newest first)
+    const allSeasons = await db
+      .select()
+      .from(seasons)
+      .where(eq(seasons.isActive, false))
+      .orderBy(desc(seasons.startDate));
 
     if (allSeasons.length === 0) return [];
 
