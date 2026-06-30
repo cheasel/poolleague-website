@@ -1,7 +1,7 @@
 import { db } from "@/src/db";
-import { seasons, divisions, matches, teamRegistrations, teams } from "@/src/db/schema";
+import { seasons, divisions, matches, teamRegistrations, teams, matchGames, players } from "@/src/db/schema";
 import { eq, and, sql, desc } from "drizzle-orm";
-import { Trophy, Award, ArrowRight, Sparkles, Inbox } from "lucide-react";
+import { Trophy, Award, ArrowRight, Sparkles, Inbox, Crown } from "lucide-react";
 import Link from "next/link";
 import { unstable_cache } from "next/cache";
 import type { Metadata } from "next";
@@ -35,6 +35,7 @@ interface DivisionHistory {
   tier: number;
   champion: TeamStanding | null;
   runnerUp: TeamStanding | null;
+  topPlayer: { name: string; wins: number } | null;
   totalTeams: number;
   completedMatchesCount: number;
 }
@@ -88,7 +89,28 @@ const getCachedHistoryData = unstable_cache(
       .from(matches)
       .where(eq(matches.status, "completed"));
 
-    // 5. Aggregate standings per season & division in-memory
+    // 5. Fetch all players to map names in-memory
+    const allPlayers = await db.select().from(players);
+    const playerMap = new Map(allPlayers.map((p) => [p.id, p.name]));
+
+    // 6. Fetch all match games for completed matches
+    const allMatchGames = await db
+      .select({
+        matchId: matchGames.matchId,
+        seasonId: matches.seasonId,
+        divisionId: matches.divisionId,
+        player1Id: matchGames.player1Id,
+        player1PartnerId: matchGames.player1PartnerId,
+        player2Id: matchGames.player2Id,
+        player2PartnerId: matchGames.player2PartnerId,
+        player1Score: matchGames.player1Score,
+        player2Score: matchGames.player2Score,
+      })
+      .from(matchGames)
+      .innerJoin(matches, eq(matchGames.matchId, matches.id))
+      .where(eq(matches.status, "completed"));
+
+    // 7. Aggregate standings and player stats per season & division in-memory
     const result: SeasonHistory[] = allSeasons.map((season) => {
       const seasonDivisions = allDivisions.filter((d) => d.seasonId === season.id);
 
@@ -101,6 +123,7 @@ const getCachedHistoryData = unstable_cache(
           (m) => m.seasonId === season.id && m.divisionId === div.id
         );
 
+        // Standings calculation
         const standingsMap: Record<number, TeamStanding> = {};
         divRegs.forEach((reg) => {
           standingsMap[reg.teamId] = {
@@ -121,7 +144,7 @@ const getCachedHistoryData = unstable_cache(
         divMatches.forEach((match) => {
           const home = standingsMap[match.homeTeamId!];
           const away = standingsMap[match.awayTeamId!];
-          if (!home || !away) return; // Guard against out-of-scope registrations
+          if (!home || !away) return;
 
           const hScore = match.homeScore !== null ? Number(match.homeScore) : 0;
           const aScore = match.awayScore !== null ? Number(match.awayScore) : 0;
@@ -163,12 +186,42 @@ const getCachedHistoryData = unstable_cache(
         const champion = sortedStandings[0] || null;
         const runnerUp = sortedStandings[1] || null;
 
+        // Top Player (MVP) calculation
+        const divMatchGames = allMatchGames.filter(
+          (g) => g.seasonId === season.id && g.divisionId === div.id
+        );
+
+        const playerWins: Record<number, number> = {};
+        divMatchGames.forEach((game) => {
+          const p1Score = Number(game.player1Score || 0);
+          const p2Score = Number(game.player2Score || 0);
+
+          if (p1Score > p2Score) {
+            if (game.player1Id) playerWins[game.player1Id] = (playerWins[game.player1Id] || 0) + 1;
+            if (game.player1PartnerId) playerWins[game.player1PartnerId] = (playerWins[game.player1PartnerId] || 0) + 1;
+          } else if (p2Score > p1Score) {
+            if (game.player2Id) playerWins[game.player2Id] = (playerWins[game.player2Id] || 0) + 1;
+            if (game.player2PartnerId) playerWins[game.player2PartnerId] = (playerWins[game.player2PartnerId] || 0) + 1;
+          }
+        });
+
+        const sortedPlayers = Object.entries(playerWins)
+          .map(([idStr, wins]) => ({
+            id: Number(idStr),
+            name: playerMap.get(Number(idStr)) || "Unknown Player",
+            wins,
+          }))
+          .sort((a, b) => b.wins - a.wins);
+
+        const topPlayer = sortedPlayers[0] || null;
+
         return {
           id: div.id,
           name: div.name,
           tier: div.tier,
           champion,
           runnerUp,
+          topPlayer,
           totalTeams: divRegs.length,
           completedMatchesCount: divMatches.length,
         };
@@ -187,7 +240,7 @@ const getCachedHistoryData = unstable_cache(
     return result;
   },
   ["history-page-data"],
-  { revalidate: 60, tags: ["seasons", "divisions", "matches", "teams", "teamRegistrations"] }
+  { revalidate: 60, tags: ["seasons", "divisions", "matches", "teams", "teamRegistrations", "matchGames", "players"] }
 );
 
 const formatDate = (date: Date | null) => {
@@ -219,9 +272,9 @@ async function HistoryContent() {
 
   return (
     <div className="space-y-6">
-      {historyData.map((season, idx) => {
+      {historyData.map((season) => {
         return (
-          <HistorySeason key={season.id} season={season} defaultOpen={idx === 0}>
+          <HistorySeason key={season.id} season={season} defaultOpen={false}>
             {season.divisions.length === 0 ? (
               <p className="text-xs text-slate-500 font-medium py-4 text-center">No divisions configured for this season.</p>
             ) : (
@@ -282,6 +335,32 @@ async function HistoryContent() {
                                 </h4>
                               </div>
                             </div>
+                          </div>
+                        )}
+
+                        {/* Top Player (MVP) Box */}
+                        {div.topPlayer ? (
+                          <div className="bg-slate-950/40 border border-slate-850/40 rounded-2xl p-4 flex items-center justify-between hover:border-indigo-500/20 transition-all duration-200">
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shrink-0 shadow-lg shadow-indigo-950/20">
+                                <Crown className="w-4.5 h-4.5 text-slate-950 fill-slate-950" />
+                              </div>
+                              <div>
+                                <span className="text-[9px] font-black uppercase tracking-wider text-indigo-400 block leading-none mb-0.5">
+                                  Top Player (MVP)
+                                </span>
+                                <h4 className="font-black text-slate-200 uppercase tracking-tight text-xs sm:text-sm truncate max-w-[200px] sm:max-w-[280px]">
+                                  {div.topPlayer.name}
+                                </h4>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <span className="block font-mono font-black text-indigo-400 text-xs">{div.topPlayer.wins} Wins</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="bg-slate-950/20 border border-slate-900/60 border-dashed rounded-2xl p-4 text-center text-xs font-bold text-slate-500">
+                            Top Player stats pending
                           </div>
                         )}
 
