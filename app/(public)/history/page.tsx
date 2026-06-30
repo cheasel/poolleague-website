@@ -266,9 +266,6 @@ async function HistoryContent() {
                             {div.name}
                           </h3>
                         </div>
-                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider bg-slate-950/60 border border-slate-850 px-2 py-1 rounded-xl">
-                          {div.totalTeams} Teams
-                        </span>
                       </div>
 
                       {/* Standings/Winners Grid */}
@@ -284,16 +281,10 @@ async function HistoryContent() {
                                 <span className="text-[9px] font-black uppercase tracking-wider text-amber-400 block leading-none mb-0.5">
                                   {season.isActive ? "Current Leader" : "Champion"}
                                 </span>
-                                <h4 className="font-black text-slate-200 uppercase tracking-tight text-xs sm:text-sm truncate max-w-[160px] sm:max-w-[200px]">
+                                <h4 className="font-black text-slate-200 uppercase tracking-tight text-xs sm:text-sm truncate max-w-[200px] sm:max-w-[280px]">
                                   {div.champion.name}
                                 </h4>
                               </div>
-                            </div>
-                            <div className="text-right">
-                              <span className="block font-mono font-black text-amber-400 text-xs">{div.champion.points} Pts</span>
-                              <span className="block text-[9px] font-bold text-slate-500 uppercase tracking-wider">
-                                {div.champion.wins}W - {div.champion.draws}D - {div.champion.losses}L
-                              </span>
                             </div>
                           </div>
                         ) : (
@@ -313,29 +304,47 @@ async function HistoryContent() {
                                 <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 block leading-none mb-0.5">
                                   Runner-Up
                                 </span>
-                                <h4 className="font-black text-slate-350 uppercase tracking-tight text-xs sm:text-sm truncate max-w-[160px] sm:max-w-[200px]">
+                                <h4 className="font-black text-slate-350 uppercase tracking-tight text-xs sm:text-sm truncate max-w-[200px] sm:max-w-[280px]">
                                   {div.runnerUp.name}
                                 </h4>
                               </div>
                             </div>
-                            <div className="text-right">
-                              <span className="block font-mono font-bold text-slate-400 text-xs">{div.runnerUp.points} Pts</span>
-                              <span className="block text-[9px] font-bold text-slate-600 uppercase tracking-wider">
-                                {div.runnerUp.wins}W - {div.runnerUp.draws}D - {div.runnerUp.losses}L
-                              </span>
-                            </div>
                           </div>
                         )}
-                      </div>
 
-                      {/* View standings CTA */}
-                      <div className="mt-5 pt-3.5 border-t border-slate-850/60">
-                        <Link
-                          href={`/standings?seasonId=${season.id}&divisionId=${div.id}`}
-                          className="w-full py-2.5 bg-slate-950 hover:bg-slate-900 border border-slate-850/70 hover:border-slate-850 hover:text-indigo-400 text-slate-350 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-1.5"
-                        >
-                          View Full Standings <ArrowRight className="w-3 h-3" />
-                        </Link>
+                        {/* Single Tournament Champion Placeholder */}
+                        <div className="bg-slate-950/20 border border-slate-900/40 border-dashed rounded-2xl p-4 flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-full bg-slate-900/60 flex items-center justify-center shrink-0 border border-slate-850/60 text-indigo-400/50">
+                              <Trophy className="w-4.5 h-4.5" />
+                            </div>
+                            <div>
+                              <span className="text-[9px] font-black uppercase tracking-wider text-indigo-400/60 block leading-none mb-0.5">
+                                Single Tournament Champion
+                              </span>
+                              <h4 className="font-bold text-slate-500 uppercase tracking-tight text-xs italic">
+                                TBD
+                              </h4>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Single Tournament Runner-Up Placeholder */}
+                        <div className="bg-slate-950/20 border border-slate-900/40 border-dashed rounded-2xl p-4 flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-full bg-slate-900/60 flex items-center justify-center shrink-0 border border-slate-850/60 text-slate-500/55">
+                              <Award className="w-4.5 h-4.5" />
+                            </div>
+                            <div>
+                              <span className="text-[9px] font-black uppercase tracking-wider text-slate-400/60 block leading-none mb-0.5">
+                                Single Tournament Runner-Up
+                              </span>
+                              <h4 className="font-bold text-slate-550 uppercase tracking-tight text-xs italic">
+                                TBD
+                              </h4>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </Card>
