@@ -1,10 +1,10 @@
 import { db } from "@/src/db";
-import { divisions, seasons, teams, teamRegistrations } from "@/src/db/schema";
+import { divisions, seasons, teams, teamRegistrations, players } from "@/src/db/schema";
 import { eq, asc } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Save, ArrowLeft, FolderTree, Calendar, Shield } from "lucide-react";
+import { Save, ArrowLeft, FolderTree, Calendar, Shield, Trophy, Award } from "lucide-react";
 import { assertWritePrivilege, getIsReadOnly } from "@/src/utils/auth-guards";
 
 export const dynamic = "force-dynamic";
@@ -20,8 +20,8 @@ export default async function EditDivisionPage({ params }: PageProps) {
   const divisionId = Number(id);
   const isReadOnly = await getIsReadOnly();
 
-  // 1. Fetch target division, all seasons, and current division teams in parallel
-  const [divisionResult, allSeasons, divisionTeams] = await Promise.all([
+  // 1. Fetch target division, all seasons, current division teams, and players in parallel
+  const [divisionResult, allSeasons, divisionTeams, allPlayers] = await Promise.all([
     db.select().from(divisions).where(eq(divisions.id, divisionId)),
     db.select().from(seasons).orderBy(asc(seasons.name)),
     db
@@ -33,7 +33,8 @@ export default async function EditDivisionPage({ params }: PageProps) {
       .from(teamRegistrations)
       .innerJoin(teams, eq(teamRegistrations.teamId, teams.id))
       .where(eq(teamRegistrations.divisionId, divisionId))
-      .orderBy(asc(teams.name))
+      .orderBy(asc(teams.name)),
+    db.select().from(players).orderBy(asc(players.name))
   ]);
 
   const division = divisionResult[0];
@@ -50,17 +51,24 @@ export default async function EditDivisionPage({ params }: PageProps) {
     const tier = Number(formData.get("tier"));
     const seasonIdVal = formData.get("seasonId");
     const seasonId = seasonIdVal ? Number(seasonIdVal) : null;
+    const tournamentChampionIdVal = formData.get("tournamentChampionId");
+    const tournamentChampionId = tournamentChampionIdVal ? Number(tournamentChampionIdVal) : null;
+    const tournamentRunnerUpIdVal = formData.get("tournamentRunnerUpId");
+    const tournamentRunnerUpId = tournamentRunnerUpIdVal ? Number(tournamentRunnerUpIdVal) : null;
 
     await db.update(divisions)
       .set({ 
         name, 
         tier, 
-        seasonId: seasonId || null 
+        seasonId: seasonId || null,
+        tournamentChampionId: tournamentChampionId || null,
+        tournamentRunnerUpId: tournamentRunnerUpId || null,
       })
       .where(eq(divisions.id, divisionId));
 
     revalidatePath("/admin/divisions");
     revalidatePath("/standings");
+    revalidatePath("/history");
     redirect("/admin/divisions");
   }
 
@@ -137,6 +145,54 @@ export default async function EditDivisionPage({ params }: PageProps) {
                   {allSeasons.map(s => (
                     <option key={s.id} value={s.id}>
                       {s.name} {s.isActive ? "— [ CURRENT ACTIVE ]" : ""}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 text-xs">▼</div>
+              </div>
+            </div>
+
+            {/* TOURNAMENT CHAMPION SELECTOR */}
+            <div className="space-y-2.5">
+              <div className="flex items-center gap-2 ml-1">
+                <Trophy className="w-3.5 h-3.5 text-slate-500" />
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Single Tournament Champion</label>
+              </div>
+              <div className="relative">
+                <select 
+                  name="tournamentChampionId" 
+                  defaultValue={division.tournamentChampionId || ""}
+                  disabled={isReadOnly}
+                  className="w-full p-4 bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl outline-none font-bold text-slate-100 appearance-none text-sm pr-10 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  <option value="">No Champion Assigned</option>
+                  {allPlayers.map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 text-xs">▼</div>
+              </div>
+            </div>
+
+            {/* TOURNAMENT RUNNER-UP SELECTOR */}
+            <div className="space-y-2.5">
+              <div className="flex items-center gap-2 ml-1">
+                <Award className="w-3.5 h-3.5 text-slate-500" />
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Single Tournament Runner-up</label>
+              </div>
+              <div className="relative">
+                <select 
+                  name="tournamentRunnerUpId" 
+                  defaultValue={division.tournamentRunnerUpId || ""}
+                  disabled={isReadOnly}
+                  className="w-full p-4 bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl outline-none font-bold text-slate-100 appearance-none text-sm pr-10 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  <option value="">No Runner-up Assigned</option>
+                  {allPlayers.map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
                     </option>
                   ))}
                 </select>

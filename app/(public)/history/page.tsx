@@ -36,6 +36,8 @@ interface DivisionHistory {
   champion: TeamStanding | null;
   runnerUp: TeamStanding | null;
   topPlayer: { name: string; wins: number } | null;
+  tournamentChampion: { id: number; name: string } | null;
+  tournamentRunnerUp: { id: number; name: string } | null;
   totalTeams: number;
   completedMatchesCount: number;
 }
@@ -215,6 +217,14 @@ const getCachedHistoryData = unstable_cache(
 
         const topPlayer = sortedPlayers[0] || null;
 
+        const tournamentChampion = div.tournamentChampionId
+          ? { id: div.tournamentChampionId, name: playerMap.get(div.tournamentChampionId) || "Unknown Player" }
+          : null;
+
+        const tournamentRunnerUp = div.tournamentRunnerUpId
+          ? { id: div.tournamentRunnerUpId, name: playerMap.get(div.tournamentRunnerUpId) || "Unknown Player" }
+          : null;
+
         return {
           id: div.id,
           name: div.name,
@@ -222,6 +232,8 @@ const getCachedHistoryData = unstable_cache(
           champion,
           runnerUp,
           topPlayer,
+          tournamentChampion,
+          tournamentRunnerUp,
           totalTeams: divRegs.length,
           completedMatchesCount: divMatches.length,
         };
@@ -364,35 +376,55 @@ async function HistoryContent() {
                           </div>
                         )}
 
-                        {/* Single Tournament Champion Placeholder */}
-                        <div className="bg-slate-950/20 border border-slate-900/40 border-dashed rounded-2xl p-4 flex items-center justify-between">
+                        {/* Single Tournament Champion */}
+                        <div className={`border rounded-2xl p-4 flex items-center justify-between transition-all duration-200 ${
+                          div.tournamentChampion 
+                            ? "bg-slate-950/40 border-slate-850/40 hover:border-indigo-500/20 shadow-inner" 
+                            : "bg-slate-950/20 border border-slate-900/40 border-dashed"
+                        }`}>
                           <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-full bg-slate-900/60 flex items-center justify-center shrink-0 border border-slate-850/60 text-indigo-400/50">
+                            <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 border ${
+                              div.tournamentChampion 
+                                ? "bg-gradient-to-br from-indigo-500 to-purple-655 border-transparent text-slate-950 shadow-lg shadow-indigo-950/20" 
+                                : "bg-slate-900/60 border-slate-850/60 text-indigo-400/50"
+                            }`}>
                               <Trophy className="w-4.5 h-4.5" />
                             </div>
                             <div>
                               <span className="text-[9px] font-black uppercase tracking-wider text-indigo-400/60 block leading-none mb-0.5">
                                 Single Tournament Champion
                               </span>
-                              <h4 className="font-bold text-slate-500 uppercase tracking-tight text-xs italic">
-                                TBD
+                              <h4 className={`font-black uppercase tracking-tight text-xs ${
+                                div.tournamentChampion ? "text-slate-200" : "text-slate-500 italic"
+                              }`}>
+                                {div.tournamentChampion ? div.tournamentChampion.name : "TBD"}
                               </h4>
                             </div>
                           </div>
                         </div>
 
-                        {/* Single Tournament Runner-Up Placeholder */}
-                        <div className="bg-slate-950/20 border border-slate-900/40 border-dashed rounded-2xl p-4 flex items-center justify-between">
+                        {/* Single Tournament Runner-Up */}
+                        <div className={`border rounded-2xl p-4 flex items-center justify-between transition-all duration-200 ${
+                          div.tournamentRunnerUp 
+                            ? "bg-slate-950/40 border-slate-850/40 hover:border-slate-800 shadow-inner" 
+                            : "bg-slate-950/20 border border-slate-900/40 border-dashed"
+                        }`}>
                           <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-full bg-slate-900/60 flex items-center justify-center shrink-0 border border-slate-850/60 text-slate-550/55">
+                            <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 border ${
+                              div.tournamentRunnerUp 
+                                ? "bg-slate-900 border-slate-800 text-slate-400" 
+                                : "bg-slate-900/60 border-slate-850/60 text-slate-550/50"
+                            }`}>
                               <Award className="w-4.5 h-4.5" />
                             </div>
                             <div>
                               <span className="text-[9px] font-black uppercase tracking-wider text-slate-400/60 block leading-none mb-0.5">
                                 Single Tournament Runner-Up
                               </span>
-                              <h4 className="font-bold text-slate-550 uppercase tracking-tight text-xs italic">
-                                TBD
+                              <h4 className={`font-black uppercase tracking-tight text-xs ${
+                                div.tournamentRunnerUp ? "text-slate-350" : "text-slate-550 italic"
+                              }`}>
+                                {div.tournamentRunnerUp ? div.tournamentRunnerUp.name : "TBD"}
                               </h4>
                             </div>
                           </div>

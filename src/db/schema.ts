@@ -30,6 +30,8 @@ export const divisions = pgTable("divisions", {
   name: varchar("name", { length: 255 }).notNull(),
   seasonId: integer("season_id").references(() => seasons.id, { onDelete: "cascade" }),
   tier: integer("tier").default(1).notNull(), 
+  tournamentChampionId: integer("tournament_champion_id").references(() => players.id, { onDelete: "set null" }),
+  tournamentRunnerUpId: integer("tournament_runner_up_id").references(() => players.id, { onDelete: "set null" }),
 }, (table) => [
   index('divisions_season_idx').on(table.seasonId),
 ]);
@@ -134,6 +136,8 @@ export const seasonsRelations = relations(seasons, ({ many }) => ({
 
 export const divisionsRelations = relations(divisions, ({ one, many }) => ({
   season: one(seasons, { fields: [divisions.seasonId], references: [seasons.id] }),
+  tournamentChampion: one(players, { fields: [divisions.tournamentChampionId], references: [players.id] }),
+  tournamentRunnerUp: one(players, { fields: [divisions.tournamentRunnerUpId], references: [players.id] }),
   teamRegistrations: many(teamRegistrations),
   matches: many(matches),
 }));
