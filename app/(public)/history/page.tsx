@@ -1,5 +1,5 @@
 import { db } from "@/src/db";
-import { seasons, divisions, matches, teamRegistrations, teams, matchGames, players } from "@/src/db/schema";
+import { seasons, divisions, matches, teamRegistrations, teams, matchGames, players, teamMemberships } from "@/src/db/schema";
 import { eq, and, sql, desc } from "drizzle-orm";
 import { Trophy, Award, ArrowRight, Sparkles, Inbox, Crown } from "lucide-react";
 import Link from "next/link";
@@ -35,9 +35,9 @@ interface DivisionHistory {
   tier: number;
   champion: TeamStanding | null;
   runnerUp: TeamStanding | null;
-  topPlayer: { name: string; wins: number } | null;
-  tournamentChampion: { id: number; name: string } | null;
-  tournamentRunnerUp: { id: number; name: string } | null;
+  topPlayer: { name: string; wins: number; teamName: string | null } | null;
+  tournamentChampion: { id: number; name: string; teamName: string | null } | null;
+  tournamentRunnerUp: { id: number; name: string; teamName: string | null } | null;
   totalTeams: number;
   completedMatchesCount: number;
 }
@@ -112,7 +112,22 @@ const getCachedHistoryData = unstable_cache(
       .innerJoin(matches, eq(matchGames.matchId, matches.id))
       .where(eq(matches.status, "completed"));
 
-    // 7. Aggregate standings and player stats per season & division in-memory
+    // 7. Fetch all team memberships for mapping player teams in each season
+    const allMemberships = await db
+      .select({
+        playerId: teamMemberships.playerId,
+        seasonId: teamMemberships.seasonId,
+        teamName: teams.name,
+      })
+      .from(teamMemberships)
+      .innerJoin(teams, eq(teamMemberships.teamId, teams.id));
+
+    const playerTeamMap = new Map<string, string>();
+    allMemberships.forEach((m) => {
+      playerTeamMap.set(`${m.playerId}-${m.seasonId}`, m.teamName);
+    });
+
+    // 8. Aggregate standings and player stats per season & division in-memory
     const result: SeasonHistory[] = allSeasons.map((season) => {
       const seasonDivisions = allDivisions.filter((d) => d.seasonId === season.id);
 
@@ -215,14 +230,29 @@ const getCachedHistoryData = unstable_cache(
           }))
           .sort((a, b) => b.wins - a.wins);
 
-        const topPlayer = sortedPlayers[0] || null;
+        const topPlayerRaw = sortedPlayers[0] || null;
+        const topPlayer = topPlayerRaw
+          ? {
+              name: topPlayerRaw.name,
+              wins: topPlayerRaw.wins,
+              teamName: playerTeamMap.get(`${topPlayerRaw.id}-${season.id}`) || null,
+            }
+          : null;
 
         const tournamentChampion = div.tournamentChampionId
-          ? { id: div.tournamentChampionId, name: playerMap.get(div.tournamentChampionId) || "Unknown Player" }
+          ? { 
+              id: div.tournamentChampionId, 
+              name: playerMap.get(div.tournamentChampionId) || "Unknown Player",
+              teamName: playerTeamMap.get(`${div.tournamentChampionId}-${season.id}`) || null,
+            }
           : null;
 
         const tournamentRunnerUp = div.tournamentRunnerUpId
-          ? { id: div.tournamentRunnerUpId, name: playerMap.get(div.tournamentRunnerUpId) || "Unknown Player" }
+          ? { 
+              id: div.tournamentRunnerUpId, 
+              name: playerMap.get(div.tournamentRunnerUpId) || "Unknown Player",
+              teamName: playerTeamMap.get(`${div.tournamentRunnerUpId}-${season.id}`) || null,
+            }
           : null;
 
         return {
@@ -252,7 +282,7 @@ const getCachedHistoryData = unstable_cache(
     return result;
   },
   ["history-page-data"],
-  { revalidate: 60, tags: ["seasons", "divisions", "matches", "teams", "teamRegistrations", "matchGames", "players"] }
+  { revalidate: 60, tags: ["seasons", "divisions", "matches", "teams", "teamRegistrations", "matchGames", "players", "teamMemberships"] }
 );
 
 const formatDate = (date: Date | null) => {
@@ -363,6 +393,11 @@ async function HistoryContent() {
                                 </span>
                                 <h4 className="font-black text-slate-200 uppercase tracking-tight text-xs sm:text-sm truncate max-w-[200px] sm:max-w-[280px]">
                                   {div.topPlayer.name}
+                                  {div.topPlayer.teamName && (
+                                    <span className="text-[10px] text-slate-500 font-bold ml-1.5 normal-case tracking-normal">
+                                      ({div.topPlayer.teamName})
+                                    </span>
+                                  )}
                                 </h4>
                               </div>
                             </div>
@@ -398,6 +433,11 @@ async function HistoryContent() {
                                 div.tournamentChampion ? "text-slate-200" : "text-slate-500 italic"
                               }`}>
                                 {div.tournamentChampion ? div.tournamentChampion.name : "TBD"}
+                                {div.tournamentChampion?.teamName && (
+                                  <span className="text-[10px] text-slate-500 font-bold ml-1.5 normal-case tracking-normal">
+                                    ({div.tournamentChampion.teamName})
+                                  </span>
+                                )}
                               </h4>
                             </div>
                           </div>
@@ -425,6 +465,11 @@ async function HistoryContent() {
                                 div.tournamentRunnerUp ? "text-slate-350" : "text-slate-550 italic"
                               }`}>
                                 {div.tournamentRunnerUp ? div.tournamentRunnerUp.name : "TBD"}
+                                {div.tournamentRunnerUp?.teamName && (
+                                  <span className="text-[10px] text-slate-500 font-bold ml-1.5 normal-case tracking-normal">
+                                    ({div.tournamentRunnerUp.teamName})
+                                  </span>
+                                )}
                               </h4>
                             </div>
                           </div>
