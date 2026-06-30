@@ -8,6 +8,7 @@ import type { Metadata } from "next";
 import Badge from "@/components/Badge";
 import Card from "@/components/Card";
 import { Suspense } from "react";
+import HistorySeason from "./HistorySeason";
 
 export const metadata: Metadata = {
   title: "League History | Lanna Pool Club",
@@ -217,40 +218,12 @@ async function HistoryContent() {
   }
 
   return (
-    <div className="space-y-16">
-      {historyData.map((season) => {
-        const startStr = formatDate(season.startDate);
-        const endStr = formatDate(season.endDate);
-        const seasonDates = startStr && endStr ? `${startStr} — ${endStr}` : startStr || "";
-
+    <div className="space-y-6">
+      {historyData.map((season, idx) => {
         return (
-          <div key={season.id} className="relative z-10 space-y-6">
-            {/* Season header bar */}
-            <div className="flex flex-wrap items-center justify-between border-b border-slate-900 pb-4 gap-4">
-              <div className="space-y-1">
-                <h2 className="text-xl sm:text-2xl font-black text-slate-100 uppercase tracking-tight italic flex items-center gap-2">
-                  {season.name}
-                </h2>
-                {seasonDates && (
-                  <p className="text-[10px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider">
-                    {seasonDates}
-                  </p>
-                )}
-              </div>
-              <div>
-                {season.isActive ? (
-                  <Badge variant="emerald">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Current Season
-                  </Badge>
-                ) : (
-                  <Badge variant="slate">Archived</Badge>
-                )}
-              </div>
-            </div>
-
-            {/* Divisions list */}
+          <HistorySeason key={season.id} season={season} defaultOpen={idx === 0}>
             {season.divisions.length === 0 ? (
-              <p className="text-xs text-slate-500 font-medium py-4">No divisions configured for this season.</p>
+              <p className="text-xs text-slate-500 font-medium py-4 text-center">No divisions configured for this season.</p>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {season.divisions.map((div) => (
@@ -332,7 +305,7 @@ async function HistoryContent() {
                         {/* Single Tournament Runner-Up Placeholder */}
                         <div className="bg-slate-950/20 border border-slate-900/40 border-dashed rounded-2xl p-4 flex items-center justify-between">
                           <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-full bg-slate-900/60 flex items-center justify-center shrink-0 border border-slate-850/60 text-slate-500/55">
+                            <div className="w-9 h-9 rounded-full bg-slate-900/60 flex items-center justify-center shrink-0 border border-slate-850/60 text-slate-550/55">
                               <Award className="w-4.5 h-4.5" />
                             </div>
                             <div>
@@ -351,7 +324,7 @@ async function HistoryContent() {
                 ))}
               </div>
             )}
-          </div>
+          </HistorySeason>
         );
       })}
     </div>
